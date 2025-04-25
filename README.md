@@ -1,3 +1,5 @@
+用Claude或ChatGPT Vibe Coding自製HTML小工具，持續創作中...
+
 [HTML存檔工具](https://linwei630718.github.io/html/htmlsave.html)
 
 [ICRT Lunch Box(國小)](https://linwei630718.github.io/html/icrt.html)
