@@ -23,4 +23,4 @@
 
 [數字加總趣音效版](https://linwei630718.github.io/html/game/add.html)
 
-[數字乘積趣](https://linwei630718.github.io/html/multiply.html)
+[數字乘積趣](https://linwei630718.github.io/html/game/multiply.html)
