@@ -21,6 +21,6 @@
 
 [Google Doodle中文小遊戲](https://linwei630718.github.io/html/game/doodle.html)
 
-[數字加總趣音效版](https://linwei630718.github.io/html/game/.html)
+[數字加總趣音效版](https://linwei630718.github.io/html/game/add.html)
 
 [數字乘積趣](https://linwei630718.github.io/html/multiply.html)
