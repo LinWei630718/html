@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數字加總趣</title>
+    <style>
+        body { 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+            background: #282c34; 
+            color: white; 
+            font-family: Arial, sans-serif; 
+            position: relative;
+            overflow: hidden;
+        }
+        #designer-info {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background-color: rgba(97, 218, 251, 0.2);
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            z-index: 100;
+        }
+        #designer-info a {
+            color: #61dafb;
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s;
+        }
+        #designer-info a:hover {
+            color: #ff9800;
+            text-decoration: underline;
+        }
+        #title-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #282c34;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeOut 1s ease 2s forwards;
+        }
+        #title-screen h1 {
+            font-size: clamp(40px, 10vw, 80px);
+            color: #61dafb;
+            text-shadow: 0 0 20px rgba(97, 218, 251, 0.7);
+            animation: pulse 2s infinite;
+            text-align: center;
+            padding: 0 20px;
+        }
+        #game-instructions {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #282c34;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 900;
+            opacity: 0;
+            visibility: hidden;
+            padding: 20px;
+            box-sizing: border-box;
+            flex-direction: column;
+        }
+        #game-instructions-text {
+            font-size: clamp(18px, 5vw, 32px);
+            color: white;
+            max-width: 90%;
+            text-align: center;
+            line-height: 1.5;
+            background-color: rgba(255, 152, 0, 0.2);
+            padding: clamp(20px, 5vw, 40px);
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+        #game-result {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #282c34;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #result-title {
+            font-size: clamp(32px, 8vw, 60px);
+            color: #61dafb;
+            margin-bottom: clamp(20px, 5vh, 40px);
+            text-shadow: 0 0 10px rgba(97, 218, 251, 0.5);
+            text-align: center;
+        }
+        .result-stat {
+            font-size: clamp(18px, 4vw, 32px);
+            margin: 10px;
+            padding: 15px 30px;
+            background: rgba(97, 218, 251, 0.1);
+            border-radius: 10px;
+            width: 100%;
+            max-width: 300px;
+            text-align: center;
+        }
+        .result-highlight {
+            color: #ff9800;
+            font-weight: bold;
+        }
+        .restart-btn {
+            margin-top: clamp(20px, 5vh, 40px);
+            padding: 15px 30px;
+            background: #ff9800;
+            color: white;
+            font-size: clamp(16px, 3vw, 24px);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .restart-btn:hover {
+            background: #ff5722;
+            transform: scale(1.1);
+        }
+        .game-info { 
+            display: none;
+            text-align: center; 
+            font-size: 20px; 
+            margin-bottom: 20px; 
+            max-width: 90%; 
+            line-height: 1.4;
+            background-color: rgba(255, 152, 0, 0.1);
+            padding: 15px;
+            border-radius: 15px;
+        }
+        #game-content {
+            width: 100%;
+            max-width: 1200px;
+            padding: 10px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        /* 水平統計欄 */
+        .stats-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: clamp(10px, 2vw, 20px);
+            width: 100%;
+            max-width: 750px;
+            background-color: rgba(97, 218, 251, 0.1);
+            padding: clamp(10px, 2vw, 15px);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            font-size: clamp(16px, 3vw, 22px);
+            padding: 5px;
+        }
+        .level {
+            background-color: rgba(255, 152, 0, 0.3);
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        .stat-value {
+            font-weight: bold;
+            color: #ff9800;
+            margin-left: 8px;
+        }
+        .game-container { 
+            display: flex; 
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            gap: clamp(20px, 5vh, 80px);
+        }
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            grid-template-rows: repeat(3, 1fr);
+            gap: clamp(10px, 2vw, 20px);
+            width: 100%;
+            max-width: 450px;
+            aspect-ratio: 1/1;
+        }
+        .cell { 
+            width: 100%;
+            height: 100%;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            background: #61dafb; 
+            font-size: clamp(24px, 6vw, 48px); 
+            font-weight: bold; 
+            border-radius: 10px; 
+            box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.3);
+            transition: background-color 0.3s;
+        }
+        .cell.empty {
+            background: #3a4049;
+        }
+        .options { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: clamp(10px, 2vw, 20px);
+            width: 100%;
+            max-width: 450px;
+        }
+        .option { 
+            padding: clamp(15px, 4vw, 30px);
+            text-align: center; 
+            background: #ff9800; 
+            cursor: pointer;
+            font-size: clamp(32px, 8vw, 64px);
+            font-weight: bold; 
+            border-radius: 10px; 
+            box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.3); 
+            transition: transform 0.2s, background-color 0.2s; 
+        }
+        .option:hover { 
+            transform: scale(1.05); 
+            background: #ff5722; 
+        }
+        .correct-answer {
+            background: #4CAF50;
+        }
+        .wrong-answer {
+            background: #f44336;
+        }
+        
+        /* 媒體查詢，適應不同裝置 */
+        @media (min-width: 768px) {
+            .game-container {
+                flex-direction: row;
+                justify-content: center;
+            }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; visibility: hidden; }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; visibility: visible; }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div id="title-screen">
+        <h1>數字加總趣</h1>
+    </div>
+    
+    <div id="game-instructions">
+        <div id="game-instructions-text">
+            觀察九宮格內的數字，隨著時間流逝數字會消失，選擇右方正確的總和答案，10 關結束後顯示成績！
+        </div>
+        <div id="designer-info">Designed by <a href="https://linwei0718.serv00.net" target="_blank">LinWei老師</a></div>
+    </div>
+    
+    <div id="game-result">
+        <div id="result-title">遊戲結束</div>
+        <div class="result-stat">完成時間：<span id="final-time" class="result-highlight">0</span> 秒</div>
+        <div class="result-stat">答對題數：<span id="final-correct" class="result-highlight">0</span> 題</div>
+        <div class="result-stat">答錯題數：<span id="final-wrong" class="result-highlight">0</span> 題</div>
+        <div class="result-stat">正確率：<span id="final-accuracy" class="result-highlight">0</span>%</div>
+        <button class="restart-btn" onclick="restartGame()">再玩一次</button>
+    </div>
+    
+    <div id="game-content">
+        <div class="game-info">觀察九宮格內的數字，隨著時間流逝數字會消失，選擇右方正確的總和答案，10 關結束後顯示成績！</div>
+        
+        <!-- 水平統計欄 -->
+        <div class="stats-bar">
+            <div class="stat-item level" id="level">第 1 關 / 10</div>
+            <div class="stat-item">時間：<span id="timer" class="stat-value">0</span> 秒</div>
+            <div class="stat-item">答對：<span id="correct" class="stat-value">0</span> 題</div>
+            <div class="stat-item">答錯：<span id="wrong" class="stat-value">0</span> 題</div>
+        </div>
+        
+        <div class="game-container">
+            <div class="grid" id="grid"></div>
+            <div class="options" id="options"></div>
+        </div>
+    </div>
+    
+    <!-- 音效元素 -->
+    <audio id="correctSound" preload="auto">
+        <source src="https://img.500audio.com/audio/original_audio/2020/11/18/correct-reminder-sound-sound-effect-2165.mp3" type="audio/mp3">
+    </audio>
+    <audio id="wrongSound" preload="auto">
+        <source src="https://img.500audio.com/audio/preview_audio/2021/05/24/answer-the-wrong-tone-sound-effect-23121.mp3" type="audio/mp3">
+    </audio>
+    
+    <script>
+        const grid = document.getElementById("grid");
+        const optionsContainer = document.getElementById("options");
+        const levelText = document.getElementById("level");
+        const timerDisplay = document.getElementById("timer");
+        const correctDisplay = document.getElementById("correct");
+        const wrongDisplay = document.getElementById("wrong");
+        const gameContent = document.getElementById("game-content");
+        const gameResult = document.getElementById("game-result");
+        const finalTime = document.getElementById("final-time");
+        const finalCorrect = document.getElementById("final-correct");
+        const finalWrong = document.getElementById("final-wrong");
+        const finalAccuracy = document.getElementById("final-accuracy");
+        const gameInstructions = document.getElementById("game-instructions");
+        const designerInfo = document.getElementById("designer-info");
+        
+        // 音效元素
+        const correctSound = document.getElementById("correctSound");
+        const wrongSound = document.getElementById("wrongSound");
+        
+        let level = 1, correctCount = 0, wrongCount = 0, timer = 0, timerInterval;
+        let numbers = [], visibleIndices = [];
+        let totalSum = 0;
+        let gameStarted = false;
+
+        // 預加載音效
+        function preloadSounds() {
+            correctSound.load();
+            wrongSound.load();
+        }
+        
+        // 播放正確音效
+        function playCorrectSound() {
+            correctSound.currentTime = 0;
+            correctSound.play().catch(e => console.log("播放音效失敗：", e));
+        }
+        
+        // 播放錯誤音效
+        function playWrongSound() {
+            wrongSound.currentTime = 0;
+            wrongSound.play().catch(e => console.log("播放音效失敗：", e));
+        }
+
+        // 頁面載入完成後預加載音效
+        window.addEventListener('load', preloadSounds);
+
+        // 標題畫面顯示2秒後顯示遊戲說明
+        setTimeout(() => {
+            // 顯示遊戲說明
+            gameInstructions.style.animation = "fadeIn 0.5s forwards";
+            
+            // 遊戲說明顯示3秒後開始遊戲
+            setTimeout(() => {
+                gameInstructions.style.animation = "fadeOut 0.5s forwards";
+                setTimeout(() => {
+                    // 將 designer-info 移除或隱藏
+                    designerInfo.style.display = "none";
+                    startGame();
+                }, 500);
+            }, 3000);
+        }, 2000);
+
+        function startGame() {
+            gameStarted = true;
+            startGameTimer();
+            startLevel();
+        }
+
+        function restartGame() {
+            // 重置遊戲狀態
+            level = 1;
+            correctCount = 0;
+            wrongCount = 0;
+            
+            // 隱藏結果畫面，顯示遊戲內容
+            gameResult.style.display = "none";
+            gameContent.style.display = "block";
+            
+            // 重新開始遊戲
+            startGameTimer();
+            startLevel();
+        }
+
+        function startGameTimer() {
+            clearInterval(timerInterval);
+            timer = 0;
+            timerDisplay.textContent = timer;
+            timerInterval = setInterval(() => {
+                timer++;
+                timerDisplay.textContent = timer;
+            }, 1000);
+        }
+
+        function showGameResult() {
+            clearInterval(timerInterval);
+            
+            // 更新結果畫面的數據
+            finalTime.textContent = timer;
+            finalCorrect.textContent = correctCount;
+            finalWrong.textContent = wrongCount;
+            
+            // 計算正確率
+            const totalQuestions = correctCount + wrongCount;
+            const accuracy = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+            finalAccuracy.textContent = accuracy;
+            
+            // 隱藏遊戲內容，顯示結果畫面
+            gameContent.style.display = "none";
+            gameResult.style.display = "flex";
+        }
+
+        function startLevel() {
+            if (level > 10) {
+                showGameResult();
+                return;
+            }
+            
+            levelText.textContent = `第 ${level} 關 / 10`;
+            
+            // 創建九宮格並填充初始數字
+            numbers = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10) + 1);
+            visibleIndices = Array.from({ length: 9 }, (_, i) => i); // 所有索引都可見
+            
+            // 初始化九宮格
+            createGrid();
+            
+            // 計算總和
+            totalSum = numbers.reduce((sum, num) => sum + num, 0);
+            
+            // 逐漸隱藏數字
+            let hideInterval = setInterval(() => {
+                if (visibleIndices.length > 4) { // 保留至少5個數字
+                    // 隨機選擇一個可見的索引進行隱藏
+                    const randomIndex = Math.floor(Math.random() * visibleIndices.length);
+                    const cellIndex = visibleIndices[randomIndex];
+                    
+                    // 從可見索引數組中移除
+                    visibleIndices.splice(randomIndex, 1);
+                    
+                    // 更新格子顯示
+                    const cell = document.getElementById(`cell-${cellIndex}`);
+                    cell.textContent = "";
+                    cell.classList.add("empty");
+                } else {
+                    clearInterval(hideInterval);
+                    // 所有隱藏操作完成後，生成選項
+                    generateOptions();
+                }
+            }, 1000);
+        }
+
+        function createGrid() {
+            grid.innerHTML = "";
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement("div");
+                cell.id = `cell-${i}`;
+                cell.classList.add("cell");
+                cell.textContent = numbers[i];
+                grid.appendChild(cell);
+            }
+        }
+
+        function generateOptions() {
+            optionsContainer.innerHTML = "";
+            
+            // 計算當前可見數字的總和
+            const visibleSum = visibleIndices.reduce((sum, index) => sum + numbers[index], 0);
+            
+            let options = new Set([visibleSum]);
+            while (options.size < 4) {
+                let wrongAnswer = visibleSum + Math.floor(Math.random() * 10) - 5;
+                if (wrongAnswer !== visibleSum && wrongAnswer > 0) {
+                    options.add(wrongAnswer);
+                }
+            }
+            
+            Array.from(options).sort(() => Math.random() - 0.5).forEach(option => {
+                let btn = document.createElement("div");
+                btn.classList.add("option");
+                btn.textContent = option;
+                btn.onclick = () => {
+                    // 禁用所有選項按鈕以防重複點擊
+                    Array.from(document.querySelectorAll('.option')).forEach(opt => {
+                        opt.style.pointerEvents = 'none';
+                    });
+                    
+                    if (option === visibleSum) {
+                        btn.classList.add("correct-answer");
+                        // 播放正確音效
+                        playCorrectSound();
+                        correctCount++;
+                        correctDisplay.textContent = correctCount;
+                    } else {
+                        btn.classList.add("wrong-answer");
+                        // 播放錯誤音效
+                        playWrongSound();
+                        wrongCount++;
+                        wrongDisplay.textContent = wrongCount;
+                    }
+                    
+                    // 不管對錯，都進入下一關
+                    setTimeout(() => {
+                        level++;
+                        startLevel();
+                    }, 800);
+                };
+                optionsContainer.appendChild(btn);
+            });
+        }
+    </script>
+</body>
+</html>
