@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>廣播電台播放器</title>
+  <link href="https://cdn.jsdelivr.net/npm/video.js@7.20.3/dist/video-js.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/video.js@7.20.3/dist/video.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/videojs-http-streaming@2.11.0/dist/videojs-http-streaming.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 2rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      background: linear-gradient(135deg, #ffe4ec, #fff0f5);
+      color: #333;
+      transition: background 0.5s, color 0.5s;
+    }
+    body.dark {
+      background: linear-gradient(135deg, #1e1e1e, #333);
+      color: #eee;
+    }
+    h1 {
+      font-size: 2rem;
+      color: #ff6f91;
+      margin-bottom: 1rem;
+    }
+    label, select {
+      font-size: 1rem;
+      margin: 0.5rem;
+    }
+    select {
+      padding: 0.5rem 1rem;
+      border-radius: 1rem;
+      border: none;
+      background-color: #fff0f6;
+      color: #333;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    body.dark select {
+      background-color: #444;
+      color: #eee;
+    }
+    .card.player-wrapper {
+      margin-top: 1.5rem;
+      padding: 1.5rem;
+      background: white;
+      border-radius: 1rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+      transition: background 0.5s;
+      position: relative;
+    }
+    body.dark .card {
+      background: #2e2e2e;
+    }
+    .controls {
+      margin-top: 1rem;
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 1rem;
+      background-color: #ffb6c1;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background-color: #ff6f91;
+    }
+    body.dark button {
+      background-color: #555;
+      color: #ddd;
+    }
+    body.dark button:hover {
+      background-color: #777;
+    }
+    input[type="range"] {
+      width: 120px;
+    }
+    .vjs-default-skin {
+      border-radius: 1rem;
+      overflow: hidden;
+      margin-top: 1rem;
+    }
+    video {
+      width: 100% !important;
+      height: auto !important;
+    }
+    .video-js {
+      display: none;
+    }
+
+    /* 播放動畫 */
+    .pulse-animation {
+      position: absolute;
+      top: -15px;
+      right: -15px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ff6f91, #ffb6c1);
+      animation: pulse 1.5s infinite;
+      display: none;
+      z-index: 10;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.6; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* 聲波動畫 */
+    .wave-animation {
+      display: none;
+      margin: 1rem auto 0;
+      height: 40px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 5px;
+    }
+    .wave-animation span {
+      width: 6px;
+      height: 100%;
+      background: #ff6f91;
+      animation: waveBounce 1s infinite ease-in-out;
+      border-radius: 3px;
+    }
+    .wave-animation span:nth-child(1) { animation-delay: 0s; }
+    .wave-animation span:nth-child(2) { animation-delay: 0.1s; }
+    .wave-animation span:nth-child(3) { animation-delay: 0.2s; }
+    .wave-animation span:nth-child(4) { animation-delay: 0.3s; }
+    .wave-animation span:nth-child(5) { animation-delay: 0.4s; }
+
+    @keyframes waveBounce {
+      0%, 100% { height: 10px; }
+      50% { height: 40px; }
+    }
+
+    /* RWD */
+    @media (max-width: 600px) {
+      body {
+        padding: 1rem;
+      }
+      h1 {
+        font-size: 1.5rem;
+        text-align: center;
+      }
+      .controls {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      button, select {
+        width: 100%;
+        max-width: 300px;
+      }
+      .card.player-wrapper {
+        padding: 1rem;
+      }
+    }
+
+    /* 作者資訊 */
+    .floating-box {
+      margin-top: 2rem;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #888;
+    }
+    .floating-box a {
+      color: #ff6f91;
+      text-decoration: none;
+    }
+    body.dark .floating-box a {
+      color: #ffaec9;
+    }
+    .floating-box a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎧 網路廣播🎧</h1>
+
+  <select id="station">
+    <option value="">請選擇電台📻</option>
+    <option value="https://stream.rcs.revma.com/fgtx07f3qtzuv">中廣新聞網</option>
+    <option value="https://stream.rcs.revma.com/s1zttsg3qtzuv">中廣流行網</option>
+    <option value="https://stream.rcs.revma.com/p2e3rfg3qtzuv">中廣鄉親網</option>
+    <option value="https://stream.rcs.revma.com/ks4vsmg3qtzuv">中廣音樂網</option>
+    <option value="https://stream.rcs.revma.com/1qxn2vg3qtzuv">中廣iGo531</option>
+    <option value="https://streamak0138.akamaized.net/live0138lh-mbm9/_definst_/rti3/playlist.m3u8">中廣華語</option>
+    <option value="https://streamak0138.akamaized.net/live0138lh-mbm9/_definst_/rti5/playlist.m3u8">中廣亞洲Live</option>
+    <option value="https://streamak0138.akamaized.net/live0138lh-mbm9/_definst_/rti6/playlist.m3u8">中廣臺客粵外語Live</option>
+    <option value="https://classical.streeemer.com/listen/classical/radio.aac">CLASSIC古典樂</option>
+    <option value="https://stream.pbs.gov.tw/live/TCS/playlist.m3u8">警察廣播電台</option>
+    <option value="http://n16.rcs.revma.com/044q61ha7a0uv">全國廣播F106.1</option>
+    <option value="https://n02.rcs.revma.com/fkdywbc59duvv">好事聯播網FM98.9</option>
+    <option value="https://n04.rcs.revma.com/q2m07dc59duvv">港都電台FM98.3</option>
+    <option value="http://fm929.cityfm.tw:8080/929.mp3">城市廣播網FM92.9</option>
+    <option value="https://n08a-eu.rcs.revma.com/em90w4aeewzuv">飛碟聯播網FM92.1</option>
+    <option value="https://n03.rcs.revma.com/e0tdah74hv8uv">飛揚調頻FM89.5</option>
+    <option value="http://onair.family977.com.tw:8000/live.mp3">古典音樂台FM97.7</option>
+    <option value="https://stream.wqxr.org/wqxr">紐約愛樂</option>
+    <option value="https://n32a-eu.rcs.revma.com/7mnq8rt7k5zuv?rj-ttl=5&rj-tok=AAABlljKCaAAq46eaOZVZxVM4Q">IC之音竹科廣播FM97.5</option>
+    <option value="https://stream.ginnet.cloud/live0130lo-yfyo/_definst_/fm/playlist.m3u8">臺北廣播電臺</option>
+    <option value="https://cast.ner.gov.tw/1">國立教育廣播電臺</option>
+    <option value="https://streamak0138.akamaized.net/live0138lh-mbm9/_definst_/rti3/chunklist.m3u8">中央廣播電台</option>
+    <option value="https://stream.ginnet.cloud/live0115lo-89xv/_definst_/am729/playlist.m3u8">世新廣播電台</option>
+    <option value="https://n12.rcs.revma.com/hpeqh9mkc6hvv">領袖電台FM93.7</option>
+    <option value="https://n04.rcs.revma.com/xpgtqc74hv8uv">魅力亞洲AsiaFM</option>
+    <option value="http://125.227.87.206:8000/FM99.1">大千電台中彰投</option>
+    <option value="http://61.220.209.152:8081/">噶瑪蘭廣播電台</option>
+    <option value="http://43.254.16.40:8000/guide">資悠網路廣播實驗電台</option>
+  </select>
+
+  <div class="card player-wrapper">
+    <div id="pulse" class="pulse-animation"></div>
+    <div id="wave" class="wave-animation">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <video id="player" class="video-js vjs-default-skin" controls preload="auto" playsinline></video>
+    <div class="controls">
+      <button id="playPause">▶️ 播放</button>
+      <button id="stop">⏹ 停止</button>
+      <input type="range" id="volume" min="0" max="1" step="0.01" value="1" />
+      <button id="toggleTheme">🌙 切換主題</button>
+    </div>
+  </div>
+
+  <div class="floating-box">
+    Made by <a href="https://linwei0718.serv00.net/" target="_blank">LinWei老師</a>
+  </div>
+
+  <script>
+    const body = document.body;
+    const player = videojs('player', {
+      techOrder: ['html5'],
+      autoplay: false,
+      controls: false,
+      fluid: true
+    });
+
+    const stationSelect = document.getElementById('station');
+    const playPauseBtn = document.getElementById('playPause');
+    const stopBtn = document.getElementById('stop');
+    const volumeSlider = document.getElementById('volume');
+    const themeToggle = document.getElementById('toggleTheme');
+    const pulse = document.getElementById('pulse');
+    const wave = document.getElementById('wave');
+
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      body.classList.add('dark');
+    }
+
+    themeToggle.addEventListener('click', () => {
+      body.classList.toggle('dark');
+    });
+
+    stationSelect.addEventListener('change', () => {
+      const url = stationSelect.value;
+      if (url) {
+        const type = url.includes('.m3u8') ? 'application/x-mpegURL' : 'audio/mp3';
+        player.src({ src: url, type });
+        player.play();
+        playPauseBtn.textContent = '⏸ 暫停';
+      } else {
+        player.pause();
+        player.src({ src: '' });
+        playPauseBtn.textContent = '▶️ 播放';
+      }
+    });
+
+    playPauseBtn.addEventListener('click', () => {
+      if (player.paused()) {
+        player.play();
+        playPauseBtn.textContent = '⏸ 暫停';
+      } else {
+        player.pause();
+        playPauseBtn.textContent = '▶️ 播放';
+      }
+    });
+
+    stopBtn.addEventListener('click', () => {
+      player.pause();
+      player.currentTime(0);
+      playPauseBtn.textContent = '▶️ 播放';
+    });
+
+    volumeSlider.addEventListener('input', () => {
+      player.volume(volumeSlider.value);
+    });
+
+    player.on('play', () => {
+      pulse.style.display = 'block';
+      wave.style.display = 'flex';
+    });
+
+    player.on('pause', () => {
+      pulse.style.display = 'none';
+      wave.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
