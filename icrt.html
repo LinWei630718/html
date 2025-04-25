@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICRT Lunch Box</title>
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        .player-container {
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        audio {
+            width: 100%;
+            margin-top: 20px;
+        }
+        .info {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>ICRT Lunch Box 節目</h1>
+    <div class="player-container">
+        <div id="currentInfo">正在載入今日節目...</div>
+        <audio id="audioPlayer" controls autoplay></audio>
+    </div>
+    <div class="info">資料來源: ICRT</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 獲取當前日期
+            const today = new Date();
+            
+            // 計算昨天的日期 (當天-1)
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            
+            // 格式化為YYYYMMDD
+            const year = yesterday.getFullYear();
+            // 月份需要+1因為JavaScript中月份從0開始
+            const month = (yesterday.getMonth() + 1).toString().padStart(2, '0');
+            const day = yesterday.getDate().toString().padStart(2, '0');
+            
+            // 組合成檔案名稱格式: YYYYMMDDNK.mp3
+            const fileDate = `${year}${month}${day}`;
+            const fileName = `${fileDate}NK.mp3`;
+            
+            // 組合完整URL
+            const audioUrl = `https://www.icrt.com.tw/en/ext/rss/LunchBox/${fileName}`;
+            
+            // 設置audio元素的src屬性
+            const audioPlayer = document.getElementById('audioPlayer');
+            audioPlayer.src = audioUrl;
+            
+            // 更新顯示信息
+            document.getElementById('currentInfo').textContent = `正在播放: ${fileDate} ICRT Lunch Box 節目`;
+            
+            // 處理可能的錯誤
+            audioPlayer.addEventListener('error', function() {
+                document.getElementById('currentInfo').textContent = 
+                    `無法載入音頻檔案 ${fileName}，請確認檔案路徑是否正確。`;
+            });
+        });
+    </script>
+</body>
+</html>

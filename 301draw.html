@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班級抽籤系統</title>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        .section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input, textarea, button {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button.danger {
+            background-color: #e74c3c;
+        }
+        button.danger:hover {
+            background-color: #c0392b;
+        }
+        button.success {
+            background-color: #2ecc71;
+        }
+        button.success:hover {
+            background-color: #27ae60;
+        }
+        #result {
+            font-size: 18px;
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            border: 1px dashed #ddd;
+            min-height: 60px;
+        }
+        #historyList {
+            list-style-type: none;
+            padding: 0;
+        }
+        #historyList li {
+            padding: 10px;
+            margin-bottom: 5px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+        #historyList li:nth-child(odd) {
+            background-color: #efefef;
+        }
+        .buttons-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .history-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 10px;
+            padding: 0 10px;
+        }
+        .animation {
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+        .empty-message {
+            text-align: center;
+            color: #7f8c8d;
+            padding: 20px;
+        }
+        .item-number {
+            background-color: #3498db;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+        .file-input-container {
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        .file-input-label {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .file-input-label:hover {
+            background-color: #2980b9;
+        }
+        .file-name {
+            margin-left: 10px;
+            font-style: italic;
+        }
+        #fileInput {
+            display: none;
+        }
+        .draw-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .draw-controls input {
+            width: 60px;
+            height: 38px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 0 10px;
+            text-align: center;
+        }
+        .result-item {
+            display: inline-block;
+            margin: 5px;
+            padding: 8px 12px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 20px;
+            font-size: 16px;
+        }
+        .batch-result-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>班級抽籤系統</h1>
+        
+        <div class="section">
+            <label for="itemList">請輸入抽籤名單（每行一個項目）：</label>
+            <textarea id="itemList" placeholder="例如：
+周餅倫
+王小明
+李美麗
+..."></textarea>
+            
+            <div class="file-input-container">
+                <label for="fileInput" class="file-input-label">從檔案讀取名單</label>
+                <input type="file" id="fileInput" accept=".txt,.csv">
+                <span id="fileName" class="file-name"></span>
+            </div>
+            
+            <div class="buttons-container">
+                <button id="loadSampleBtn">載入範例資料</button>
+                <button id="clearItemsBtn" class="danger">清空名單</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="draw-controls">
+                <label for="drawCount">一次抽取數量：</label>
+                <input type="number" id="drawCount" min="1" value="1">
+            </div>
+            <div id="result">等待抽籤...</div>
+            <div class="buttons-container">
+                <button id="drawBtn" class="success">抽籤</button>
+                <button id="resetBtn" class="danger">重置所有抽籤資料</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>抽籤紀錄</h2>
+            <div class="history-container">
+                <ul id="historyList">
+                    <li class="empty-message">尚無抽籤紀錄</li>
+                </ul>
+            </div>
+            <div class="buttons-container">
+                <button id="downloadBtn">下載抽籤結果</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="floating-box">
+        Made by <a href="https://linwei0718.serv00.net/" target="_blank">LinWei老師</a>
+    </div>
+
+    <script>
+        // 初始化變數
+        let items = [];
+        let remainingItems = [];
+        let drawHistory = [];
+        
+        // 抓取DOM元素
+        const itemListTextarea = document.getElementById('itemList');
+        const resultDiv = document.getElementById('result');
+        const historyListUl = document.getElementById('historyList');
+        const drawBtn = document.getElementById('drawBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const loadSampleBtn = document.getElementById('loadSampleBtn');
+        const clearItemsBtn = document.getElementById('clearItemsBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const fileInput = document.getElementById('fileInput');
+        const fileNameSpan = document.getElementById('fileName');
+        const drawCountInput = document.getElementById('drawCount');
+        
+        // 從檔案讀取名單
+        fileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // 更新檔案名稱顯示
+                fileNameSpan.textContent = file.name;
+                
+                // 根據檔案類型處理檔案
+                if (file.name.endsWith('.txt') || file.name.endsWith('.csv')) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        // 讀取檔案內容
+                        const content = e.target.result;
+                        
+                        // 如果是CSV檔案，嘗試處理CSV格式
+                        if (file.name.endsWith('.csv')) {
+                            try {
+                                // 簡單的CSV處理（假設只需要第一列）
+                                const lines = content.split('\n');
+                                const items = lines.map(line => {
+                                    // 嘗試分割CSV行，並只取第一個項目
+                                    const parts = line.split(',');
+                                    return parts[0].trim();
+                                }).filter(item => item !== '');
+                                
+                                itemListTextarea.value = items.join('\n');
+                            } catch (error) {
+                                // 如果處理失敗，就當作純文字處理
+                                itemListTextarea.value = content;
+                                console.error('CSV處理錯誤：', error);
+                            }
+                        } else {
+                            // 純文字檔案直接顯示內容
+                            itemListTextarea.value = content;
+                        }
+                        
+                        // 提示使用者檔案已成功載入
+                        alert(`已成功載入名單：${file.name}`);
+                    };
+                    
+                    reader.onerror = function() {
+                        alert('讀取檔案時發生錯誤！');
+                    };
+                    
+                    // 以文字方式讀取檔案
+                    reader.readAsText(file);
+                } else {
+                    alert('請選擇 .txt 或 .csv 檔案！');
+                    fileNameSpan.textContent = '';
+                    fileInput.value = '';
+                }
+            }
+        });
+        
+        // 載入範例資料
+        loadSampleBtn.addEventListener('click', function() {
+            const sampleData = "高煜為\n黃昱閔\n顏師宇\n蔡學寬\n傅小船\n邱凡恩\n莊粢喬\n王奕鴻\n吳嘉妍\n幸宥妤\n卓季穎\n蔡亦涵";
+            itemListTextarea.value = sampleData;
+        });
+        
+        // 清空名單
+        clearItemsBtn.addEventListener('click', function() {
+            itemListTextarea.value = '';
+            fileNameSpan.textContent = '';
+            fileInput.value = '';
+        });
+        
+        // 抽籤功能
+        drawBtn.addEventListener('click', function() {
+            const itemListText = itemListTextarea.value.trim();
+            
+            // 檢查是否有輸入名單
+            if (itemListText === '') {
+                alert('請先輸入抽籤名單！');
+                return;
+            }
+            
+            // 取得抽取數量
+            let drawCount = parseInt(drawCountInput.value);
+            if (isNaN(drawCount) || drawCount < 1) {
+                drawCount = 1;
+                drawCountInput.value = 1;
+            }
+            
+            // 如果這是新的抽籤（第一次或重置後）
+            if (remainingItems.length === 0) {
+                items = itemListText.split('\n')
+                    .map(item => item.trim())
+                    .filter(item => item !== '');
+                
+                if (items.length === 0) {
+                    alert('請輸入有效的抽籤名單！');
+                    return;
+                }
+                
+                remainingItems = [...items];
+                
+                // 清空歷史記錄
+                drawHistory = [];
+                updateHistoryList();
+            }
+            
+            // 檢查剩餘項目是否足夠
+            if (drawCount > remainingItems.length) {
+                drawCount = remainingItems.length;
+                alert(`剩餘項目僅有 ${remainingItems.length} 個，將抽取所有剩餘項目。`);
+            }
+            
+            // 抽籤動畫
+            resultDiv.classList.add('animation');
+            
+            // 準備存放抽中的項目
+            const drawnItems = [];
+            
+            // 進行多次抽籤
+            for (let i = 0; i < drawCount; i++) {
+                // 從剩餘項目中隨機選擇一個
+                const randomIndex = Math.floor(Math.random() * remainingItems.length);
+                const drawnItem = remainingItems[randomIndex];
+                
+                // 從剩餘項目中移除已抽中的項目
+                remainingItems.splice(randomIndex, 1);
+                
+                // 添加到抽中項目列表
+                drawnItems.push(drawnItem);
+            }
+            
+            // 更新結果顯示
+            if (drawnItems.length === 1) {
+                resultDiv.innerHTML = `<div class="result-item">${drawnItems[0]}</div>`;
+            } else {
+                resultDiv.innerHTML = `<div class="batch-result-container">
+                    ${drawnItems.map(item => `<div class="result-item">${item}</div>`).join('')}
+                </div>`;
+            }
+            
+            // 添加到抽籤歷史
+            const timestamp = new Date().toLocaleString('zh-TW');
+            
+            if (drawnItems.length === 1) {
+                // 單個抽籤紀錄
+                const drawNumber = drawHistory.length + 1;
+                drawHistory.push({
+                    number: drawNumber,
+                    item: drawnItems[0],
+                    timestamp: timestamp
+                });
+            } else {
+                // 批量抽籤紀錄
+                drawnItems.forEach((item, index) => {
+                    const drawNumber = drawHistory.length + 1;
+                    drawHistory.push({
+                        number: drawNumber,
+                        item: item,
+                        timestamp: timestamp,
+                        batch: `批次 ${drawHistory.length > 0 ? Math.floor(drawHistory.length / drawnItems.length) + 1 : 1} (${index + 1}/${drawnItems.length})`
+                    });
+                });
+            }
+            
+            updateHistoryList();
+            
+            // 移除動畫類
+            setTimeout(() => {
+                resultDiv.classList.remove('animation');
+            }, 500);
+            
+            // 如果所有項目都已抽完
+            if (remainingItems.length === 0) {
+                drawBtn.disabled = true;
+                setTimeout(() => {
+                    alert('所有項目已抽完！請點擊「重置所有抽籤資料」來重新開始。');
+                }, 100);
+            }
+        });
+        
+        // 重置功能
+        resetBtn.addEventListener('click', function() {
+            if (confirm('確定要重置所有抽籤資料嗎？這將清空抽籤歷史記錄。')) {
+                remainingItems = [];
+                drawHistory = [];
+                resultDiv.innerHTML = '等待抽籤...';
+                updateHistoryList();
+                drawBtn.disabled = false;
+            }
+        });
+        
+        // 下載抽籤結果
+        downloadBtn.addEventListener('click', function() {
+            if (drawHistory.length === 0) {
+                alert('尚無抽籤紀錄可供下載！');
+                return;
+            }
+            
+            let csvContent = "編號,抽中項目,抽中時間,批次\n";
+            
+            drawHistory.forEach(record => {
+                const batch = record.batch || '';
+                csvContent += `${record.number},"${record.item}","${record.timestamp}","${batch}"\n`;
+            });
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `抽籤結果_${new Date().toLocaleDateString('zh-TW')}.csv`);
+            link.style.display = 'none';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+        
+        // 更新歷史列表
+        function updateHistoryList() {
+            historyListUl.innerHTML = '';
+            
+            if (drawHistory.length === 0) {
+                const emptyMessage = document.createElement('li');
+                emptyMessage.className = 'empty-message';
+                emptyMessage.textContent = '尚無抽籤紀錄';
+                historyListUl.appendChild(emptyMessage);
+                return;
+            }
+            
+            drawHistory.forEach(record => {
+                const li = document.createElement('li');
+                
+                const numberSpan = document.createElement('span');
+                numberSpan.className = 'item-number';
+                numberSpan.textContent = record.number;
+                
+                const contentDiv = document.createElement('div');
+                
+                if (record.batch) {
+                    contentDiv.innerHTML = `<strong>${record.item}</strong> <span style="color: #7f8c8d; font-size: 0.85em;">${record.batch}</span>`;
+                } else {
+                    contentDiv.innerHTML = `<strong>${record.item}</strong>`;
+                }
+                
+                const timeDiv = document.createElement('div');
+                timeDiv.style.color = '#7f8c8d';
+                timeDiv.style.fontSize = '0.85em';
+                timeDiv.textContent = record.timestamp;
+                
+                li.appendChild(numberSpan);
+                li.appendChild(contentDiv);
+                li.appendChild(timeDiv);
+                
+                historyListUl.appendChild(li);
+            });
+        }
+    </script>
+</body>
+</html>

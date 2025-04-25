@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>考試時間倒數計時器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #f9c5d1, #c2e9fb);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            transition: background-color 0.5s;
+            flex-direction: column;
+        }
+        .container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 800px;
+            display: flex;
+            transition: all 0.5s;
+            margin-bottom: 20px;
+        }
+        .left-panel {
+            flex: 1;
+            padding-right: 20px;
+            border-right: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .right-panel {
+            flex: 1.5;
+            padding-left: 20px;
+        }
+        .current-time {
+            font-size: 72px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .ampm {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        .date {
+            font-size: 24px;
+            color: #666;
+        }
+        .countdown {
+            font-size: 48px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+        }
+        .btn-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+            flex: 1;
+            margin-right: 10px;
+        }
+        .btn-warning {
+            background-color: #f1c40f;
+            color: #333;
+            flex: 1;
+            margin-left: 10px;
+        }
+        .btn-success {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .btn-return {
+            background-color: #ff69b4;
+            color: white;
+            padding: 12px 20px;
+            font-size: 16px;
+            width: auto;
+            margin-top: 30px;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        /* 全屏模式樣式 */
+        .fullscreen-mode {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            display: none;
+        }
+        .fullscreen-countdown {
+            font-size: 120px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.7s ease-out;
+        }
+        .fullscreen-subject {
+            font-size: 60px;
+            margin-bottom: 20px;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.7s ease-out 0.2s;
+        }
+        .fullscreen-notes {
+            font-size: 36px;
+            margin-bottom: 40px;
+            text-align: center;
+            max-width: 80%;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.7s ease-out 0.4s;
+        }
+        /* 顯示動畫 */
+        .show-element {
+            opacity: 1;
+            transform: scale(1);
+        }
+        /* 作者資訊樣式 */
+        .author-info {
+            text-align: center;
+            color: #555;
+            font-size: 16px;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .author-info a {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s;
+        }
+        .author-info a:hover {
+            color: #ff69b4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="main-container">
+        <div class="left-panel">
+            <div class="ampm" id="ampm">下午</div>
+            <div class="current-time" id="current-time">8:38:26</div>
+            <div class="date" id="current-date">2025年4月21日 星期一</div>
+        </div>
+        <div class="right-panel">
+            <div class="countdown" id="countdown">00:00:00</div>
+            <div class="form-group">
+                <input type="text" id="timer-duration" placeholder="時間倒數">
+            </div>
+            <div class="form-group">
+                <input type="text" id="exam-end-time" placeholder="考試結束時間">
+            </div>
+            <div class="form-group">
+                <button class="btn btn-success" id="set-timer">設定計時器</button>
+            </div>
+            <div class="form-group">
+                <input type="text" id="subject-name" placeholder="科目名稱">
+            </div>
+            <div class="form-group">
+                <input type="text" id="notes" placeholder="備註">
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="start-exam">開始考試</button>
+                <button class="btn btn-warning" id="reset">重新設定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 作者資訊 -->
+    <div class="author-info">
+        Made By <a href="http://linwei0718.serv00.net" target="_blank">LinWei老師</a>
+    </div>
+
+    <!-- 全屏模式 -->
+    <div class="fullscreen-mode" id="fullscreen-mode">
+        <div class="fullscreen-countdown" id="fullscreen-countdown">00:00:00</div>
+        <div class="fullscreen-subject" id="fullscreen-subject">科目名稱</div>
+        <div class="fullscreen-notes" id="fullscreen-notes">備註資訊</div>
+        <button class="btn btn-return" id="return-btn" style="display: none;">返回</button>
+        <div class="author-info" style="position: absolute; bottom: 10px; background-color: transparent;">
+            Made By <a href="http://linwei0718.serv00.net" target="_blank" style="color: #ff69b4;">LinWei老師</a>
+        </div>
+    </div>
+
+    <audio id="alarm-sound">
+        <source src="https://cdnjs.cloudflare.com/ajax/libs/ion-sound/3.0.7/sounds/bell_ring.mp3" type="audio/mpeg">
+        您的瀏覽器不支援音訊元素。
+    </audio>
+
+    <script>
+        // 獲取DOM元素
+        const mainContainer = document.getElementById('main-container');
+        const fullscreenMode = document.getElementById('fullscreen-mode');
+        const fullscreenCountdown = document.getElementById('fullscreen-countdown');
+        const fullscreenSubject = document.getElementById('fullscreen-subject');
+        const fullscreenNotes = document.getElementById('fullscreen-notes');
+        const returnBtn = document.getElementById('return-btn');
+        const alarmSound = document.getElementById('alarm-sound');
+        const startExamBtn = document.getElementById('start-exam');
+
+        // 更新當前時間
+        function updateCurrentTime() {
+            const now = new Date();
+            
+            // 時間部分
+            let hours = now.getHours();
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            // 上午或下午
+            const ampm = hours >= 12 ? '下午' : '上午';
+            
+            document.getElementById('ampm').textContent = ampm;
+            document.getElementById('current-time').textContent = `${hours}:${minutes}:${seconds}`;
+            
+            // 日期部分
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const date = now.getDate();
+            
+            // 星期
+            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+            const weekday = weekdays[now.getDay()];
+            
+            document.getElementById('current-date').textContent = `${year}年${month}月${date}日 星期${weekday}`;
+        }
+        
+        // 初始化計時器變數
+        let countdown;
+        let remainingTime = 0;
+        let isRunning = false;
+        let isFullscreenMode = false;
+        
+        // 設定計時器
+        document.getElementById('set-timer').addEventListener('click', function() {
+            const timerDuration = document.getElementById('timer-duration').value;
+            const examEndTime = document.getElementById('exam-end-time').value;
+            
+            if (timerDuration) {
+                // 解析格式為 HH:MM:SS 的字串
+                const [hours, minutes, seconds] = timerDuration.split(':').map(Number);
+                remainingTime = (hours || 0) * 3600 + (minutes || 0) * 60 + (seconds || 0);
+                updateCountdownDisplay();
+            } else if (examEndTime) {
+                // 解析結束時間並計算剩餘時間
+                const [hours, minutes] = examEndTime.split(':').map(Number);
+                const now = new Date();
+                const endTime = new Date();
+                endTime.setHours(hours || 0, minutes || 0, 0);
+                
+                // 如果結束時間早於當前時間，假設是明天
+                if (endTime < now) {
+                    endTime.setDate(endTime.getDate() + 1);
+                }
+                
+                remainingTime = Math.floor((endTime - now) / 1000);
+                updateCountdownDisplay();
+            }
+        });
+        
+        // 開始考試按鈕
+        startExamBtn.addEventListener('click', function() {
+            const subjectName = document.getElementById('subject-name').value || '未指定科目';
+            const notes = document.getElementById('notes').value || '無備註';
+
+            if (!isRunning && remainingTime > 0) {
+                // 進入全屏模式
+                enterFullscreenMode(subjectName, notes);
+                
+                startCountdown();
+                isRunning = true;
+                this.textContent = '暫停';
+            } else if (isRunning && !isFullscreenMode) {
+                // 如果已經在運行但不在全屏模式，進入全屏模式
+                enterFullscreenMode(subjectName, notes);
+            } else if (isRunning) {
+                // 暫停計時
+                clearInterval(countdown);
+                isRunning = false;
+                this.textContent = '繼續';
+                
+                // 如果在全屏模式，退出全屏
+                exitFullscreenMode();
+            } else {
+                alert('請先設定計時器時間！');
+            }
+        });
+
+        // 進入全屏模式
+        function enterFullscreenMode(subject, notes) {
+            isFullscreenMode = true;
+            
+            // 更新全屏模式資訊
+            fullscreenSubject.textContent = subject;
+            fullscreenNotes.textContent = notes;
+            
+            // 顯示全屏模式
+            fullscreenMode.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            
+            // 觸發動畫效果
+            setTimeout(function() {
+                fullscreenCountdown.classList.add('show-element');
+                fullscreenSubject.classList.add('show-element');
+                fullscreenNotes.classList.add('show-element');
+            }, 100);
+        }
+
+        // 退出全屏模式
+        function exitFullscreenMode() {
+            isFullscreenMode = false;
+            
+            // 移除動畫效果
+            fullscreenCountdown.classList.remove('show-element');
+            fullscreenSubject.classList.remove('show-element');
+            fullscreenNotes.classList.remove('show-element');
+            
+            // 延遲隱藏全屏模式，讓動畫有時間播放
+            setTimeout(function() {
+                fullscreenMode.style.display = 'none';
+                document.body.style.overflow = 'auto';
+                if (!isRunning) {
+                    returnBtn.style.display = 'none';
+                }
+            }, 700);
+        }
+        
+        // 返回按鈕
+        returnBtn.addEventListener('click', function() {
+            exitFullscreenMode();
+            startExamBtn.textContent = '開始考試';
+        });
+        
+        // 重置按鈕
+        document.getElementById('reset').addEventListener('click', function() {
+            clearInterval(countdown);
+            remainingTime = 0;
+            isRunning = false;
+            isFullscreenMode = false;
+            document.getElementById('countdown').textContent = '00:00:00';
+            document.getElementById('timer-duration').value = '';
+            document.getElementById('exam-end-time').value = '';
+            document.getElementById('subject-name').value = '';
+            document.getElementById('notes').value = '';
+            startExamBtn.textContent = '開始考試';
+            exitFullscreenMode();
+        });
+        
+        // 更新倒數計時顯示
+        function updateCountdownDisplay() {
+            const hours = Math.floor(remainingTime / 3600);
+            const minutes = Math.floor((remainingTime % 3600) / 60);
+            const seconds = remainingTime % 60;
+            
+            const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            
+            document.getElementById('countdown').textContent = timeString;
+            document.getElementById('fullscreen-countdown').textContent = timeString;
+        }
+        
+        // 開始倒數計時
+        function startCountdown() {
+            countdown = setInterval(function() {
+                if (remainingTime <= 0) {
+                    clearInterval(countdown);
+                    isRunning = false;
+                    startExamBtn.textContent = '開始考試';
+                    
+                    // 播放警示音效
+                    playAlarm();
+                    
+                    // 顯示返回按鈕
+                    returnBtn.style.display = 'block';
+                    
+                    return;
+                }
+                
+                remainingTime--;
+                updateCountdownDisplay();
+            }, 1000);
+        }
+        
+        // 播放警示音效
+        function playAlarm() {
+            try {
+                alarmSound.currentTime = 0;
+                alarmSound.play();
+                
+                // 連續播放三次警示音
+                let playCount = 0;
+                alarmSound.onended = function() {
+                    playCount++;
+                    if (playCount < 3) {
+                        setTimeout(() => {
+                            alarmSound.play();
+                        }, 300);
+                    }
+                };
+            } catch (error) {
+                console.error('播放音效時發生錯誤:', error);
+            }
+        }
+        
+        // 每秒更新當前時間
+        setInterval(updateCurrentTime, 1000);
+        
+        // 初始化頁面時更新一次時間
+        updateCurrentTime();
+    </script>
+</body>
+</html>
