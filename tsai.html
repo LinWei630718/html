@@ -38,12 +38,14 @@
     .help-header h2{margin:0;font-size:20px}
     .close-btn{background:none;border:none;font-size:20px;cursor:pointer}
     /* hero */
-    .hero{max-width:1100px;margin:24px auto 8px;display:grid;grid-template-columns:1.1fr .9fr;gap:24px;padding:0 16px}
-    .hero-card{background:linear-gradient(135deg,#fff, #fff3e5);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow)}
+    .hero{max-width:1100px;margin:24px auto 8px;display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:0 16px}
+    .hero-card{background:linear-gradient(135deg,#fff, #fff3e5);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center}
     .hero h1{margin:0 0 8px;font-size:32px;line-height:1.2}
-    .hero p{margin:0;color:var(--muted)}
     .hero .illus{border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;background:#fff}
-    .hero .illus img{width:100%;height:auto;display:block}
+    .hero .illus img,
+    .hero-card img{width:100%;height:auto;max-height:560px;object-fit:contain}
+    /* sr-only */
+    .sr-only {position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;}
     /* section */
     section{max-width:1100px;margin:24px auto;padding:0 16px}
     .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)}
@@ -99,11 +101,11 @@
     <!-- Hero -->
     <section class="hero" aria-label="首頁導言區">
       <div class="hero-card card">
-        <h1>以愛為本，成就孩子多元的可能</h1>
-        <p>公舘國小以「文化、教師、學生、行政、家長、校園」六大幸福為核心，打造友善與精緻的學習環境。</p>
+        <h1 class="sr-only">以愛為本，成就孩子多元的可能</h1>
+        <img src="https://linwei630718.github.io/html/tsai/six.png" alt="公舘國小六大幸福核心圖示：文化、教師、學生、行政、家長、校園" />
       </div>
       <div class="illus">
-        <img src="https://linwei630718.github.io/html/tsai/vision.png" alt="" aria-hidden="true" />
+        <img src="https://linwei630718.github.io/html/tsai/vision.png" alt="學校發展意象圖" />
       </div>
     </section>
 
@@ -140,17 +142,41 @@
       </div>
     </section>
 
-    <!-- 辦學理念 -->
+    <!-- 辦學理念 (新版) -->
     <section id="philosophy" aria-labelledby="philosophy-title">
       <div class="section-head"><h2 id="philosophy-title">辦學理念</h2><div class="bar" aria-hidden="true"></div></div>
       <article class="card 理念">
-        <p><strong>辦學理念：</strong><br>一、堅持品質力求精緻、講求績效追求卓越、強調創新重視發展</p>
+        <p><strong>辦學理念：</strong>堅持品質力求精緻、講求績效追求卓越、強調創新重視發展</p>
+        <p><em>Lester C.Thurow：</em>教育是人類希望的工程，也是國家競爭力的關鍵。校務要能永續發展，校長應致力於發展關鍵核心能力，以創造學校優勢競爭力。學校如同一個企業，企業要成功，一定要具備競爭優勢，才能永續經營。是以，學校經營有如企業經營，要具備競爭優勢，其要件為：有好校長作為企業領導人，有優秀的行政團隊作為經營管理人才，有教育熱忱的專業教師引導學生多元發展，有好的環境誘發學生樂在學習，有好的家長作為經營的合夥人，並能廣納社會資源積極投入，如此才能培育優秀人才。因此，要培養學生發展關鍵核心能力應從以下面向著手，才能竟其功於一役。</p>
+
         <h3>（一）擔任學校領航員的領導思維：</h3>
-        <ul><li>以學生為中心－尊重個別差異，開啟多元智慧。</li><li>以專業為理想－提升教師教學專業能力。</li><li>以分享為信念－建立知識與經驗的交流。</li><li>以願景為目標－激勵學校成員服務熱忱。</li><li>以學習為動力－推動人才培育計畫。</li></ul>
-        <h3>（二）核心價值</h3>
-        <ul><li>有教無類－提供無障礙學習環境。</li><li>因材施教－提供多樣教學活動。</li><li>人盡其才－提供多元展現舞台。</li><li>物盡其用－提供行政支援體系。</li><li>愛與榜樣－提供親師生認同楷模。</li></ul>
-        <h3>（三）校務經營目標～公舘「好幸福」</h3>
-        <ul><li>文化好幸福－建立支持信任環境。</li><li>教師好幸福－提升組織智慧。</li><li>學生好幸福－規劃適性課程與活動。</li><li>行政好幸福－建立敏捷專業團隊。</li><li>家長好幸福－推動社區化合夥。</li><li>校園好幸福－改善校園設施。</li></ul>
+        <ol>
+          <li>以學生為中心－尊重個別差異，開啟多元智慧。</li>
+          <li>以專業為理想－提升教師教學專業能力，促進教師專業發展。</li>
+          <li>以分享為信念－以專業為導向，建立知識與經驗的交流分享機制。</li>
+          <li>以願景為目標－激勵學校成員服務熱忱，建立學校品牌形象。</li>
+          <li>以學習為動力－建立學習型組織，推動人才培育計畫。</li>
+        </ol>
+
+        <h3>（二）擔任學校領航員的核心價值</h3>
+        <ol>
+          <li>有教無類－以零拒絕為教育的起點，提供無障礙的學習環境。</li>
+          <li>因材施教－以適性發展為教育的歷程，提供多樣的教學活動。</li>
+          <li>人盡其才－以全人發展為教育的目的，提供多元展現的舞台。</li>
+          <li>物盡其用－以資源統整為教育的中介，提供行政的支援體系。</li>
+          <li>愛與榜樣－以典範標竿為教育的核心，提供親師生認同楷模。</li>
+        </ol>
+
+        <h3>（三）校務經營目標～有夢最美讓愛相隨－公舘「好幸福」</h3>
+        <ol>
+          <li>「文化好幸福」－建立支持信任的環境，型塑友善學校文化。</li>
+          <li>「教師好幸福」－系統規劃親師生成長機制，提升組織智慧。</li>
+          <li>「學生好幸福」－掌握教育學理，規劃適性課程，辦理多元活動。</li>
+          <li>「行政好幸福」
+－積極改善與更新學校設施，營造友善舒適校園。</li>
+        </ol>
+
+        <p>經營一所優質的學校，必須在思維上有完整的概念架構，運用適當的策略，並堅持教育本質、學校理想，以及社會價值，讓全體同仁在共同目標的引導下，透過專業的善意，以及草根性的活力，來提昇學校教育的品質。</p>
       </article>
     </section>
   </main>
