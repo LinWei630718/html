@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>公舘國小｜蔡玉貞校長</title>
+  <meta name="description" content="公舘國小校長蔡玉貞－個人簡介、發展意象圖、課程架構圖、辦學理念。" />
+  <style>
+    :root{
+      --bg:#fff9f3;
+      --card:#ffffff;
+      --ink:#2e2a27;
+      --muted:#4b4744;
+      --brand:#e39a5c;
+      --brand-dark:#b66a2d;
+      --brand-2:#ffd9a3;
+      --accent:#2d6d67;
+      --shadow:0 10px 20px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.05);
+      --radius:18px;
+      --focus:#0b5fff;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,"Noto Sans CJK TC","Microsoft JhengHei",sans-serif;line-height:1.7}
+    .skip-link{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
+    .skip-link:focus,.skip-link:focus-visible{position:fixed;left:16px;top:12px;padding:10px 14px;background:#fff;color:#000;border-radius:10px;box-shadow:var(--shadow);outline:3px solid var(--focus);z-index:100}
+    :focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+    header[role="banner"]{position:sticky;top:0;z-index:40;background:rgba(255,249,243,.9);backdrop-filter:saturate(150%) blur(8px);box-shadow:0 1px 0 rgba(0,0,0,.06)}
+    .nav{max-width:1100px;margin:auto;display:flex;align-items:center;gap:18px;padding:10px 16px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:800}
+    .brand .logo{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--accent));box-shadow:var(--shadow)}
+    nav[aria-label]{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+    nav a,.help-btn{padding:8px 12px;border-radius:999px;text-decoration:none;color:var(--ink);font-weight:600;background:none;border:none;cursor:pointer}
+    nav a:hover,.help-btn:hover,nav a:focus-visible,.help-btn:focus-visible{background:var(--brand-2)}
+    /* dialog */
+    dialog{border:none;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);max-width:480px;width:90%}
+    dialog::backdrop{background:rgba(0,0,0,.4)}
+    .help-header{display:flex;justify-content:space-between;align-items:center}
+    .help-header h2{margin:0;font-size:20px}
+    .close-btn{background:none;border:none;font-size:20px;cursor:pointer}
+    /* hero */
+    .hero{max-width:1100px;margin:24px auto 8px;display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:0 16px}
+    .hero-card{background:linear-gradient(135deg,#fff, #fff3e5);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center}
+    .hero h1{margin:0 0 8px;font-size:32px;line-height:1.2}
+    .hero .illus{border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;background:#fff}
+    .hero .illus img,
+    .hero-card img{width:100%;height:auto;max-height:560px;object-fit:contain}
+    /* sr-only */
+    .sr-only {position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;}
+    /* section */
+    section{max-width:1100px;margin:24px auto;padding:0 16px}
+    .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .section-head{display:flex;align-items:end;gap:10px;margin:0 0 14px}
+    .section-head h2{margin:0;font-size:26px}
+    .section-head .bar{height:10px;background:linear-gradient(90deg,var(--brand),var(--accent));border-radius:999px;flex:1}
+    /* profile */
+    .profile{display:grid;grid-template-columns:440px 1fr;gap:22px}
+    .avatar{border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+    .avatar img{width:100%;height:auto;display:block}
+    .profile .bio{padding:18px}
+    .profile .bio h3{margin:0 0 10px;font-size:18px}
+    .bio section{margin:12px 0}
+    .bio h3{margin:8px 0 6px;font-size:18px}
+    .bio ol{margin:0 0 10px 1.2em;padding:0}
+    .bio li{margin:.2em 0}
+    /* single image */
+    .single-image{padding:16px}
+    .single-image img{width:100%;height:auto;border-radius:14px;box-shadow:var(--shadow)}
+    /* 理念 */
+    .理念{padding:18px}
+    .理念 h3{margin-top:12px;font-size:18px}
+    .理念 p{margin:.4em 0}
+    .理念 ul{margin:.4em 0 1em 1.2em}
+    /* footer */
+    footer[role="contentinfo"]{max-width:1100px;margin:40px auto 100px;padding:0 16px;color:var(--muted)}
+    /* toTop */
+    #toTop{position:fixed;right:16px;bottom:22px;width:52px;height:52px;border:none;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--brand-dark));color:#fff;cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;opacity:0;transform:translateY(10px);transition:.25s ease;z-index:50}
+    #toTop.show{opacity:1;transform:translateY(0)}
+    @media (max-width:900px){.hero{grid-template-columns:1fr}.profile{grid-template-columns:1fr}}
+    @media (prefers-reduced-motion: reduce){#toTop{transition:none}}
+  </style>
+</head>
+<body>
+  <a href="#main" class="skip-link">跳到主內容</a>
+  <header id="top" role="banner">
+    <div class="nav">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <span>公舘國小｜蔡玉貞校長</span>
+      </div>
+      <nav aria-label="主要導覽">
+        <a href="#about">個人簡介</a>
+        <a href="#vision">發展意象圖</a>
+        <a href="#curriculum">課程架構圖</a>
+        <a href="#philosophy">辦學理念</a>
+      </nav>
+      <button id="helpBtn" class="help-btn" aria-haspopup="dialog" aria-controls="helpDialog" title="使用說明 (Alt+H)">？</button>
+    </div>
+  </header>
+
+  <main id="main" role="main">
+    <!-- Hero -->
+    <section class="hero" aria-label="首頁導言區">
+      <div class="hero-card card">
+        <h1 class="sr-only">以愛為本，成就孩子多元的可能</h1>
+        <img src="https://linwei630718.github.io/html/tsai/six.png" alt="公舘國小六大幸福核心圖示：文化、教師、學生、行政、家長、校園" />
+      </div>
+      <div class="illus">
+        <img src="https://linwei630718.github.io/html/tsai/vision.png" alt="學校發展意象圖" />
+      </div>
+    </section>
+
+    <!-- 個人簡介 -->
+    <section id="about" aria-labelledby="about-title">
+      <div class="section-head"><h2 id="about-title">個人簡介</h2><div class="bar" aria-hidden="true"></div></div>
+      <div class="card profile">
+        <figure class="avatar">
+          <img src="https://linwei630718.github.io/html/tsai/tsai.jpg" alt="蔡玉貞校長照片" />
+        </figure>
+        <div class="bio">
+          <h3>校長　蔡玉貞</h3>
+          <section><h3>學歷</h3><ol><li>省立屏東師範專科學校普通科音樂組</li><li>國立屏東教育大學初等教育學系</li><li>國立臺中教育大學語文教育系碩士</li></ol></section>
+          <section><h3>經歷</h3><ol><li>苗栗縣苑裡鎮苑裡國小教師</li><li>臺中市烏日區旭光國小科任、組長</li><li>臺中市南屯區惠文國小教師、組長</li><li>臺中市北屯區仁愛國小主任</li><li>現職：臺中市沙鹿區公舘國小校長</li></ol></section>
+          <section><h3>歷年表揚</h3><ol><li>81年度 榮獲苗栗縣苑裡鎮青年楷模</li><li>83年度 榮獲苗栗縣績優教師</li><li>86年度 榮獲臺中縣績優教師</li><li>88年度 榮獲臺中縣藝能教學類優良教育人員</li><li>100年度 榮獲臺中市「友善校園獎」評選績優學校執行有功人員</li><li>103年度 榮獲臺中市優良輔導教育人員</li><li>108年度 榮獲臺中市優良教學人員</li><li>110年度 榮獲臺中市優良採購人員</li><li>113年度 榮獲臺中市優良教學人員</li></ol></section>
+          <section><h3>訓練及進修</h3><ol><li>國家教育研究院第183期國民小學校長儲訓班 成績及格結業</li><li>國家教育研究院第123期國民小學主任儲訓班 成績及格結業</li><li>中華民國童子軍國家研習營木章訓練第121期</li><li>臺中市「校園性別事件調查專業人員」初階結業</li><li>教師專業發展評鑑人員 初階證書</li><li>教育部「家庭展能教育支持計畫」輔導人員培育證書</li><li>行政院公共工程委員會 採購專業人員基礎訓練及格</li><li>中華民國工業安全衛生協會 乙種職業安全衛生主管教育訓練及格</li></ol></section>
+        </div>
+      </div>
+    </section>
+
+    <!-- 發展意象圖 -->
+    <section id="vision" aria-labelledby="vision-title">
+      <div class="section-head"><h2 id="vision-title">發展意象圖</h2><div class="bar" aria-hidden="true"></div></div>
+      <div class="card single-image">
+        <img src="https://linwei630718.github.io/html/tsai/vision.png" alt="學校發展意象圖，呈現校務六大幸福核心" />
+      </div>
+    </section>
+
+    <!-- 課程架構圖 -->
+    <section id="curriculum" aria-labelledby="curriculum-title">
+      <div class="section-head"><h2 id="curriculum-title">課程架構圖</h2><div class="bar" aria-hidden="true"></div></div>
+      <div class="card single-image">
+        <img src="https://linwei630718.github.io/html/tsai/course.png" alt="學校課程架構圖" />
+      </div>
+    </section>
+
+    <!-- 辦學理念 (新版) -->
+    <section id="philosophy" aria-labelledby="philosophy-title">
+      <div class="section-head"><h2 id="philosophy-title">辦學理念</h2><div class="bar" aria-hidden="true"></div></div>
+      <article class="card 理念">
+        <p><strong>辦學理念：</strong>堅持品質力求精緻、講求績效追求卓越、強調創新重視發展</p>
+        <p><em>Lester C.Thurow：</em>教育是人類希望的工程，也是國家競爭力的關鍵。校務要能永續發展，校長應致力於發展關鍵核心能力，以創造學校優勢競爭力。學校如同一個企業，企業要成功，一定要具備競爭優勢，才能永續經營。是以，學校經營有如企業經營，要具備競爭優勢，其要件為：有好校長作為企業領導人，有優秀的行政團隊作為經營管理人才，有教育熱忱的專業教師引導學生多元發展，有好的環境誘發學生樂在學習，有好的家長作為經營的合夥人，並能廣納社會資源積極投入，如此才能培育優秀人才。因此，要培養學生發展關鍵核心能力應從以下面向著手，才能竟其功於一役。</p>
+
+        <h3>（一）擔任學校領航員的領導思維：</h3>
+        <ol>
+          <li>以學生為中心－尊重個別差異，開啟多元智慧。</li>
+          <li>以專業為理想－提升教師教學專業能力，促進教師專業發展。</li>
+          <li>以分享為信念－以專業為導向，建立知識與經驗的交流分享機制。</li>
+          <li>以願景為目標－激勵學校成員服務熱忱，建立學校品牌形象。</li>
+          <li>以學習為動力－建立學習型組織，推動人才培育計畫。</li>
+        </ol>
+
+        <h3>（二）擔任學校領航員的核心價值</h3>
+        <ol>
+          <li>有教無類－以零拒絕為教育的起點，提供無障礙的學習環境。</li>
+          <li>因材施教－以適性發展為教育的歷程，提供多樣的教學活動。</li>
+          <li>人盡其才－以全人發展為教育的目的，提供多元展現的舞台。</li>
+          <li>物盡其用－以資源統整為教育的中介，提供行政的支援體系。</li>
+          <li>愛與榜樣－以典範標竿為教育的核心，提供親師生認同楷模。</li>
+        </ol>
+
+        <h3>（三）校務經營目標～有夢最美讓愛相隨－公舘「好幸福」</h3>
+        <ol>
+          <li>「文化好幸福」－建立支持信任的環境，型塑友善學校文化。</li>
+          <li>「教師好幸福」－系統規劃親師生成長機制，提升組織智慧。</li>
+          <li>「學生好幸福」－掌握教育學理，規劃適性課程，辦理多元活動。</li>
+          <li>「行政好幸福」
+－積極改善與更新學校設施，營造友善舒適校園。</li>
+        </ol>
+
+        <p>經營一所優質的學校，必須在思維上有完整的概念架構，運用適當的策略，並堅持教育本質、學校理想，以及社會價值，讓全體同仁在共同目標的引導下，透過專業的善意，以及草根性的活力，來提昇學校教育的品質。</p>
+      </article>
+    </section>
+  </main>
+
+  <footer role="contentinfo">
+    <p>© <span id="y"></span> 公舘國小｜蔡玉貞校長．以愛為本，向上而行。</p>
+  </footer>
+
+  <!-- 使用說明 dialog -->
+  <dialog id="helpDialog" aria-labelledby="helpTitle">
+    <div class="help-header">
+      <h2 id="helpTitle" tabindex="-1">使用說明（無障礙操作提示）</h2>
+      <button class="close-btn" aria-label="關閉說明">×</button>
+    </div>
+    <div>
+      <ul>
+        <li>按 <kbd>Tab</kbd> 逐一瀏覽連結與按鈕。</li>
+        <li>按 <kbd>Enter</kbd> 或 <kbd>Space</kbd> 觸發操作。</li>
+        <li>按 <kbd>Esc</kbd> 可關閉視窗或對話框。</li>
+        <li>快速鍵：<kbd>Alt</kbd>+<kbd>H</kbd> 開啟/關閉本說明。</li>
+        <li>右下角「↑」按鈕可快速回到頁首。</li>
+      </ul>
+    </div>
+  </dialog>
+
+  <!-- 移到頂部 -->
+  <button id="toTop" aria-label="移到頂部" title="移到頂部">
+    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+  </button>
+
+  <script>
+    document.getElementById('y').textContent=new Date().getFullYear();
+    const toTop=document.getElementById('toTop');
+    const toggleTop=()=>{if(window.scrollY>180)toTop.classList.add('show');else toTop.classList.remove('show')};
+    document.addEventListener('scroll',toggleTop,{passive:true});toggleTop();
+    toTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+    const helpBtn=document.getElementById('helpBtn');
+    const helpDialog=document.getElementById('helpDialog');
+    const closeBtn=helpDialog.querySelector('.close-btn');
+    function toggleHelp(){
+      if(helpDialog.open){helpDialog.close();helpBtn.focus();}
+      else{
+        helpDialog.showModal();
+        helpDialog.querySelector('h2').focus();
+      }
+    }
+    helpBtn.addEventListener('click',toggleHelp);
+    closeBtn.addEventListener('click',()=>helpDialog.close());
+    document.addEventListener('keydown',e=>{if(e.altKey&&e.key.toLowerCase()==='h'){e.preventDefault();toggleHelp();}});
+  </script>
+</body>
+</html>
