@@ -4,79 +4,448 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>公舘國小｜蔡玉貞校長</title>
-  <meta name="description" content="公舘國小校長蔡玉貞－個人簡介、發展意象圖、課程架構圖、辦學理念。" />
+  <meta name="description" content="公舘國小校長蔡玉貞：個人簡介、發展意象圖、課程架構圖、辦學理念。" />
   <style>
     :root{
-      --bg:#fff9f3;
+      --bg: linear-gradient(135deg, #fff9f3 0%, #ffe8d6 100%);
       --card:#ffffff;
       --ink:#2e2a27;
-      --muted:#4b4744;
+      --muted:#6b6764;
       --brand:#e39a5c;
       --brand-dark:#b66a2d;
+      --brand-light:#ffecd6;
       --brand-2:#ffd9a3;
       --accent:#2d6d67;
-      --shadow:0 10px 20px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.05);
-      --radius:18px;
+      --accent-light:#e8f4f3;
+      --shadow: 0 12px 28px rgba(227, 154, 92, 0.12), 0 4px 12px rgba(0,0,0,.08);
+      --shadow-hover: 0 16px 36px rgba(227, 154, 92, 0.18), 0 6px 16px rgba(0,0,0,.12);
+      --radius:20px;
       --focus:#0b5fff;
     }
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,"Noto Sans CJK TC","Microsoft JhengHei",sans-serif;line-height:1.7}
-    .skip-link{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
-    .skip-link:focus,.skip-link:focus-visible{position:fixed;left:16px;top:12px;padding:10px 14px;background:#fff;color:#000;border-radius:10px;box-shadow:var(--shadow);outline:3px solid var(--focus);z-index:100}
-    :focus-visible{outline:3px solid var(--focus);outline-offset:3px}
-    header[role="banner"]{position:sticky;top:0;z-index:40;background:rgba(255,249,243,.9);backdrop-filter:saturate(150%) blur(8px);box-shadow:0 1px 0 rgba(0,0,0,.06)}
-    .nav{max-width:1100px;margin:auto;display:flex;align-items:center;gap:18px;padding:10px 16px}
-    .brand{display:flex;align-items:center;gap:10px;font-weight:800}
-    .brand .logo{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--accent));box-shadow:var(--shadow)}
-    nav[aria-label]{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
-    nav a,.help-btn{padding:8px 12px;border-radius:999px;text-decoration:none;color:var(--ink);font-weight:600;background:none;border:none;cursor:pointer}
-    nav a:hover,.help-btn:hover,nav a:focus-visible,.help-btn:focus-visible{background:var(--brand-2)}
-    /* dialog */
-    dialog{border:none;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);max-width:480px;width:90%}
-    dialog::backdrop{background:rgba(0,0,0,.4)}
-    .help-header{display:flex;justify-content:space-between;align-items:center}
-    .help-header h2{margin:0;font-size:20px}
-    .close-btn{background:none;border:none;font-size:20px;cursor:pointer}
-    /* hero */
-    .hero{max-width:1100px;margin:24px auto 8px;display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:0 16px}
-    .hero-card{background:linear-gradient(135deg,#fff, #fff3e5);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center}
-    .hero h1{margin:0 0 8px;font-size:32px;line-height:1.2}
-    .hero .illus{border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;background:#fff}
-    .hero .illus img,
-    .hero-card img{width:100%;height:auto;max-height:560px;object-fit:contain}
-    /* sr-only */
-    .sr-only {position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;}
-    /* section */
-    section{max-width:1100px;margin:24px auto;padding:0 16px}
-    .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)}
-    .section-head{display:flex;align-items:end;gap:10px;margin:0 0 14px}
-    .section-head h2{margin:0;font-size:26px}
-    .section-head .bar{height:10px;background:linear-gradient(90deg,var(--brand),var(--accent));border-radius:999px;flex:1}
-    /* profile */
-    .profile{display:grid;grid-template-columns:440px 1fr;gap:22px}
-    .avatar{border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
-    .avatar img{width:100%;height:auto;display:block}
-    .profile .bio{padding:18px}
-    .profile .bio h3{margin:0 0 10px;font-size:18px}
-    .bio section{margin:12px 0}
-    .bio h3{margin:8px 0 6px;font-size:18px}
-    .bio ol{margin:0 0 10px 1.2em;padding:0}
-    .bio li{margin:.2em 0}
-    /* single image */
-    .single-image{padding:16px}
-    .single-image img{width:100%;height:auto;border-radius:14px;box-shadow:var(--shadow)}
+    *{box-sizing:border-box; margin: 0; padding: 0;}
+    body{
+      margin:0;
+      background: #fff9f3;
+      background-image: 
+        radial-gradient(circle at 20% 30%, rgba(227, 154, 92, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(45, 109, 103, 0.08) 0%, transparent 50%);
+      color:var(--ink);
+      font-family: "Noto Sans TC", system-ui, "Microsoft JhengHei", sans-serif;
+      line-height:1.75;
+    }
+    .skip-link{
+      position:absolute;
+      left:-9999px;
+      top:auto;
+      width:1px;
+      height:1px;
+      overflow:hidden;
+    }
+    .skip-link:focus,.skip-link:focus-visible{
+      position:fixed;
+      left:20px;
+      top:20px;
+      padding:12px 20px;
+      background:#fff;
+      color:#000;
+      border-radius:12px;
+      box-shadow:var(--shadow);
+      outline:3px solid var(--focus);
+      z-index:100;
+      font-weight: 600;
+    }
+    :focus-visible{
+      outline:3px solid var(--focus);
+      outline-offset:3px;
+      border-radius: 8px;
+    }
+    
+    /* Header */
+    header[role="banner"]{
+      position:sticky;
+      top:0;
+      z-index:40;
+      background:rgba(255,249,243,.95);
+      backdrop-filter:saturate(180%) blur(12px);
+      box-shadow: 0 2px 12px rgba(227, 154, 92, 0.1);
+      border-bottom: 2px solid rgba(227, 154, 92, 0.15);
+    }
+    .nav{
+      max-width:1200px;
+      margin:auto;
+      display:flex;
+      align-items:center;
+      gap:20px;
+      padding:14px 24px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      font-weight:800;
+      font-size: 18px;
+      color: var(--ink);
+    }
+    .brand .logo{
+      width:42px;
+      height:42px;
+      border-radius:50%;
+      background: linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%);
+      box-shadow: 0 4px 12px rgba(227, 154, 92, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .brand .logo::before {
+      content: '愛';
+      color: white;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    nav[aria-label]{
+      margin-left:auto;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    nav a, .help-btn{
+      padding:10px 18px;
+      border-radius:999px;
+      text-decoration:none;
+      color:var(--ink);
+      font-weight:600;
+      background:none;
+      border:none;
+      cursor:pointer;
+      transition: all 0.3s ease;
+      font-size: 15px;
+    }
+    nav a:hover, .help-btn:hover{
+      background: var(--brand-light);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(227, 154, 92, 0.2);
+    }
+    nav a:focus-visible, .help-btn:focus-visible{
+      background: var(--brand-2);
+    }
+    
+    /* Dialog */
+    dialog{
+      border:none;
+      border-radius:var(--radius);
+      padding:28px;
+      box-shadow:var(--shadow-hover);
+      max-width:520px;
+      width:90%;
+    }
+    dialog::backdrop{
+      background:rgba(0,0,0,.5);
+      backdrop-filter: blur(4px);
+    }
+    .help-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--brand-light);
+    }
+    .help-header h2{
+      margin:0;
+      font-size:22px;
+      color: var(--brand-dark);
+    }
+    .close-btn{
+      background:none;
+      border:none;
+      font-size:28px;
+      cursor:pointer;
+      color: var(--muted);
+      transition: all 0.2s;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .close-btn:hover {
+      background: var(--brand-light);
+      color: var(--brand-dark);
+    }
+    dialog ul {
+      list-style: none;
+      padding: 0;
+    }
+    dialog li {
+      padding: 10px 0;
+      line-height: 1.8;
+    }
+    dialog kbd {
+      background: var(--brand-light);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-weight: 600;
+      color: var(--brand-dark);
+      border: 1px solid var(--brand-2);
+    }
+    
+    /* Hero */
+    .hero{
+      max-width:1200px;
+      margin:32px auto 12px;
+      padding:0 24px;
+    }
+    .hero-card{
+      background: linear-gradient(135deg, #ffffff 0%, #fff8ed 100%);
+      border-radius:var(--radius);
+      padding:40px;
+      box-shadow:var(--shadow);
+      display:flex;
+      flex-direction: column;
+      align-items:center;
+      justify-content:center;
+      transition: all 0.4s ease;
+      border: 2px solid rgba(227, 154, 92, 0.1);
+    }
+    .hero-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-hover);
+    }
+    .hero h1{
+      margin:0 0 32px;
+      font-size:36px;
+      line-height:1.4;
+      color: var(--brand-dark);
+      text-align: center;
+      font-weight: 800;
+    }
+    .hero .illus{
+      border-radius:var(--radius);
+      overflow:hidden;
+      box-shadow:var(--shadow);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#fff;
+    }
+    .hero-card img{
+      width:100%;
+      max-width: 900px;
+      height:auto;
+      object-fit:contain;
+      display: block;
+      margin: 0 auto;
+    }
+    
+    /* Section */
+    .sr-only {
+      position:absolute;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      border:0;
+    }
+    section{
+      max-width:1200px;
+      margin:40px auto;
+      padding:0 24px;
+    }
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      transition: all 0.4s ease;
+      border: 2px solid rgba(227, 154, 92, 0.05);
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+    }
+    .section-head{
+      display:flex;
+      align-items:center;
+      gap:16px;
+      margin:0 0 24px;
+    }
+    .section-head h2{
+      margin:0;
+      font-size:32px;
+      font-weight: 800;
+      color: var(--brand-dark);
+      white-space: nowrap;
+    }
+    .section-head .bar{
+      height:12px;
+      background: linear-gradient(90deg, var(--brand) 0%, var(--accent) 100%);
+      border-radius:999px;
+      flex:1;
+      box-shadow: 0 2px 8px rgba(227, 154, 92, 0.3);
+    }
+    
+    /* Profile */
+    .profile{
+      display:grid;
+      grid-template-columns:460px 1fr;
+      gap:32px;
+    }
+    .avatar{
+      border-radius:var(--radius);
+      overflow:hidden;
+      box-shadow:var(--shadow);
+      background: var(--brand-light);
+      padding: 8px;
+    }
+    .avatar img{
+      width:100%;
+      height:auto;
+      display:block;
+      border-radius: 14px;
+    }
+    .profile .bio{
+      padding:28px;
+    }
+    .profile .bio > h3{
+      margin:0 0 20px;
+      font-size:28px;
+      color: var(--brand-dark);
+      font-weight: 800;
+    }
+    .bio section{
+      margin:24px 0;
+      padding: 20px;
+      background: var(--accent-light);
+      border-radius: 14px;
+      border-left: 4px solid var(--accent);
+    }
+    .bio h3{
+      margin:0 0 12px;
+      font-size:20px;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .bio ol{
+      margin:0 0 10px 1.5em;
+      padding:0;
+    }
+    .bio li{
+      margin:8px 0;
+      line-height: 1.8;
+    }
+    
+    /* Single Image */
+    .single-image{
+      padding:24px;
+      background: linear-gradient(135deg, #ffffff 0%, #fffbf5 100%);
+    }
+    .single-image img{
+      width:100%;
+      height:auto;
+      border-radius:16px;
+      box-shadow: 0 8px 24px rgba(227, 154, 92, 0.15);
+      transition: transform 0.3s ease;
+    }
+    .single-image img:hover {
+      transform: scale(1.02);
+    }
+    
     /* 理念 */
-    .理念{padding:18px}
-    .理念 h3{margin-top:12px;font-size:18px}
-    .理念 p{margin:.4em 0}
-    .理念 ul{margin:.4em 0 1em 1.2em}
-    /* footer */
-    footer[role="contentinfo"]{max-width:1100px;margin:40px auto 100px;padding:0 16px;color:var(--muted)}
-    /* toTop */
-    #toTop{position:fixed;right:16px;bottom:22px;width:52px;height:52px;border:none;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--brand-dark));color:#fff;cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;opacity:0;transform:translateY(10px);transition:.25s ease;z-index:50}
-    #toTop.show{opacity:1;transform:translateY(0)}
-    @media (max-width:900px){.hero{grid-template-columns:1fr}.profile{grid-template-columns:1fr}}
-    @media (prefers-reduced-motion: reduce){#toTop{transition:none}}
+    .理念{
+      padding:32px;
+      line-height: 2;
+    }
+    .理念 h3{
+      margin-top:28px;
+      margin-bottom: 12px;
+      font-size:22px;
+      color: var(--brand-dark);
+      font-weight: 700;
+    }
+    .理念 p{
+      margin:16px 0;
+    }
+    .理念 strong {
+      color: var(--accent);
+      font-size: 18px;
+    }
+    .理念 ul{
+      margin:.8em 0 1.2em 1.5em;
+    }
+    .理念 img {
+      height: auto;
+      margin: 28px auto;
+      display: block;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+    
+    /* Footer */
+    footer[role="contentinfo"]{
+      max-width:1200px;
+      margin:60px auto 120px;
+      padding:32px 24px;
+      color:var(--muted);
+      text-align: center;
+      border-top: 2px solid rgba(227, 154, 92, 0.15);
+    }
+    footer p {
+      font-size: 15px;
+      font-weight: 500;
+    }
+    
+    /* To Top Button */
+    #toTop{
+      position:fixed;
+      right:24px;
+      bottom:32px;
+      width:56px;
+      height:56px;
+      border:none;
+      border-radius:50%;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--brand-dark) 100%);
+      color:#fff;
+      cursor:pointer;
+      box-shadow: 0 8px 20px rgba(45, 109, 103, 0.3);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      opacity:0;
+      transform:translateY(20px);
+      transition:.3s ease;
+      z-index:50;
+    }
+    #toTop.show{
+      opacity:1;
+      transform:translateY(0);
+    }
+    #toTop:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 28px rgba(45, 109, 103, 0.4);
+    }
+    #toTop:active {
+      transform: translateY(-2px);
+    }
+    
+    /* Responsive */
+    @media (max-width:900px){
+      .hero{padding: 0 16px;}
+      .profile{grid-template-columns:1fr}
+      .nav{padding: 12px 16px;}
+      .brand{font-size: 16px;}
+      .hero h1{font-size: 28px;}
+      .hero-card img{max-width: 100%;}
+      .section-head h2{font-size: 26px;}
+      section{padding: 0 16px; margin: 32px auto;}
+    }
+    @media (prefers-reduced-motion: reduce){
+      *, *::before, *::after{transition:none !important}
+      #toTop{transition:none}
+    }
   </style>
 </head>
 <body>
@@ -101,11 +470,8 @@
     <!-- Hero -->
     <section class="hero" aria-label="首頁導言區">
       <div class="hero-card card">
-        <h1 class="sr-only">以愛為本，成就孩子多元的可能</h1>
-        <img src="https://linwei630718.github.io/html/tsai/six.png" alt="公舘國小六大幸福核心圖示：文化、教師、學生、行政、家長、校園" />
-      </div>
-      <div class="illus">
-        <img src="https://linwei630718.github.io/html/tsai/vision.png" alt="學校發展意象圖" />
+        <h1>以愛為本，成就孩子多元的可能</h1>
+        <img src="https://linwei630718.github.io/html/tsai/logo.png" alt="學校願景圖：創造機會適性揚才，成就孩子的幸福微笑" />
       </div>
     </section>
 
@@ -142,47 +508,53 @@
       </div>
     </section>
 
-    <!-- 辦學理念 (新版) -->
+    <!-- 辦學理念 -->
     <section id="philosophy" aria-labelledby="philosophy-title">
       <div class="section-head"><h2 id="philosophy-title">辦學理念</h2><div class="bar" aria-hidden="true"></div></div>
       <article class="card 理念">
-        <p><strong>辦學理念：</strong>堅持品質力求精緻、講求績效追求卓越、強調創新重視發展</p>
-        <p><em>Lester C.Thurow：</em>教育是人類希望的工程，也是國家競爭力的關鍵。校務要能永續發展，校長應致力於發展關鍵核心能力，以創造學校優勢競爭力。學校如同一個企業，企業要成功，一定要具備競爭優勢，才能永續經營。是以，學校經營有如企業經營，要具備競爭優勢，其要件為：有好校長作為企業領導人，有優秀的行政團隊作為經營管理人才，有教育熱忱的專業教師引導學生多元發展，有好的環境誘發學生樂在學習，有好的家長作為經營的合夥人，並能廣納社會資源積極投入，如此才能培育優秀人才。因此，要培養學生發展關鍵核心能力應從以下面向著手，才能竟其功於一役。</p>
+        <p><strong>辦學理念：以 LEARN・LOVE・LIVE 為脈絡，構築愛的學校，幸福學園。</strong></p>
 
-        <h3>（一）擔任學校領航員的領導思維：</h3>
-        <ol>
-          <li>以學生為中心－尊重個別差異，開啟多元智慧。</li>
-          <li>以專業為理想－提升教師教學專業能力，促進教師專業發展。</li>
-          <li>以分享為信念－以專業為導向，建立知識與經驗的交流分享機制。</li>
-          <li>以願景為目標－激勵學校成員服務熱忱，建立學校品牌形象。</li>
-          <li>以學習為動力－建立學習型組織，推動人才培育計畫。</li>
-        </ol>
+        <img src="https://linwei630718.github.io/html/tsai/4L.png" alt="LEAD LEARN LOVE LIVE 圖示" />
 
-        <h3>（二）擔任學校領航員的核心價值</h3>
-        <ol>
-          <li>有教無類－以零拒絕為教育的起點，提供無障礙的學習環境。</li>
-          <li>因材施教－以適性發展為教育的歷程，提供多樣的教學活動。</li>
-          <li>人盡其才－以全人發展為教育的目的，提供多元展現的舞台。</li>
-          <li>物盡其用－以資源統整為教育的中介，提供行政的支援體系。</li>
-          <li>愛與榜樣－以典範標竿為教育的核心，提供親師生認同楷模。</li>
-        </ol>
+        <p><strong>LEAD TO LEARN｜引領學習</strong><br>
+        點燃「學習」動機。以「學生為主體」(LEARNING-CENTERED)，讓孩子變成學習的探索者。<br>
+        教師角色轉化，從「教什麼」轉向「怎麼學」。<br>
+        不只教知識，更教方法、教思辨，讓孩子學會終身學習。</p>
 
-        <h3>（三）校務經營目標～有夢最美讓愛相隨－公舘「好幸福」</h3>
-        <ol>
-          <li>「文化好幸福」－建立支持信任的環境，型塑友善學校文化。</li>
-          <li>「教師好幸福」－系統規劃親師生成長機制，提升組織智慧。</li>
-          <li>「學生好幸福」－掌握教育學理，規劃適性課程，辦理多元活動。</li>
-          <li>「行政好幸福」
-－積極改善與更新學校設施，營造友善舒適校園。</li>
-        </ol>
+        <p><strong>LEARN TO LOVE｜學會去愛</strong><br>
+        從「傾聽」為起點，從理解開始。課程中融入 SEL(社會情緒學習)。<br>
+        教育的深度來自於情感的連結——不只是讓孩子會做，更要懂得為誰而做、為什麼做。</p>
 
-        <p>經營一所優質的學校，必須在思維上有完整的概念架構，運用適當的策略，並堅持教育本質、學校理想，以及社會價值，讓全體同仁在共同目標的引導下，透過專業的善意，以及草根性的活力，來提昇學校教育的品質。</p>
+        <p><strong>LIVE THE LIFE｜活出完整的生命</strong><br>
+        我們提供多元機會，讓孩子在嘗試中找到自我。<br>
+        鼓勵冒險與創新，勇敢追夢，努力實現。<br>
+        打造吸引人、令人投入的學習場域，使學習成為享受。<br>
+        不追逐完美，而追求真實與自我實現的勇氣。</p>
+
+        <p>創造機會適性揚才，成就孩子的幸福微笑，共築微笑的幸福學園。</p>
+
+        <img src="https://linwei630718.github.io/html/tsai/SMILE.png" alt="SMILE 幸福學園圖示" />
+
+        <p><strong>自我期許：</strong></p>
+
+	  <img src="https://linwei630718.github.io/html/tsai/light.png" alt="自我期許" />
+
+        <p>這所學校，晨光灑落那刻，孩子的笑聲像流光，<br>
+        在黑板上悄悄寫下今天的幸福；<br>
+        這位校長，不以掌聲為傲，而以孩子眼裡的光為榮。<br>
+        我期許自己，不只是引領者，更是守護者——<br>
+        守著學校該有的溫度，孩子應有的童年。<br>
+        「愛的學校 幸福學園」，是我心中最美的教育許諾。<br>
+        讓孩子學會學習(LEARN)；學會去愛(LOVE)；最終，成就自己(LIVE)。<br>
+        幸福的童年，用愛澆灌、用時間慢釀——<br>
+        期許學校，有相信、有盼望、有愛；<br>
+        期許自己，能在每一天的校園日常裡，為孩子點一盞燈，與老師攜手前行，為教育堅守初心。</p>
       </article>
     </section>
   </main>
 
   <footer role="contentinfo">
-    <p>© <span id="y"></span> 公舘國小｜蔡玉貞校長．以愛為本，向上而行。</p>
+    <p>© <span id="year"></span> 公舘國小｜蔡玉貞校長．以愛為本，向上而行。</p>
   </footer>
 
   <!-- 使用說明 dialog -->
@@ -197,35 +569,49 @@
         <li>按 <kbd>Enter</kbd> 或 <kbd>Space</kbd> 觸發操作。</li>
         <li>按 <kbd>Esc</kbd> 可關閉視窗或對話框。</li>
         <li>快速鍵：<kbd>Alt</kbd>+<kbd>H</kbd> 開啟/關閉本說明。</li>
-        <li>右下角「↑」按鈕可快速回到頁首。</li>
+        <li>右下角「↑」按鈕可快速回到頂首。</li>
       </ul>
     </div>
   </dialog>
 
   <!-- 移到頂部 -->
   <button id="toTop" aria-label="移到頂部" title="移到頂部">
-    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
   </button>
 
   <script>
-    document.getElementById('y').textContent=new Date().getFullYear();
-    const toTop=document.getElementById('toTop');
-    const toggleTop=()=>{if(window.scrollY>180)toTop.classList.add('show');else toTop.classList.remove('show')};
-    document.addEventListener('scroll',toggleTop,{passive:true});toggleTop();
-    toTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
-    const helpBtn=document.getElementById('helpBtn');
-    const helpDialog=document.getElementById('helpDialog');
-    const closeBtn=helpDialog.querySelector('.close-btn');
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const toTop = document.getElementById('toTop');
+    const toggleTop = () => {
+      if(window.scrollY > 180) toTop.classList.add('show');
+      else toTop.classList.remove('show');
+    };
+    document.addEventListener('scroll', toggleTop, {passive:true});
+    toggleTop();
+    toTop.addEventListener('click', () => window.scrollTo({top:0, behavior:'smooth'}));
+    
+    const helpBtn = document.getElementById('helpBtn');
+    const helpDialog = document.getElementById('helpDialog');
+    const closeBtn = helpDialog.querySelector('.close-btn');
+    
     function toggleHelp(){
-      if(helpDialog.open){helpDialog.close();helpBtn.focus();}
-      else{
+      if(helpDialog.open){
+        helpDialog.close();
+        helpBtn.focus();
+      } else {
         helpDialog.showModal();
         helpDialog.querySelector('h2').focus();
       }
     }
-    helpBtn.addEventListener('click',toggleHelp);
-    closeBtn.addEventListener('click',()=>helpDialog.close());
-    document.addEventListener('keydown',e=>{if(e.altKey&&e.key.toLowerCase()==='h'){e.preventDefault();toggleHelp();}});
+    
+    helpBtn.addEventListener('click', toggleHelp);
+    closeBtn.addEventListener('click', () => helpDialog.close());
+    document.addEventListener('keydown', e => {
+      if(e.altKey && e.key.toLowerCase() === 'h'){
+        e.preventDefault();
+        toggleHelp();
+      }
+    });
   </script>
 </body>
 </html>
