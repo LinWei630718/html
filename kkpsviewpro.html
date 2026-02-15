@@ -347,9 +347,10 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 20;
+            z-index: 40;
             backdrop-filter: blur(5px);
             border-radius: 20px;
+            pointer-events: none;
         }
         
         .countdown-title {
@@ -1859,7 +1860,14 @@
 
     // 廣播倒數資訊給所有觀眾
     function broadcastCountdown() {
-        if (!scheduledTime) return;
+        if (!scheduledTime) {
+            // 如果沒有排程時間，發送取消訊號
+            broadcastData({
+                type: 'countdown',
+                active: false
+            });
+            return;
+        }
         
         const remaining = Math.max(0, Math.floor((scheduledTime - Date.now()) / 1000));
         
@@ -1875,6 +1883,7 @@
                 time: timeStr
             });
         } else {
+            // 倒數結束，發送結束訊號
             broadcastData({
                 type: 'countdown',
                 active: false
@@ -1893,9 +1902,9 @@
             timer.textContent = data.time;
             log(`直播倒數中: ${data.time}`);
         } else {
-            // 取消倒數
+            // 取消倒數或倒數結束
             overlay.classList.add('hidden');
-            log('直播倒數已結束');
+            log('直播倒數已結束，開始觀看');
         }
     }
 
