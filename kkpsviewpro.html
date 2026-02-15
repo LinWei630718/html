@@ -1403,6 +1403,9 @@
         } else if (data.type === 'kicked') {
             // 被導播踢除
             handleKicked(data.message);
+        } else if (data.type === 'countdown') {
+            // 🆕 處理倒數資訊
+            handleCountdown(data);
         }
     }
 
@@ -1438,6 +1441,24 @@
             if(pendingConnection.open) {
                 pendingConnection.send({type: 'update', data: voteData});
                 pendingConnection.send({type: 'viewerCount', count: viewerCount});
+                
+                // 🆕 如果有進行中的倒數，立即發送給新觀眾
+                if (scheduledTime) {
+                    const remaining = Math.max(0, Math.floor((scheduledTime - Date.now()) / 1000));
+                    if (remaining > 0) {
+                        const h = Math.floor(remaining / 3600);
+                        const m = Math.floor((remaining % 3600) / 60);
+                        const s = remaining % 60;
+                        const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                        
+                        pendingConnection.send({
+                            type: 'countdown',
+                            active: true,
+                            time: timeStr
+                        });
+                        log(`已發送倒數資訊給新觀眾: ${timeStr}`);
+                    }
+                }
             }
             const call = peer.call(guestId, localStream);
             call.on('close', () => log("觀眾視訊斷線"));
@@ -1616,6 +1637,9 @@
         
         log(`已設定直播預告：${hours}時${minutes}分${seconds}秒後開始`);
         
+        // 🆕 立即廣播倒數資訊給所有觀眾
+        broadcastCountdown();
+        
         // 啟動倒數計時
         countdownInterval = setInterval(() => {
             const remaining = Math.max(0, Math.floor((scheduledTime - Date.now()) / 1000));
@@ -1632,6 +1656,9 @@
             
             const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
             document.getElementById('countdownTimer').textContent = timeStr;
+            
+            // 🆕 每秒廣播倒數資訊給所有觀眾
+            broadcastCountdown();
         }, 1000);
     }
 
@@ -1647,6 +1674,9 @@
         document.getElementById('scheduleMinutes').value = '0';
         document.getElementById('scheduleSeconds').value = '0';
         log('已取消直播預告倒數');
+        
+        // 🆕 廣播取消倒數給所有觀眾
+        broadcastData({type: 'countdown', active: false});
     }
 
     function toggleRecording() {
@@ -1825,6 +1855,48 @@
         
         setStatus("已被移除", "normal");
         document.getElementById('connectionQuality').classList.add('hidden');
+    }
+
+    // 廣播倒數資訊給所有觀眾
+    function broadcastCountdown() {
+        if (!scheduledTime) return;
+        
+        const remaining = Math.max(0, Math.floor((scheduledTime - Date.now()) / 1000));
+        
+        if (remaining > 0) {
+            const h = Math.floor(remaining / 3600);
+            const m = Math.floor((remaining % 3600) / 60);
+            const s = remaining % 60;
+            const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            
+            broadcastData({
+                type: 'countdown',
+                active: true,
+                time: timeStr
+            });
+        } else {
+            broadcastData({
+                type: 'countdown',
+                active: false
+            });
+        }
+    }
+
+    // 觀眾端處理倒數資訊
+    function handleCountdown(data) {
+        const overlay = document.getElementById('countdownOverlay');
+        const timer = document.getElementById('countdownTimer');
+        
+        if (data.active && data.time) {
+            // 顯示倒數
+            overlay.classList.remove('hidden');
+            timer.textContent = data.time;
+            log(`直播倒數中: ${data.time}`);
+        } else {
+            // 取消倒數
+            overlay.classList.add('hidden');
+            log('直播倒數已結束');
+        }
     }
 
     // 停止視訊播放並清除畫面
