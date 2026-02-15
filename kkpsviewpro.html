@@ -1400,7 +1400,9 @@
             voteData = data.data;
             updateVoteUI();
         } else if (data.type === 'viewerCount') {
+            // 同時更新直播資訊面板和頂部的線上人數顯示
             document.getElementById('guestViewerCount').innerText = data.count;
+            document.getElementById('viewerCount').innerText = data.count;
         } else if (data.type === 'kicked') {
             // 被導播踢除
             handleKicked(data.message);
