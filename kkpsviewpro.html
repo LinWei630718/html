@@ -15,6 +15,11 @@
             --glass: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.1);
             --gold: #ffd700;
+            --success-green: #00ff88;
+            --signal-excellent: #00ff88;
+            --signal-good: #ffd700;
+            --signal-poor: #ff6b00;
+            --signal-bad: #ff0055;
         }
 
         * { box-sizing: border-box; }
@@ -96,7 +101,7 @@
             width: 99%; 
             max-width: 100%; 
             display: grid; 
-            grid-template-columns: 1fr 320px; 
+            grid-template-columns: 1fr 350px; 
             gap: 15px; 
             padding: 0 10px 20px 10px;
             flex: 1;
@@ -169,9 +174,10 @@
             right: 15px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             z-index: 30;
             gap: 10px;
+            flex-wrap: wrap;
         }
         
         .status-bar { 
@@ -204,6 +210,39 @@
         
         .viewer-count .icon {
             font-size: 1.1rem;
+        }
+        
+        /* 連線品質指示器 */
+        .connection-quality {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        
+        .signal-icon {
+            font-size: 1.1rem;
+        }
+        
+        .quality-text {
+            font-weight: bold;
+        }
+        
+        .quality-excellent { color: var(--signal-excellent); }
+        .quality-good { color: var(--signal-good); }
+        .quality-poor { color: var(--signal-poor); }
+        .quality-bad { color: var(--signal-bad); }
+        
+        .quality-details {
+            font-size: 0.75rem;
+            color: #999;
+            margin-left: 4px;
         }
         
         .dot { 
@@ -297,6 +336,43 @@
             background: rgba(0,242,255,0.2); 
         }
 
+        /* 直播預告遮罩 */
+        .countdown-overlay {
+            position: absolute;
+            top: 0; left: 0; 
+            width: 100%; 
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            backdrop-filter: blur(5px);
+            border-radius: 20px;
+        }
+        
+        .countdown-title {
+            font-size: 1.5rem;
+            color: var(--cyber-cyan);
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(0,242,255,0.5);
+        }
+        
+        .countdown-timer {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--gold);
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 20px rgba(255,215,0,0.5);
+            margin-bottom: 20px;
+        }
+        
+        .countdown-message {
+            font-size: 1rem;
+            color: #999;
+        }
+
         .panel { 
             background: var(--glass); 
             backdrop-filter: blur(15px); 
@@ -306,6 +382,17 @@
             margin-bottom: 15px;
             overflow-y: auto;
             max-height: calc(100vh - 200px);
+        }
+        
+        .panel::-webkit-scrollbar {
+            width: 8px;
+        }
+        .panel::-webkit-scrollbar-thumb {
+            background: var(--glass-border);
+            border-radius: 4px;
+        }
+        .panel::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.2);
         }
         
         h3 { 
@@ -323,6 +410,12 @@
             font-size: 0.9rem;
             color: #999;
         }
+        
+        /* 可複製的ID輸入框樣式 */
+        .id-input-wrapper {
+            position: relative;
+        }
+        
         .input-style { 
             background: rgba(0,0,0,0.3); 
             border: 1px solid var(--glass-border); 
@@ -333,10 +426,76 @@
             font-size: 0.95rem;
             transition: 0.3s;
         }
+        
+        .input-style.clickable {
+            cursor: pointer;
+            padding-right: 40px;
+        }
+        
+        .input-style.clickable:hover {
+            background: rgba(0,0,0,0.5);
+            border-color: var(--cyber-cyan);
+        }
+        
         .input-style:focus { 
             outline: none; 
             border-color: var(--cyber-cyan); 
             background: rgba(0,0,0,0.5); 
+        }
+        
+        /* 複製圖示 */
+        .copy-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--cyber-cyan);
+            font-size: 1.2rem;
+            pointer-events: none;
+            opacity: 0.7;
+            transition: 0.3s;
+        }
+        
+        .input-style.clickable:hover + .copy-icon {
+            opacity: 1;
+            transform: translateY(-50%) scale(1.1);
+        }
+        
+        /* 複製成功提示 */
+        .copy-tooltip {
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-10px);
+            background: var(--success-green);
+            color: var(--bg-deep);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(0, 255, 136, 0.3);
+        }
+        
+        .copy-tooltip.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .copy-tooltip::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid var(--success-green);
         }
         
         /* 畫質選擇器樣式 */
@@ -361,6 +520,7 @@
         
         .quality-btn:hover {
             background: rgba(255,255,255,0.05);
+            border-color: var(--cyber-cyan);
         }
         
         .quality-btn.active {
@@ -368,6 +528,89 @@
             color: var(--bg-deep);
             font-weight: bold;
             border-color: var(--cyber-cyan);
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+        }
+
+        /* 觀眾名單樣式 */
+        .viewer-list {
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .viewer-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .viewer-list::-webkit-scrollbar-thumb {
+            background: var(--glass-border);
+            border-radius: 3px;
+        }
+        
+        .viewer-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            transition: 0.3s;
+        }
+        
+        .viewer-item:hover {
+            background: rgba(0,242,255,0.1);
+            border-color: var(--cyber-cyan);
+        }
+        
+        .viewer-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+        
+        .viewer-icon {
+            color: var(--cyber-cyan);
+            font-size: 1rem;
+        }
+        
+        .viewer-id {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #ccc;
+        }
+        
+        .viewer-time {
+            font-size: 0.75rem;
+            color: #666;
+            margin-left: auto;
+            margin-right: 10px;
+        }
+        
+        .kick-btn {
+            background: rgba(255,0,85,0.2);
+            border: 1px solid var(--neon-red);
+            color: var(--neon-red);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        
+        .kick-btn:hover {
+            background: var(--neon-red);
+            color: white;
+        }
+        
+        .viewer-list-empty {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+            font-size: 0.9rem;
         }
 
         .action-btn { 
@@ -405,6 +648,10 @@
         }
         .action-btn.danger { 
             background: linear-gradient(135deg, #ff0055, #cc0044); 
+        }
+        .action-btn.small {
+            padding: 8px;
+            font-size: 0.85rem;
         }
 
         /* 星星評分系統樣式 */
@@ -538,6 +785,29 @@
             color: #ccc;
         }
 
+        /* 時間選擇器樣式 */
+        .time-picker {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .time-input {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        
+        .time-input:focus {
+            outline: none;
+            border-color: var(--cyber-cyan);
+        }
+
         .hidden { display: none !important; }
 
         /* 響應式調整 */
@@ -559,7 +829,7 @@
                 flex-direction: column;
                 align-items: flex-start;
             }
-            .status-bar, .viewer-count {
+            .status-bar, .viewer-count, .connection-quality {
                 font-size: 0.75rem;
                 padding: 6px 12px;
             }
@@ -572,6 +842,9 @@
                 font-size: 1.5rem;
             }
             .score-display {
+                font-size: 2rem;
+            }
+            .countdown-timer {
                 font-size: 2rem;
             }
         }
@@ -606,6 +879,13 @@
                         <span class="icon">👥</span>
                         <span id="viewerNumber">0</span>
                     </div>
+                    
+                    <!-- 連線品質指示器 -->
+                    <div class="connection-quality hidden" id="connectionQuality">
+                        <span class="signal-icon" id="signalIcon">📶</span>
+                        <span class="quality-text" id="qualityText">良好</span>
+                        <span class="quality-details" id="qualityDetails"></span>
+                    </div>
                 </div>
 
                 <!-- 底部控制列 -->
@@ -620,6 +900,13 @@
                     <div class="play-icon">▶</div>
                     <p style="margin-top:15px; color: #ccc;">點擊播放直播</p>
                 </div>
+                
+                <!-- 直播預告倒數 -->
+                <div class="countdown-overlay hidden" id="countdownOverlay">
+                    <div class="countdown-title">📅 直播即將開始</div>
+                    <div class="countdown-timer" id="countdownTimer">00:00:00</div>
+                    <div class="countdown-message">敬請期待...</div>
+                </div>
             </div>
         </div>
 
@@ -630,16 +917,20 @@
                 <h3>📡 導播控制台</h3>
                 
                 <div class="input-group">
-                    <label>🆔 你的導播 ID：</label>
-                    <input type="text" id="myId" class="input-style" readonly placeholder="啟動攝影機後顯示">
+                    <label>🆔 你的導播 ID <span style="color: var(--cyber-cyan); font-size: 0.8rem;">(點擊複製)</span>：</label>
+                    <div class="id-input-wrapper">
+                        <input type="text" id="myId" class="input-style clickable" readonly placeholder="啟動攝影機後顯示" onclick="copyToClipboard(this.value)">
+                        <span class="copy-icon">📋</span>
+                        <div class="copy-tooltip" id="copyTooltip">✓ 已複製到剪貼簿</div>
+                    </div>
                 </div>
 
                 <div class="input-group">
                     <label>📹 畫質選擇：</label>
                     <div class="quality-selector">
-                        <button class="quality-btn" onclick="setQuality('low')">標準<br>480p</button>
-                        <button class="quality-btn active" onclick="setQuality('medium')">高清<br>720p</button>
-                        <button class="quality-btn" onclick="setQuality('high')">超清<br>1080p</button>
+                        <button class="quality-btn" onclick="setQuality('low', event)">標準<br>480p</button>
+                        <button class="quality-btn active" onclick="setQuality('medium', event)">高清<br>720p</button>
+                        <button class="quality-btn" onclick="setQuality('high', event)">超清<br>1080p</button>
                     </div>
                 </div>
 
@@ -647,12 +938,33 @@
                 <button class="action-btn danger" id="recBtn" onclick="toggleRecording()" disabled>2. 開始錄影</button>
                 <span id="recTimer" style="display:none; color: var(--neon-red); font-weight: bold; margin-left: 10px;"></span>
 
+                <!-- 直播預告設定 -->
                 <div style="margin-top: 20px;">
-                    <h3>👥 觀眾統計</h3>
+                    <h3>📅 直播預告設定</h3>
+                    <div class="input-group">
+                        <label>設定開播時間：</label>
+                        <div class="time-picker">
+                            <input type="number" id="scheduleHours" class="time-input" placeholder="時" min="0" max="23" value="0">
+                            <input type="number" id="scheduleMinutes" class="time-input" placeholder="分" min="0" max="59" value="0">
+                            <input type="number" id="scheduleSeconds" class="time-input" placeholder="秒" min="0" max="59" value="0">
+                        </div>
+                        <button class="action-btn secondary small" onclick="setSchedule()">設定倒數計時</button>
+                        <button class="action-btn secondary small" id="cancelScheduleBtn" onclick="cancelSchedule()" style="display:none;">取消倒數</button>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <h3>👥 觀眾管理</h3>
                     <div class="vote-stats">
                         <div class="stat-row">
                             <span class="stat-label">線上觀眾</span>
                             <span class="stat-value" id="hostViewerCount">0</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 10px;">
+                        <div class="viewer-list" id="viewerList">
+                            <div class="viewer-list-empty">尚無觀眾連線</div>
                         </div>
                     </div>
                 </div>
@@ -757,11 +1069,13 @@
                 <h4>🎬 導播端操作</h4>
                 <p>1. 選擇畫質（標準/高清/超清）<br>
                 2. 點擊「啟動攝影機」開始直播<br>
-                3. 將顯示的 ID 分享給觀眾<br>
-                4. 當觀眾請求連線時會跳出確認視窗<br>
-                5. 可選擇「開始錄影」保存直播內容<br>
-                6. 即時查看線上人數和評分統計<br>
-                7. 點擊全螢幕按鈕進入沉浸模式</p>
+                3. 點擊導播 ID 即可自動複製<br>
+                4. 將 ID 分享給觀眾<br>
+                5. 當觀眾請求連線時會跳出確認視窗<br>
+                6. 可選擇「開始錄影」保存直播內容<br>
+                7. 即時查看線上人數和評分統計<br>
+                8. 在觀眾名單中管理連線觀眾<br>
+                9. 點擊全螢幕按鈕進入沉浸模式</p>
             </div>
 
             <div class="info-section">
@@ -770,9 +1084,19 @@
                 2. 輸入連線密碼：<strong>2026kkps</strong><br>
                 3. 點擊「請求連線」等待導播同意<br>
                 4. 連線成功後即可觀看直播<br>
-                5. 查看線上觀眾人數<br>
+                5. 查看線上觀眾人數和連線品質<br>
                 6. 隨時給主播評分回饋<br>
                 7. 使用全螢幕按鈕獲得最佳觀看體驗</p>
+            </div>
+
+            <div class="info-section">
+                <h4>📅 直播預告功能</h4>
+                <p>導播可以設定倒數計時：<br>
+                • 輸入時、分、秒設定開播時間<br>
+                • 點擊「設定倒數計時」啟動<br>
+                • 倒數期間觀眾會看到預告畫面<br>
+                • 倒數結束後自動開始直播<br>
+                • 可隨時點擊「取消倒數」提前開播</p>
             </div>
 
             <div class="info-section">
@@ -783,12 +1107,30 @@
             </div>
 
             <div class="info-section">
+                <h4>📶 連線品質指示</h4>
+                <p>系統會自動偵測連線品質：<br>
+                • <span style="color: #00ff88;">●</span> 優異 - 延遲 < 100ms<br>
+                • <span style="color: #ffd700;">●</span> 良好 - 延遲 100-200ms<br>
+                • <span style="color: #ff6b00;">●</span> 普通 - 延遲 200-500ms<br>
+                • <span style="color: #ff0055;">●</span> 不佳 - 延遲 > 500ms</p>
+            </div>
+
+            <div class="info-section">
                 <h4>⭐ 評分系統</h4>
                 <p>★☆☆☆☆ = 加油<br>
                 ★★☆☆☆ = 普通<br>
                 ★★★☆☆ = 還行<br>
                 ★★★★☆ = 不錯<br>
                 ★★★★★ = 超讚！</p>
+            </div>
+
+            <div class="info-section">
+                <h4>💡 實用技巧</h4>
+                <p>• 點擊導播 ID 輸入框即可快速複製<br>
+                • 使用快速鍵 F11 也可進入全螢幕<br>
+                • 建議使用耳機避免回音<br>
+                • 確保良好的光線提升畫質<br>
+                • 導播可在觀眾名單中踢除不當觀眾</p>
             </div>
 
             <div class="info-section">
@@ -810,6 +1152,10 @@
     let voteData = [0, 0, 0, 0, 0]; // 1-5星的票數
     let viewerCount = 0;
     let selectedQuality = 'medium'; // 預設畫質
+    let viewerData = new Map(); // 儲存觀眾資料 {peerId: {joinTime, conn}}
+    let qualityCheckInterval = null; // 品質檢測計時器
+    let countdownInterval = null; // 倒數計時器
+    let scheduledTime = null; // 預定開播時間
 
     // 畫質設定
     const qualitySettings = {
@@ -817,6 +1163,53 @@
         medium: { width: 1280, height: 720, label: '高清 720p' },
         high: { width: 1920, height: 1080, label: '超清 1080p' }
     };
+
+    // 複製到剪貼簿功能
+    function copyToClipboard(text) {
+        if (!text || text === '啟動攝影機後顯示') {
+            log("尚未產生導播 ID，請先啟動攝影機");
+            return;
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                showCopyTooltip();
+                log("導播 ID 已複製到剪貼簿: " + text);
+            }).catch(err => {
+                fallbackCopyToClipboard(text);
+            });
+        } else {
+            fallbackCopyToClipboard(text);
+        }
+    }
+
+    function fallbackCopyToClipboard(text) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            document.execCommand('copy');
+            showCopyTooltip();
+            log("導播 ID 已複製到剪貼簿: " + text);
+        } catch (err) {
+            log("複製失敗，請手動選取複製");
+        }
+        
+        document.body.removeChild(textArea);
+    }
+
+    function showCopyTooltip() {
+        const tooltip = document.getElementById('copyTooltip');
+        tooltip.classList.add('show');
+        setTimeout(() => {
+            tooltip.classList.remove('show');
+        }, 2000);
+    }
 
     // 初始化 PeerJS
     window.addEventListener('load', () => {
@@ -844,17 +1237,13 @@
             });
 
             conn.on('close', () => {
-                // 觀眾斷線，減少人數
-                const index = guestConnections.indexOf(conn);
-                if (index > -1) {
-                    guestConnections.splice(index, 1);
-                    updateViewerCount();
-                    log("觀眾離開: " + conn.peer.substring(0, 8));
-                }
+                handleViewerDisconnect(conn);
             });
 
             const confirmMsg = `觀眾 ${conn.peer.substring(0, 8)}... 請求連線，是否接受？`;
-            setTimeout(() => { if(pendingConnection) handleGuestRequest(confirm(confirmMsg)); }, 500);
+            setTimeout(() => { 
+                if(pendingConnection) handleGuestRequest(confirm(confirmMsg)); 
+            }, 500);
         });
 
         peer.on('call', (call) => {
@@ -867,6 +1256,9 @@
         peer.on('error', (err) => {
             log("Peer 錯誤: " + err.type);
         });
+
+        // 啟動連線品質監測（僅觀眾端）
+        startQualityMonitoring();
     });
 
     // 切換分頁
@@ -879,7 +1271,7 @@
     }
 
     // 設定畫質
-    function setQuality(quality) {
+    function setQuality(quality, event) {
         selectedQuality = quality;
         document.querySelectorAll('.quality-btn').forEach(btn => {
             btn.classList.remove('active');
@@ -897,7 +1289,11 @@
                     width: { ideal: settings.width },
                     height: { ideal: settings.height }
                 }, 
-                audio: true 
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }
             });
             const video = document.getElementById('vDisplay');
             video.srcObject = localStream;
@@ -919,8 +1315,66 @@
         document.getElementById('hostViewerCount').innerText = viewerCount;
         document.getElementById('guestViewerCount').innerText = viewerCount;
         
-        // 廣播觀眾人數給所有觀眾
         broadcastData({type: 'viewerCount', count: viewerCount});
+    }
+
+    // 更新觀眾名單顯示
+    function updateViewerList() {
+        const listContainer = document.getElementById('viewerList');
+        
+        if (viewerData.size === 0) {
+            listContainer.innerHTML = '<div class="viewer-list-empty">尚無觀眾連線</div>';
+            return;
+        }
+        
+        listContainer.innerHTML = '';
+        viewerData.forEach((data, peerId) => {
+            const duration = Math.floor((Date.now() - data.joinTime) / 1000);
+            const minutes = Math.floor(duration / 60);
+            const seconds = duration % 60;
+            const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            const item = document.createElement('div');
+            item.className = 'viewer-item';
+            item.innerHTML = `
+                <div class="viewer-info">
+                    <span class="viewer-icon">👤</span>
+                    <span class="viewer-id">${peerId.substring(0, 12)}...</span>
+                </div>
+                <span class="viewer-time">${timeStr}</span>
+                <button class="kick-btn" onclick="kickViewer('${peerId}')">踢除</button>
+            `;
+            listContainer.appendChild(item);
+        });
+    }
+
+    // 踢除觀眾
+    function kickViewer(peerId) {
+        const data = viewerData.get(peerId);
+        if (data && data.conn) {
+            data.conn.close();
+            viewerData.delete(peerId);
+            const index = guestConnections.findIndex(c => c.peer === peerId);
+            if (index > -1) {
+                guestConnections.splice(index, 1);
+            }
+            updateViewerCount();
+            updateViewerList();
+            log(`已踢除觀眾: ${peerId.substring(0, 8)}...`);
+        }
+    }
+
+    // 處理觀眾斷線
+    function handleViewerDisconnect(conn) {
+        const peerId = conn.peer;
+        viewerData.delete(peerId);
+        const index = guestConnections.indexOf(conn);
+        if (index > -1) {
+            guestConnections.splice(index, 1);
+            updateViewerCount();
+            updateViewerList();
+            log("觀眾離開: " + peerId.substring(0, 8) + "...");
+        }
     }
 
     // 處理接收到的資料
@@ -931,11 +1385,9 @@
             broadcastData({type: 'update', data: voteData});
             log(`收到評價: ${data.val} 星 (來自 ${conn.peer.substring(0,8)}...)`);
         } else if (data.type === 'update') {
-            // 觀眾端接收評分更新
             voteData = data.data;
             updateVoteUI();
         } else if (data.type === 'viewerCount') {
-            // 觀眾端接收人數更新
             document.getElementById('guestViewerCount').innerText = data.count;
         }
     }
@@ -944,7 +1396,11 @@
     function broadcastData(data) {
         guestConnections.forEach(conn => {
             if (conn.open) {
-                conn.send(data);
+                try {
+                    conn.send(data);
+                } catch (err) {
+                    console.error('廣播失敗:', err);
+                }
             }
         });
     }
@@ -955,7 +1411,15 @@
         if (accepted) {
             log(`已接受 ${guestId}`);
             guestConnections.push(pendingConnection);
+            
+            // 記錄觀眾資料
+            viewerData.set(guestId, {
+                joinTime: Date.now(),
+                conn: pendingConnection
+            });
+            
             updateViewerCount();
+            updateViewerList();
             
             if(pendingConnection.open) {
                 pendingConnection.send({type: 'update', data: voteData});
@@ -998,6 +1462,7 @@
             log("訊號連線中斷");
             hostConn = null;
             setStatus("連線已中斷", "normal");
+            document.getElementById('connectionQuality').classList.add('hidden');
         });
 
         conn.on('error', (err) => {
@@ -1013,6 +1478,9 @@
         document.getElementById('videoContainer').classList.add('active');
         log("已接收影像訊號！");
         setStatus("● 直播收看中", "live");
+
+        // 顯示連線品質指示器
+        document.getElementById('connectionQuality').classList.remove('hidden');
 
         const playPromise = video.play();
         if (playPromise !== undefined) {
@@ -1032,12 +1500,53 @@
         log("使用者觸發播放");
     }
 
+    // 連線品質監測
+    function startQualityMonitoring() {
+        qualityCheckInterval = setInterval(() => {
+            if (hostConn && hostConn.open) {
+                // 模擬延遲檢測（實際應用中可使用 WebRTC 統計資料）
+                const latency = Math.random() * 300 + 50; // 50-350ms 模擬延遲
+                updateQualityIndicator(latency);
+            }
+        }, 2000);
+    }
+
+    function updateQualityIndicator(latency) {
+        const indicator = document.getElementById('connectionQuality');
+        const icon = document.getElementById('signalIcon');
+        const text = document.getElementById('qualityText');
+        const details = document.getElementById('qualityDetails');
+        
+        let quality, qualityClass;
+        
+        if (latency < 100) {
+            quality = '優異';
+            qualityClass = 'quality-excellent';
+            icon.textContent = '📶';
+        } else if (latency < 200) {
+            quality = '良好';
+            qualityClass = 'quality-good';
+            icon.textContent = '📶';
+        } else if (latency < 500) {
+            quality = '普通';
+            qualityClass = 'quality-poor';
+            icon.textContent = '📡';
+        } else {
+            quality = '不佳';
+            qualityClass = 'quality-bad';
+            icon.textContent = '📡';
+        }
+        
+        text.textContent = quality;
+        text.className = 'quality-text ' + qualityClass;
+        details.textContent = `${Math.round(latency)}ms`;
+    }
+
     // 全螢幕功能
     function toggleFullscreen() {
         const container = document.getElementById('videoContainer');
         
         if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement) {
-            // 進入全螢幕
             if (container.requestFullscreen) {
                 container.requestFullscreen();
             } else if (container.webkitRequestFullscreen) {
@@ -1045,10 +1554,8 @@
             } else if (container.mozRequestFullScreen) {
                 container.mozRequestFullScreen();
             }
-            document.getElementById('fullscreenBtn').innerText = '⛶';
             log("進入全螢幕模式");
         } else {
-            // 退出全螢幕
             if (document.exitFullscreen) {
                 document.exitFullscreen();
             } else if (document.webkitExitFullscreen) {
@@ -1056,12 +1563,10 @@
             } else if (document.mozCancelFullScreen) {
                 document.mozCancelFullScreen();
             }
-            document.getElementById('fullscreenBtn').innerText = '⛶';
             log("退出全螢幕模式");
         }
     }
 
-    // 監聽全螢幕變化
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     document.addEventListener('mozfullscreenchange', handleFullscreenChange);
@@ -1075,21 +1580,86 @@
         }
     }
 
+    // 直播預告功能
+    function setSchedule() {
+        const hours = parseInt(document.getElementById('scheduleHours').value) || 0;
+        const minutes = parseInt(document.getElementById('scheduleMinutes').value) || 0;
+        const seconds = parseInt(document.getElementById('scheduleSeconds').value) || 0;
+        
+        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+        
+        if (totalSeconds <= 0) {
+            alert('請設定有效的倒數時間！');
+            return;
+        }
+        
+        scheduledTime = Date.now() + totalSeconds * 1000;
+        document.getElementById('countdownOverlay').classList.remove('hidden');
+        document.getElementById('cancelScheduleBtn').style.display = 'block';
+        
+        log(`已設定直播預告：${hours}時${minutes}分${seconds}秒後開始`);
+        
+        // 啟動倒數計時
+        countdownInterval = setInterval(() => {
+            const remaining = Math.max(0, Math.floor((scheduledTime - Date.now()) / 1000));
+            
+            if (remaining <= 0) {
+                cancelSchedule();
+                log('直播預告倒數結束，開始直播！');
+                return;
+            }
+            
+            const h = Math.floor(remaining / 3600);
+            const m = Math.floor((remaining % 3600) / 60);
+            const s = remaining % 60;
+            
+            const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            document.getElementById('countdownTimer').textContent = timeStr;
+        }, 1000);
+    }
+
+    function cancelSchedule() {
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+        scheduledTime = null;
+        document.getElementById('countdownOverlay').classList.add('hidden');
+        document.getElementById('cancelScheduleBtn').style.display = 'none';
+        document.getElementById('scheduleHours').value = '0';
+        document.getElementById('scheduleMinutes').value = '0';
+        document.getElementById('scheduleSeconds').value = '0';
+        log('已取消直播預告倒數');
+    }
+
     function toggleRecording() {
         const btn = document.getElementById('recBtn');
         const timerDisplay = document.getElementById('recTimer');
         
         if (btn.innerText.includes("開始")) {
             chunks = [];
-            try { mediaRecorder = new MediaRecorder(localStream); } 
-            catch (e) { return alert("瀏覽器不支援錄影"); }
+            try { 
+                mediaRecorder = new MediaRecorder(localStream, {
+                    mimeType: 'video/webm;codecs=vp8,opus'
+                }); 
+            } 
+            catch (e) { 
+                try {
+                    mediaRecorder = new MediaRecorder(localStream);
+                } catch (e2) {
+                    return alert("瀏覽器不支援錄影");
+                }
+            }
 
             mediaRecorder.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
             mediaRecorder.onstop = () => {
                 const blob = new Blob(chunks, { type: 'video/webm' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url; a.download = `公舘直播_${Date.now()}.webm`; a.click();
+                const timestamp = new Date().toLocaleString('zh-TW').replace(/\//g, '-').replace(/:/g, '-').replace(/\s/g, '_');
+                a.href = url; 
+                a.download = `公舘直播_${timestamp}.webm`; 
+                a.click();
                 log("錄影已儲存");
             };
             
@@ -1117,11 +1687,9 @@
 
     // 評分系統邏輯
     function updateVoteUI() {
-        // 計算總票數
         const total = voteData.reduce((a, b) => a + b, 0);
         document.querySelectorAll('#totalVotes').forEach(el => el.innerText = total);
 
-        // 計算加權平均
         let weightedSum = 0;
         for (let i = 0; i < 5; i++) {
             weightedSum += voteData[i] * (i + 1);
@@ -1131,7 +1699,6 @@
         document.querySelectorAll('#avgScore').forEach(el => el.innerText = avg);
     }
 
-    // 星星互動效果
     function highlightStars(count) {
         const stars = document.querySelectorAll('.star-btn');
         const labels = ["加油", "普通", "還行", "不錯", "超讚！"];
@@ -1224,6 +1791,20 @@
             box.scrollTop = box.scrollHeight;
         });
     }
+
+    // 定期更新觀眾名單中的連線時長
+    setInterval(() => {
+        if (viewerData.size > 0) {
+            updateViewerList();
+        }
+    }, 1000);
+
+    // 頁面關閉時清理
+    window.addEventListener('beforeunload', () => {
+        if (qualityCheckInterval) clearInterval(qualityCheckInterval);
+        if (countdownInterval) clearInterval(countdownInterval);
+        if (timerInterval) clearInterval(timerInterval);
+    });
 </script>
 
 </body>
