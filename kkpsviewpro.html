@@ -1352,7 +1352,18 @@
     function kickViewer(peerId) {
         const data = viewerData.get(peerId);
         if (data && data.conn) {
-            data.conn.close();
+            // 先發送踢除通知給觀眾
+            try {
+                data.conn.send({type: 'kicked', message: '您已被導播移除'});
+            } catch (err) {
+                console.error('發送踢除通知失敗:', err);
+            }
+            
+            // 延遲關閉連線，確保訊息送達
+            setTimeout(() => {
+                data.conn.close();
+            }, 100);
+            
             viewerData.delete(peerId);
             const index = guestConnections.findIndex(c => c.peer === peerId);
             if (index > -1) {
@@ -1389,6 +1400,9 @@
             updateVoteUI();
         } else if (data.type === 'viewerCount') {
             document.getElementById('guestViewerCount').innerText = data.count;
+        } else if (data.type === 'kicked') {
+            // 被導播踢除
+            handleKicked(data.message);
         }
     }
 
@@ -1463,6 +1477,9 @@
             hostConn = null;
             setStatus("連線已中斷", "normal");
             document.getElementById('connectionQuality').classList.add('hidden');
+            
+            // 停止視訊播放並清除畫面
+            stopVideoPlayback();
         });
 
         conn.on('error', (err) => {
@@ -1790,6 +1807,48 @@
             box.innerHTML += `> [${time}] ${msg}<br>`;
             box.scrollTop = box.scrollHeight;
         });
+    }
+
+    // 處理被踢除
+    function handleKicked(message) {
+        log(message || '您已被導播移除');
+        alert('⚠️ ' + (message || '您已被導播移除'));
+        
+        // 停止視訊播放並清除畫面
+        stopVideoPlayback();
+        
+        // 斷開連線
+        if (hostConn) {
+            hostConn.close();
+            hostConn = null;
+        }
+        
+        setStatus("已被移除", "normal");
+        document.getElementById('connectionQuality').classList.add('hidden');
+    }
+
+    // 停止視訊播放並清除畫面
+    function stopVideoPlayback() {
+        const video = document.getElementById('vDisplay');
+        
+        // 停止播放
+        video.pause();
+        
+        // 停止所有媒體軌道
+        if (video.srcObject) {
+            const stream = video.srcObject;
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop());
+        }
+        
+        // 清除視訊源
+        video.srcObject = null;
+        video.src = '';
+        
+        // 移除 active 類別
+        document.getElementById('videoContainer').classList.remove('active');
+        
+        log("視訊播放已停止");
     }
 
     // 定期更新觀眾名單中的連線時長
