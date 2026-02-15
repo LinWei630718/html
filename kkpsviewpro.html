@@ -312,7 +312,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 25;
+            z-index: 35;
             cursor: pointer;
             backdrop-filter: blur(2px);
             border-radius: 20px;
@@ -1520,6 +1520,9 @@
 
         // 顯示連線品質指示器
         document.getElementById('connectionQuality').classList.remove('hidden');
+        
+        // 🆕 顯示觀眾人數（自己也算一個）
+        document.getElementById('viewerCount').classList.remove('hidden');
 
         const playPromise = video.play();
         if (playPromise !== undefined) {
@@ -1534,9 +1537,26 @@
 
     function forcePlay() {
         const video = document.getElementById('vDisplay');
-        video.play();
-        document.getElementById('playOverlay').classList.add('hidden');
-        log("使用者觸發播放");
+        const playOverlay = document.getElementById('playOverlay');
+        const countdownOverlay = document.getElementById('countdownOverlay');
+        
+        // 🆕 確保倒數遮罩已隱藏
+        countdownOverlay.classList.add('hidden');
+        
+        // 嘗試播放
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                playOverlay.classList.add('hidden');
+                log("使用者觸發播放成功");
+            }).catch(error => {
+                log("播放失敗: " + error.message);
+                // 播放失敗時保持播放按鈕顯示
+            });
+        } else {
+            playOverlay.classList.add('hidden');
+            log("使用者觸發播放");
+        }
     }
 
     // 連線品質監測
@@ -1895,6 +1915,7 @@
     function handleCountdown(data) {
         const overlay = document.getElementById('countdownOverlay');
         const timer = document.getElementById('countdownTimer');
+        const playOverlay = document.getElementById('playOverlay');
         
         if (data.active && data.time) {
             // 顯示倒數
@@ -1905,6 +1926,22 @@
             // 取消倒數或倒數結束
             overlay.classList.add('hidden');
             log('直播倒數已結束，開始觀看');
+            
+            // 🆕 倒數結束後，檢查視訊是否正在播放
+            const video = document.getElementById('vDisplay');
+            if (video.srcObject && video.paused) {
+                // 如果視訊暫停，嘗試自動播放
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        log("倒數結束，自動播放成功");
+                        playOverlay.classList.add('hidden');
+                    }).catch(error => {
+                        log("倒數結束，需要使用者點擊播放");
+                        playOverlay.classList.remove('hidden');
+                    });
+                }
+            }
         }
     }
 
