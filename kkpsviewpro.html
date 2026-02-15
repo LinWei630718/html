@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公舘直播 - 全球連線PRO版</title>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <style>
+        :root {
+            --bg-deep: #0a0a0f;
+            --cyber-cyan: #00f2ff;
+            --cyber-purple: #bc13fe;
+            --neon-red: #ff0055;
+            --text-main: #e0e0e0;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --gold: #ffd700;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-deep);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 242, 255, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(188, 19, 254, 0.05) 0%, transparent 20%);
+            color: var(--text-main);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        header { 
+            width: 100%; 
+            padding: 15px; 
+            text-align: center; 
+            border-bottom: 1px solid var(--glass-border);
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .live-tag { 
+            color: var(--neon-red); 
+            font-weight: bold; 
+            font-size: 0.8rem; 
+            letter-spacing: 2px; 
+            text-shadow: 0 0 10px rgba(255, 0, 85, 0.5);
+            animation: pulse 2s infinite; 
+            margin-bottom: 5px;
+            display: inline-block;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+
+        h1 {
+            margin: 0;
+            letter-spacing: 2px;
+            font-size: 1.5rem;
+        }
+
+        .tabs { 
+            display: flex; 
+            gap: 10px; 
+            margin: 15px 0; 
+            background: var(--glass); 
+            padding: 5px; 
+            border-radius: 12px; 
+            border: 1px solid var(--glass-border);
+        }
+        .tab-btn { 
+            background: none; 
+            border: none; 
+            color: var(--text-main); 
+            padding: 8px 20px; 
+            cursor: pointer; 
+            border-radius: 8px; 
+            transition: 0.3s; 
+            font-size: 0.95rem;
+        }
+        .tab-btn:hover { background: rgba(255,255,255,0.05); }
+        .tab-btn.active { 
+            background: var(--cyber-cyan); 
+            color: var(--bg-deep); 
+            font-weight: bold; 
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+        }
+
+        /* 調整主容器寬度配置 */
+        .main-container { 
+            width: 99%; 
+            max-width: 100%; 
+            display: grid; 
+            grid-template-columns: 1fr 320px; 
+            gap: 15px; 
+            padding: 0 10px 20px 10px;
+            flex: 1;
+        }
+        @media (max-width: 900px) { 
+            .main-container { 
+                grid-template-columns: 1fr; 
+            } 
+        }
+
+        /* 視訊容器 */
+        .video-box { 
+            background: #000; 
+            border-radius: 20px; 
+            position: relative; 
+            border: 1px solid var(--glass-border); 
+            overflow: visible; 
+            aspect-ratio: 16/9;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            transition: border-color 0.3s;
+            width: 100%; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .video-box.active { 
+            border-color: var(--cyber-cyan); 
+            box-shadow: 0 0 20px rgba(0,242,255,0.1); 
+        }
+        
+        /* 全螢幕模式樣式 */
+        .video-box:fullscreen {
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .video-box:-webkit-full-screen {
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .video-box:-moz-full-screen {
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        video { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; 
+            background: #111; 
+            border-radius: 20px;
+        }
+        
+        .video-box:fullscreen video,
+        .video-box:-webkit-full-screen video,
+        .video-box:-moz-full-screen video {
+            border-radius: 0;
+        }
+        
+        /* 頂部資訊列 */
+        .top-bar {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 30;
+            gap: 10px;
+        }
+        
+        .status-bar { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            background: rgba(0,0,0,0.8); 
+            backdrop-filter: blur(8px);
+            padding: 8px 16px; 
+            border-radius: 50px; 
+            font-size: 0.9rem; 
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        
+        .viewer-count {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            color: var(--cyber-cyan);
+            font-weight: bold;
+        }
+        
+        .viewer-count .icon {
+            font-size: 1.1rem;
+        }
+        
+        .dot { 
+            width: 10px; 
+            height: 10px; 
+            border-radius: 50%; 
+            background: #666; 
+            transition: 0.3s; 
+        }
+        .dot.live { 
+            background: var(--cyber-cyan); 
+            box-shadow: 0 0 10px var(--cyber-cyan); 
+        }
+        .dot.rec { 
+            background: var(--neon-red); 
+            animation: pulse 1s infinite; 
+        }
+
+        /* 底部控制列 */
+        .bottom-controls {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+            z-index: 30;
+            justify-content: flex-end;
+        }
+        
+        .control-btn {
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        
+        .control-btn:hover {
+            background: rgba(0,242,255,0.3);
+            border-color: var(--cyber-cyan);
+            transform: scale(1.1);
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 播放按鈕遮罩 */
+        .play-overlay {
+            position: absolute;
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 25;
+            cursor: pointer;
+            backdrop-filter: blur(2px);
+            border-radius: 20px;
+        }
+        .play-icon {
+            font-size: 3rem;
+            color: var(--cyber-cyan);
+            background: rgba(255,255,255,0.1);
+            width: 80px; 
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--cyber-cyan);
+            box-shadow: 0 0 20px rgba(0,242,255,0.3);
+            transition: 0.3s;
+        }
+        .play-overlay:hover .play-icon { 
+            transform: scale(1.1); 
+            background: rgba(0,242,255,0.2); 
+        }
+
+        .panel { 
+            background: var(--glass); 
+            backdrop-filter: blur(15px); 
+            padding: 20px; 
+            border-radius: 20px; 
+            border: 1px solid var(--glass-border); 
+            margin-bottom: 15px;
+            overflow-y: auto;
+            max-height: calc(100vh - 200px);
+        }
+        
+        h3 { 
+            margin-top: 0; 
+            color: var(--cyber-cyan); 
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+            padding-bottom: 10px; 
+            font-size: 1.1rem; 
+        }
+
+        .input-group { margin-bottom: 15px; }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: #999;
+        }
+        .input-style { 
+            background: rgba(0,0,0,0.3); 
+            border: 1px solid var(--glass-border); 
+            padding: 10px; 
+            border-radius: 8px; 
+            color: #fff; 
+            width: 100%; 
+            font-size: 0.95rem;
+            transition: 0.3s;
+        }
+        .input-style:focus { 
+            outline: none; 
+            border-color: var(--cyber-cyan); 
+            background: rgba(0,0,0,0.5); 
+        }
+        
+        /* 畫質選擇器樣式 */
+        .quality-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .quality-btn {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            padding: 10px 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: 0.3s;
+            text-align: center;
+        }
+        
+        .quality-btn:hover {
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .quality-btn.active {
+            background: var(--cyber-cyan);
+            color: var(--bg-deep);
+            font-weight: bold;
+            border-color: var(--cyber-cyan);
+        }
+
+        .action-btn { 
+            background: linear-gradient(135deg, var(--cyber-cyan), var(--cyber-purple)); 
+            border: none; 
+            padding: 12px; 
+            border-radius: 8px; 
+            color: white; 
+            width: 100%; 
+            font-weight: bold; 
+            font-size: 0.95rem;
+            cursor: pointer; 
+            margin-top: 5px; 
+            transition: 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .action-btn:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 5px 15px rgba(188, 19, 254, 0.3); 
+        }
+        .action-btn:disabled { 
+            opacity: 0.5; 
+            cursor: not-allowed; 
+            transform: none; 
+            filter: grayscale(1); 
+        }
+        .action-btn.secondary { 
+            background: transparent; 
+            border: 1px solid var(--glass-border); 
+        }
+        .action-btn.secondary:hover { 
+            background: rgba(255,255,255,0.05); 
+            box-shadow: none; 
+        }
+        .action-btn.danger { 
+            background: linear-gradient(135deg, #ff0055, #cc0044); 
+        }
+
+        /* 星星評分系統樣式 */
+        .score-display {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--gold);
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            margin: 8px 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .star-container {
+            display: flex;
+            justify-content: center;
+            gap: 8px; 
+            margin-bottom: 12px;
+            background: rgba(0,0,0,0.3);
+            padding: 12px;
+            border-radius: 50px;
+        }
+        .star-btn {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            color: #444;
+            transition: all 0.2s;
+            padding: 0;
+            line-height: 1;
+        }
+        .star-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .vote-feedback {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--cyber-cyan);
+            min-height: 20px;
+            margin-bottom: 8px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .vote-stats {
+            background: rgba(0,0,0,0.2);
+            padding: 12px;
+            border-radius: 12px;
+            margin-top: 10px;
+            font-size: 0.85rem;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            padding: 4px 0;
+        }
+        .stat-label {
+            color: #999;
+        }
+        .stat-value {
+            color: var(--cyber-cyan);
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        /* 訊息記錄區 */
+        .log-box {
+            background: rgba(0,0,0,0.4);
+            padding: 12px;
+            border-radius: 8px;
+            height: 150px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            color: #aaa;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .log-box::-webkit-scrollbar {
+            width: 6px;
+        }
+        .log-box::-webkit-scrollbar-thumb {
+            background: var(--glass-border);
+            border-radius: 3px;
+        }
+
+        /* Modal 系統說明 */
+        .modal {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            padding: 20px;
+        }
+        .modal-content {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
+        }
+        .modal-header {
+            font-size: 1.5rem;
+            color: var(--cyber-cyan);
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 10px;
+        }
+        .info-section {
+            margin-bottom: 20px;
+        }
+        .info-section h4 {
+            color: var(--cyber-purple);
+            margin-bottom: 8px;
+        }
+        .info-section p {
+            line-height: 1.6;
+            color: #ccc;
+        }
+
+        .hidden { display: none !important; }
+
+        /* 響應式調整 */
+        @media (max-width: 900px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+            .video-box {
+                aspect-ratio: 16/9;
+            }
+            .panel {
+                max-height: none;
+            }
+        }
+
+        /* 確保控制項在小螢幕上也能顯示 */
+        @media (max-width: 600px) {
+            .top-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .status-bar, .viewer-count {
+                font-size: 0.75rem;
+                padding: 6px 12px;
+            }
+            .control-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 1.1rem;
+            }
+            .star-btn {
+                font-size: 1.5rem;
+            }
+            .score-display {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="live-tag">● LIVE BROADCAST</div>
+        <h1>🌐 公舘直播 - 全球連線 PRO 版</h1>
+        <div class="tabs">
+            <button class="tab-btn active" id="tab-h" onclick="switchTab('host')">📡 導播台</button>
+            <button class="tab-btn" id="tab-g" onclick="switchTab('guest')">📺 觀眾端</button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- 左側視訊區 -->
+        <div>
+            <div class="video-box" id="videoContainer">
+                <video id="vDisplay" autoplay playsinline muted></video>
+                
+                <!-- 頂部資訊列 -->
+                <div class="top-bar">
+                    <!-- 狀態列 -->
+                    <div class="status-bar">
+                        <div class="dot" id="statusDot"></div>
+                        <span id="statusText">系統待命中</span>
+                    </div>
+                    
+                    <!-- 觀眾人數 -->
+                    <div class="viewer-count" id="viewerCount">
+                        <span class="icon">👥</span>
+                        <span id="viewerNumber">0</span>
+                    </div>
+                </div>
+
+                <!-- 底部控制列 -->
+                <div class="bottom-controls">
+                    <button class="control-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="全螢幕">
+                        ⛶
+                    </button>
+                </div>
+
+                <!-- 播放按鈕遮罩 -->
+                <div class="play-overlay hidden" id="playOverlay" onclick="forcePlay()">
+                    <div class="play-icon">▶</div>
+                    <p style="margin-top:15px; color: #ccc;">點擊播放直播</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側控制區 -->
+        <div>
+            <!-- 導播台面板 -->
+            <div id="panelHost" class="panel">
+                <h3>📡 導播控制台</h3>
+                
+                <div class="input-group">
+                    <label>🆔 你的導播 ID：</label>
+                    <input type="text" id="myId" class="input-style" readonly placeholder="啟動攝影機後顯示">
+                </div>
+
+                <div class="input-group">
+                    <label>📹 畫質選擇：</label>
+                    <div class="quality-selector">
+                        <button class="quality-btn" onclick="setQuality('low')">標準<br>480p</button>
+                        <button class="quality-btn active" onclick="setQuality('medium')">高清<br>720p</button>
+                        <button class="quality-btn" onclick="setQuality('high')">超清<br>1080p</button>
+                    </div>
+                </div>
+
+                <button class="action-btn" onclick="startCamera()">1. 啟動攝影機</button>
+                <button class="action-btn danger" id="recBtn" onclick="toggleRecording()" disabled>2. 開始錄影</button>
+                <span id="recTimer" style="display:none; color: var(--neon-red); font-weight: bold; margin-left: 10px;"></span>
+
+                <div style="margin-top: 20px;">
+                    <h3>👥 觀眾統計</h3>
+                    <div class="vote-stats">
+                        <div class="stat-row">
+                            <span class="stat-label">線上觀眾</span>
+                            <span class="stat-value" id="hostViewerCount">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <h3>📊 即時評分統計</h3>
+                    <div class="score-display" id="avgScore">0.0</div>
+                    <div class="vote-stats">
+                        <div class="stat-row">
+                            <span class="stat-label">總票數</span>
+                            <span class="stat-value" id="totalVotes">0</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 星星評分區 (導播也可測試投票) -->
+                    <div class="vote-feedback" id="vote-feedback"></div>
+                    <div class="star-container">
+                        <button class="star-btn" onmouseover="highlightStars(1)" onmouseout="resetStars()" onclick="vote(1)">★</button>
+                        <button class="star-btn" onmouseover="highlightStars(2)" onmouseout="resetStars()" onclick="vote(2)">★</button>
+                        <button class="star-btn" onmouseover="highlightStars(3)" onmouseout="resetStars()" onclick="vote(3)">★</button>
+                        <button class="star-btn" onmouseover="highlightStars(4)" onmouseout="resetStars()" onclick="vote(4)">★</button>
+                        <button class="star-btn" onmouseover="highlightStars(5)" onmouseout="resetStars()" onclick="vote(5)">★</button>
+                    </div>
+                    <button class="action-btn secondary" onclick="resetVote()">清除統計數據</button>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <h3>📝 系統記錄</h3>
+                    <div class="log-box" id="logs"></div>
+                </div>
+
+                <button class="action-btn secondary" style="margin-top: 15px;" onclick="showInfo()">ℹ️ 使用說明</button>
+            </div>
+
+            <!-- 觀眾端面板 -->
+            <div id="panelGuest" class="panel hidden">
+                <h3>📺 觀眾連線</h3>
+                
+                <div class="input-group">
+                    <label>🆔 導播 ID：</label>
+                    <input type="text" id="targetId" class="input-style" placeholder="輸入導播給你的 ID">
+                </div>
+
+                <div class="input-group">
+                    <label>🔐 連線密碼：</label>
+                    <input type="password" id="pKey" class="input-style" placeholder="請輸入密碼 (提示: 2026kkps)">
+                </div>
+
+                <button class="action-btn" onclick="connectToHost()">🚀 請求連線</button>
+
+                <div style="margin-top: 20px;">
+                    <h3>👥 直播資訊</h3>
+                    <div class="vote-stats">
+                        <div class="stat-row">
+                            <span class="stat-label">線上觀眾</span>
+                            <span class="stat-value" id="guestViewerCount">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <h3>⭐ 給主播評分</h3>
+                    <p style="font-size: 0.9rem; color: #999; margin-bottom: 10px;">滑動看星星等級，點擊送出評價！</p>
+                    
+                    <div class="vote-feedback" id="vote-feedback"></div>
+                    <div class="star-container">
+                        <button class="star-btn" onmouseover="highlightStars(1)" onmouseout="resetStars()" onclick="vote(1)">★</button>
+                        <button class="star-btn" onmouseover="highlightStars(2)" onmouseout="resetStars()" onclick="vote(2)">★</button>
+                        <button class="star-btn" onmouseover="highlightStars(3)" onmouseout="resetStars()" onclick="vote(3)">★</button>
+                        <button class="star-btn" onmouseover="highlightStars(4)" onmouseout="resetStars()" onclick="vote(4)">★</button>
+                        <button class="star-btn" onmouseover="highlightStars(5)" onmouseout="resetStars()" onclick="vote(5)">★</button>
+                    </div>
+                    
+                    <div class="vote-stats">
+                        <div class="stat-row">
+                            <span class="stat-label">目前平均</span>
+                            <span class="stat-value" id="avgScore">0.0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">總評價數</span>
+                            <span class="stat-value" id="totalVotes">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <h3>📝 系統記錄</h3>
+                    <div class="log-box" id="logs"></div>
+                </div>
+
+                <button class="action-btn secondary" style="margin-top: 15px;" onclick="showInfo()">ℹ️ 使用說明</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 使用說明 -->
+    <div class="modal hidden" id="infoModal" onclick="closeInfo()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">📖 系統使用說明</div>
+            
+            <div class="info-section">
+                <h4>🎬 導播端操作</h4>
+                <p>1. 選擇畫質（標準/高清/超清）<br>
+                2. 點擊「啟動攝影機」開始直播<br>
+                3. 將顯示的 ID 分享給觀眾<br>
+                4. 當觀眾請求連線時會跳出確認視窗<br>
+                5. 可選擇「開始錄影」保存直播內容<br>
+                6. 即時查看線上人數和評分統計<br>
+                7. 點擊全螢幕按鈕進入沉浸模式</p>
+            </div>
+
+            <div class="info-section">
+                <h4>👀 觀眾端操作</h4>
+                <p>1. 輸入導播提供的 ID<br>
+                2. 輸入連線密碼：<strong>2026kkps</strong><br>
+                3. 點擊「請求連線」等待導播同意<br>
+                4. 連線成功後即可觀看直播<br>
+                5. 查看線上觀眾人數<br>
+                6. 隨時給主播評分回饋<br>
+                7. 使用全螢幕按鈕獲得最佳觀看體驗</p>
+            </div>
+
+            <div class="info-section">
+                <h4>📹 畫質說明</h4>
+                <p>• <strong>標準 480p</strong> - 適合網路較慢時使用<br>
+                • <strong>高清 720p</strong> - 推薦使用，平衡畫質與流暢度<br>
+                • <strong>超清 1080p</strong> - 最佳畫質，需要良好網路環境</p>
+            </div>
+
+            <div class="info-section">
+                <h4>⭐ 評分系統</h4>
+                <p>★☆☆☆☆ = 加油<br>
+                ★★☆☆☆ = 普通<br>
+                ★★★☆☆ = 還行<br>
+                ★★★★☆ = 不錯<br>
+                ★★★★★ = 超讚！</p>
+            </div>
+
+            <div class="info-section">
+                <h4>🔧 技術需求</h4>
+                <p>• 使用 Chrome/Edge/Safari 瀏覽器<br>
+                • 允許攝影機與麥克風權限<br>
+                • 建議使用 Wi-Fi 或 4G/5G 網路<br>
+                • 支援 WebRTC 的現代瀏覽器</p>
+            </div>
+
+            <button class="action-btn" onclick="closeInfo()">關閉</button>
+        </div>
+    </div>
+
+<script>
+    let peer = null, localStream = null, hostConn = null;
+    let guestConnections = [], pendingConnection = null;
+    let mediaRecorder = null, chunks = [], startTime = 0, timerInterval = null;
+    let voteData = [0, 0, 0, 0, 0]; // 1-5星的票數
+    let viewerCount = 0;
+    let selectedQuality = 'medium'; // 預設畫質
+
+    // 畫質設定
+    const qualitySettings = {
+        low: { width: 640, height: 480, label: '標準 480p' },
+        medium: { width: 1280, height: 720, label: '高清 720p' },
+        high: { width: 1920, height: 1080, label: '超清 1080p' }
+    };
+
+    // 初始化 PeerJS
+    window.addEventListener('load', () => {
+        peer = new Peer({
+            config: {
+                'iceServers': [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            }
+        });
+
+        peer.on('open', (id) => {
+            document.getElementById('myId').value = id;
+            log("系統已就緒，Peer ID: " + id);
+            setStatus("系統就緒", "normal");
+        });
+
+        peer.on('connection', (conn) => {
+            log("收到觀眾連線請求: " + conn.peer);
+            pendingConnection = conn;
+            
+            conn.on('data', (data) => {
+                handleIncomingData(data, conn);
+            });
+
+            conn.on('close', () => {
+                // 觀眾斷線，減少人數
+                const index = guestConnections.indexOf(conn);
+                if (index > -1) {
+                    guestConnections.splice(index, 1);
+                    updateViewerCount();
+                    log("觀眾離開: " + conn.peer.substring(0, 8));
+                }
+            });
+
+            const confirmMsg = `觀眾 ${conn.peer.substring(0, 8)}... 請求連線，是否接受？`;
+            setTimeout(() => { if(pendingConnection) handleGuestRequest(confirm(confirmMsg)); }, 500);
+        });
+
+        peer.on('call', (call) => {
+            call.answer();
+            call.on('stream', (remoteStream) => {
+                handleRemoteStream(remoteStream);
+            });
+        });
+
+        peer.on('error', (err) => {
+            log("Peer 錯誤: " + err.type);
+        });
+    });
+
+    // 切換分頁
+    function switchTab(mode) {
+        const isHost = mode === 'host';
+        document.getElementById('tab-h').classList.toggle('active', isHost);
+        document.getElementById('tab-g').classList.toggle('active', !isHost);
+        document.getElementById('panelHost').classList.toggle('hidden', !isHost);
+        document.getElementById('panelGuest').classList.toggle('hidden', isHost);
+    }
+
+    // 設定畫質
+    function setQuality(quality) {
+        selectedQuality = quality;
+        document.querySelectorAll('.quality-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        log(`畫質已設定為: ${qualitySettings[quality].label}`);
+    }
+
+    // 導播端：啟動攝影機
+    async function startCamera() {
+        try {
+            const settings = qualitySettings[selectedQuality];
+            localStream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: { ideal: settings.width },
+                    height: { ideal: settings.height }
+                }, 
+                audio: true 
+            });
+            const video = document.getElementById('vDisplay');
+            video.srcObject = localStream;
+            video.muted = true;
+            document.getElementById('videoContainer').classList.add('active');
+            document.getElementById('recBtn').disabled = false;
+            log(`攝影機已啟動 (${settings.label})`);
+            setStatus("攝影機已就緒", "normal");
+        } catch (err) {
+            log("無法取得攝影機: " + err.message);
+            alert("請允許使用攝影機與麥克風！");
+        }
+    }
+
+    // 更新觀眾人數
+    function updateViewerCount() {
+        viewerCount = guestConnections.length;
+        document.getElementById('viewerNumber').innerText = viewerCount;
+        document.getElementById('hostViewerCount').innerText = viewerCount;
+        document.getElementById('guestViewerCount').innerText = viewerCount;
+        
+        // 廣播觀眾人數給所有觀眾
+        broadcastData({type: 'viewerCount', count: viewerCount});
+    }
+
+    // 處理接收到的資料
+    function handleIncomingData(data, conn) {
+        if (data.type === 'vote') {
+            voteData[data.val - 1]++;
+            updateVoteUI();
+            broadcastData({type: 'update', data: voteData});
+            log(`收到評價: ${data.val} 星 (來自 ${conn.peer.substring(0,8)}...)`);
+        } else if (data.type === 'update') {
+            // 觀眾端接收評分更新
+            voteData = data.data;
+            updateVoteUI();
+        } else if (data.type === 'viewerCount') {
+            // 觀眾端接收人數更新
+            document.getElementById('guestViewerCount').innerText = data.count;
+        }
+    }
+
+    // 廣播資料給所有觀眾
+    function broadcastData(data) {
+        guestConnections.forEach(conn => {
+            if (conn.open) {
+                conn.send(data);
+            }
+        });
+    }
+
+    // 導播端：處理連線請求
+    function handleGuestRequest(accepted) {
+        const guestId = pendingConnection.peer;
+        if (accepted) {
+            log(`已接受 ${guestId}`);
+            guestConnections.push(pendingConnection);
+            updateViewerCount();
+            
+            if(pendingConnection.open) {
+                pendingConnection.send({type: 'update', data: voteData});
+                pendingConnection.send({type: 'viewerCount', count: viewerCount});
+            }
+            const call = peer.call(guestId, localStream);
+            call.on('close', () => log("觀眾視訊斷線"));
+            setStatus("● 直播中 (訊號傳送中)", "rec");
+        } else {
+            log(`已拒絕 ${guestId}`);
+            pendingConnection.close();
+        }
+        pendingConnection = null;
+    }
+
+    // 觀眾端：連線請求
+    function connectToHost() {
+        const id = document.getElementById('targetId').value.trim();
+        const pw = document.getElementById('pKey').value;
+
+        if (pw !== "2026kkps") return alert("🔐 密碼錯誤！(提示：2026kkps)");
+        if (!id) return alert("請輸入導播 ID");
+
+        setStatus("請求連線中...", "normal");
+        log(`正在傳送訊號給導播 ID: ${id}`);
+        
+        const conn = peer.connect(id);
+        hostConn = conn;
+        
+        conn.on('open', () => {
+            log("訊號已送達，等待導播確認...");
+            setStatus("等待導播接受...", "normal");
+        });
+
+        conn.on('data', (data) => {
+            handleIncomingData(data, conn);
+        });
+
+        conn.on('close', () => {
+            log("訊號連線中斷");
+            hostConn = null;
+            setStatus("連線已中斷", "normal");
+        });
+
+        conn.on('error', (err) => {
+            log("連線失敗: " + err);
+            setStatus("找不到導播 ID", "normal");
+        });
+    }
+
+    function handleRemoteStream(remoteStream) {
+        const video = document.getElementById('vDisplay');
+        video.srcObject = remoteStream;
+        video.muted = false;
+        document.getElementById('videoContainer').classList.add('active');
+        log("已接收影像訊號！");
+        setStatus("● 直播收看中", "live");
+
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                log("自動播放成功");
+            }).catch(error => {
+                log("自動播放被阻擋，顯示播放按鈕");
+                document.getElementById('playOverlay').classList.remove('hidden');
+            });
+        }
+    }
+
+    function forcePlay() {
+        const video = document.getElementById('vDisplay');
+        video.play();
+        document.getElementById('playOverlay').classList.add('hidden');
+        log("使用者觸發播放");
+    }
+
+    // 全螢幕功能
+    function toggleFullscreen() {
+        const container = document.getElementById('videoContainer');
+        
+        if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement) {
+            // 進入全螢幕
+            if (container.requestFullscreen) {
+                container.requestFullscreen();
+            } else if (container.webkitRequestFullscreen) {
+                container.webkitRequestFullscreen();
+            } else if (container.mozRequestFullScreen) {
+                container.mozRequestFullScreen();
+            }
+            document.getElementById('fullscreenBtn').innerText = '⛶';
+            log("進入全螢幕模式");
+        } else {
+            // 退出全螢幕
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            }
+            document.getElementById('fullscreenBtn').innerText = '⛶';
+            log("退出全螢幕模式");
+        }
+    }
+
+    // 監聽全螢幕變化
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+
+    function handleFullscreenChange() {
+        const btn = document.getElementById('fullscreenBtn');
+        if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement) {
+            btn.innerText = '✕';
+        } else {
+            btn.innerText = '⛶';
+        }
+    }
+
+    function toggleRecording() {
+        const btn = document.getElementById('recBtn');
+        const timerDisplay = document.getElementById('recTimer');
+        
+        if (btn.innerText.includes("開始")) {
+            chunks = [];
+            try { mediaRecorder = new MediaRecorder(localStream); } 
+            catch (e) { return alert("瀏覽器不支援錄影"); }
+
+            mediaRecorder.ondataavailable = e => { if(e.data.size > 0) chunks.push(e.data); };
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `公舘直播_${Date.now()}.webm`; a.click();
+                log("錄影已儲存");
+            };
+            
+            mediaRecorder.start();
+            btn.innerText = "⏹ 停止並下載";
+            btn.style.background = "#333";
+            timerDisplay.style.display = "inline";
+            
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const diff = Math.floor((Date.now() - startTime) / 1000);
+                const m = Math.floor(diff / 60).toString().padStart(2, '0');
+                const s = (diff % 60).toString().padStart(2, '0');
+                timerDisplay.innerText = `REC ${m}:${s}`;
+            }, 1000);
+            log("開始錄影");
+        } else {
+            mediaRecorder.stop();
+            clearInterval(timerInterval);
+            btn.innerText = "2. 開始錄影";
+            btn.style.background = "linear-gradient(135deg, #ff0055, #ff4d4d)";
+            timerDisplay.style.display = "none";
+        }
+    }
+
+    // 評分系統邏輯
+    function updateVoteUI() {
+        // 計算總票數
+        const total = voteData.reduce((a, b) => a + b, 0);
+        document.querySelectorAll('#totalVotes').forEach(el => el.innerText = total);
+
+        // 計算加權平均
+        let weightedSum = 0;
+        for (let i = 0; i < 5; i++) {
+            weightedSum += voteData[i] * (i + 1);
+        }
+
+        const avg = total === 0 ? 0 : (weightedSum / total).toFixed(1);
+        document.querySelectorAll('#avgScore').forEach(el => el.innerText = avg);
+    }
+
+    // 星星互動效果
+    function highlightStars(count) {
+        const stars = document.querySelectorAll('.star-btn');
+        const labels = ["加油", "普通", "還行", "不錯", "超讚！"];
+        const feedback = document.getElementById('vote-feedback');
+        
+        stars.forEach((star, index) => {
+            if (index < count) {
+                star.style.color = 'var(--gold)';
+                star.style.textShadow = '0 0 10px var(--gold)';
+                star.style.transform = 'scale(1.1)';
+            } else {
+                star.style.color = '#444';
+                star.style.textShadow = 'none';
+                star.style.transform = 'scale(1)';
+            }
+        });
+        
+        feedback.innerText = `${count} 顆星 - ${labels[count-1]}`;
+        feedback.style.opacity = '1';
+    }
+
+    function resetStars() {
+        const stars = document.querySelectorAll('.star-btn');
+        const feedback = document.getElementById('vote-feedback');
+        
+        stars.forEach(star => {
+            star.style.color = '#444';
+            star.style.textShadow = 'none';
+            star.style.transform = 'scale(1)';
+        });
+        
+        feedback.style.opacity = '0';
+    }
+
+    function vote(starVal) {
+        const isHost = document.getElementById('tab-h').classList.contains('active');
+        
+        const feedback = document.getElementById('vote-feedback');
+        feedback.innerText = `已送出 ${starVal} 星好評！`;
+        feedback.style.opacity = '1';
+        setTimeout(() => { if(feedback.innerText.includes('已送出')) feedback.style.opacity = '0'; }, 1500);
+
+        if (isHost) {
+            voteData[starVal-1]++;
+            updateVoteUI();
+            broadcastData({type: 'update', data: voteData});
+            log(`導播給予評價: ${starVal} 星`);
+        } else {
+            if (hostConn && hostConn.open) {
+                hostConn.send({type: 'vote', val: starVal});
+                log(`已送出評價: ${starVal} 星`);
+            } else {
+                alert("請先連線至導播才能評分！");
+            }
+        }
+    }
+
+    function resetVote() { 
+        const isHost = document.getElementById('tab-h').classList.contains('active');
+        if (!isHost) return alert("權限不足：只有導播可以重置統計數據。");
+
+        voteData = [0, 0, 0, 0, 0]; 
+        updateVoteUI(); 
+        broadcastData({type: 'update', data: voteData});
+        log("評分數據已重置並同步");
+    }
+
+    // Modal 控制
+    function showInfo() {
+        document.getElementById('infoModal').classList.remove('hidden');
+    }
+    function closeInfo() {
+        document.getElementById('infoModal').classList.add('hidden');
+    }
+
+    // 工具函數
+    function setStatus(text, type) {
+        const dot = document.getElementById('statusDot');
+        document.getElementById('statusText').innerText = text;
+        dot.className = 'dot'; 
+        if (type === 'live') dot.classList.add('live');
+        if (type === 'rec') dot.classList.add('rec');
+    }
+
+    function log(msg) {
+        const boxes = document.querySelectorAll('#logs');
+        const time = new Date().toLocaleTimeString();
+        boxes.forEach(box => {
+            box.innerHTML += `> [${time}] ${msg}<br>`;
+            box.scrollTop = box.scrollHeight;
+        });
+    }
+</script>
+
+</body>
+</html>
