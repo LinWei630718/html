@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BIG2 專業穩定完整版 (含牌數追蹤)</title>
+
+<style>
+/* ===== 全局與背景設定 ===== */
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: radial-gradient(circle, #0f5132, #063d25);
+    color: white;
+    text-align: center;
+    overflow-x: hidden;
+}
+
+h2 { margin-top: 15px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+h3 { margin: 10px 0; color: #e9ecef; font-size: 16px; }
+
+#info {
+    margin-top: 5px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #ffc107;
+    height: 24px;
+}
+
+/* ===== 記分板與難度 UI ===== */
+.top-panel {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: left;
+    font-size: 14px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.2);
+    z-index: 20;
+}
+.scoreboard-title { color: #ffc300; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 3px; }
+.score-item { margin: 3px 0; }
+.score-positive { color: #4ade80; }
+.score-negative { color: #f87171; }
+
+.difficulty-select {
+    margin-top: 8px;
+    background: #0f5132;
+    color: white;
+    border: 1px solid #4ade80;
+    padding: 4px;
+    border-radius: 4px;
+    font-size: 13px;
+    width: 100%;
+    outline: none;
+}
+
+/* ===== 對手資訊列 (HUD) ===== */
+.opponents-hud {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 90%;
+    max-width: 600px;
+    margin: 10px auto 5px auto;
+}
+
+.opp-box {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid #555;
+    border-radius: 10px;
+    padding: 8px 12px;
+    width: 25%;
+    transition: 0.3s;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+
+.opp-box.active {
+    border-color: #ffc300;
+    background: rgba(255, 195, 0, 0.15);
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(255, 195, 0, 0.5);
+}
+
+.opp-name { font-size: 13px; color: #ddd; margin-bottom: 4px; }
+.opp-count { font-size: 18px; font-weight: bold; color: #fff; }
+
+/* 聽牌警告動畫 */
+.warning { color: #f87171 !important; animation: blink 1s infinite; text-shadow: 0 0 8px red; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* ===== 遊戲區域 ===== */
+#table {
+    min-height: 120px;
+    margin: 5px auto 20px auto;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    background: rgba(0,0,0,0.2);
+    border-radius: 15px;
+    width: 90%;
+    max-width: 600px;
+    padding: 20px 0;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+}
+
+.hand {
+    display: flex;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding: 15px 10px 30px 10px;
+    -webkit-overflow-scrolling: touch;
+    width: 95%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* ===== 卡牌設計 ===== */
+.card {
+    flex: 0 0 auto;
+    width: 65px;
+    height: 95px;
+    background: #fdfdfd;
+    border-radius: 8px;
+    margin: 0 -10px;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s;
+    box-shadow: -2px 0 8px rgba(0,0,0,0.4);
+    border: 1px solid #ccc;
+    user-select: none;
+}
+
+.card:first-child { margin-left: 0; }
+.card:hover { transform: translateY(-10px); }
+.card.selected { 
+    transform: translateY(-20px); 
+    box-shadow: 0 10px 20px rgba(0,0,0,0.6);
+    border: 2px solid #ffc300;
+}
+
+.corner { position: absolute; font-size: 14px; font-weight: 900; z-index: 2; }
+.top-left { top: 4px; left: 6px; }
+.bottom-right { bottom: 4px; right: 6px; transform: rotate(180deg); }
+.center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 28px; z-index: 2; }
+.watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 65px; opacity: 0.1; z-index: 1; pointer-events: none; }
+.red { color: #d90429; }
+.black { color: #111111; }
+
+/* ===== 底部控制面板 ===== */
+.controls {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: rgba(6, 61, 37, 0.95);
+    padding: 12px 0;
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.4);
+    z-index: 50;
+    backdrop-filter: blur(5px);
+}
+
+button { padding: 10px 25px; margin: 0 10px; font-size: 16px; font-weight: bold; border-radius: 20px; border: none; cursor: pointer; transition: 0.2s; }
+.btn-play { background: #ffc300; color: #333; }
+.btn-play:active { background: #e6b000; transform: scale(0.95); }
+.btn-pass { background: #e0e0e0; color: #333; }
+.btn-pass:active { background: #ccc; transform: scale(0.95); }
+
+/* ===== 美化版 Modal 對話框 ===== */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    animation: fadeIn 0.3s;
+}
+
+.modal-content {
+    background: #fff;
+    color: #333;
+    padding: 25px;
+    border-radius: 15px;
+    width: 85%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    animation: slideDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-content h2 { margin-top: 0; font-size: 24px; }
+.score-list { text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; line-height: 1.8; font-weight: bold; font-size: 15px;}
+.btn-restart { background: #0f5132; color: white; width: 100%; padding: 12px; margin-bottom: 10px; }
+.btn-reset-score { background: #d90429; color: white; width: 100%; padding: 12px; font-size: 14px;}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+body::after { content: ""; display: block; height: 80px; }
+@media (max-width: 480px) { h2 { display: none; } }
+</style>
+</head>
+
+<body>
+
+<div class="top-panel" id="scoreboard">
+    <div class="scoreboard-title">🏆 累計積分板</div>
+    <div id="scoreDisplay"></div>
+    <select id="diffSelect" class="difficulty-select" onchange="changeDifficulty(this.value)">
+        <option value="easy">🌟 簡單模式</option>
+        <option value="hard" selected>🔥 困難模式</option>
+    </select>
+</div>
+
+<h2>🂡 BIG2 專業穩定完整版</h2>
+<div id="info">準備發牌...</div>
+
+<div id="opponentsHUD" class="opponents-hud"></div>
+
+<h3>桌面區</h3>
+<div id="table"></div>
+
+<h3>你的手牌</h3>
+<div id="player" class="hand"></div>
+
+<div class="controls">
+    <button class="btn-play" onclick="play()">出牌</button>
+    <button class="btn-pass" onclick="pass()">Pass</button>
+</div>
+
+<div id="scoreModal" class="modal-overlay">
+    <div class="modal-content">
+        <h2 id="modalTitle">遊戲結束</h2>
+        <div id="modalScores" class="score-list"></div>
+        <button class="btn-restart" onclick="location.reload()">繼續下一局</button>
+        <button class="btn-reset-score" onclick="resetScores()">清除積分並重新開始</button>
+    </div>
+</div>
+
+<script>
+/* ===== 系統狀態與音效 ===== */
+const sndPlayCard = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'); 
+const sndWin = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');      
+sndPlayCard.volume = 0.6; sndWin.volume = 0.8;
+
+function playSound(snd) { snd.currentTime = 0; snd.play().catch(e => console.log(e)); }
+
+const suits = ["♣", "♦", "♥", "♠"];
+const suitValue = {"♣":1, "♦":2, "♥":3, "♠":4};
+const ranks = [3, 4, 5, 6, 7, 8, 9, 10, "J", "Q", "K", "A", 2];
+const rankValue = {3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, 10:10, J:11, Q:12, K:13, A:14, 2:15};
+
+let deck = [], players = [[], [], [], []];
+let current = 0, selected = [], last = null;
+let consecutivePasses = 0, lastPlayer = -1, isFirstTurn = true;    
+
+let aiDifficulty = localStorage.getItem("big2_diff") || "hard";
+document.getElementById("diffSelect").value = aiDifficulty;
+
+function changeDifficulty(val) {
+    aiDifficulty = val; localStorage.setItem("big2_diff", val);
+    updateInfo(`已切換為：${val === 'hard' ? '困難模式' : '簡單模式'}`);
+}
+
+let totalScores = JSON.parse(localStorage.getItem("big2_scores")) || [0, 0, 0, 0];
+
+function renderScoreboard() {
+    let display = document.getElementById("scoreDisplay"); let html = "";
+    for(let i=0; i<4; i++){
+        let colorClass = totalScores[i] >= 0 ? 'score-positive' : 'score-negative';
+        let prefix = i === 0 ? "你 (0)" : `電腦 ${i}`;
+        let sign = totalScores[i] > 0 ? "+" : "";
+        html += `<div class="score-item">${prefix}: <span class="${colorClass}">${sign}${totalScores[i]}</span></div>`;
+    }
+    display.innerHTML = html;
+}
+
+/* ===== 對手動態資訊 UI ===== */
+function renderOpponents() {
+    let hud = document.getElementById("opponentsHUD");
+    let html = "";
+    // 電腦編號為 1, 2, 3
+    for (let i = 1; i <= 3; i++) {
+        let count = players[i].length;
+        let isActive = (current === i) ? "active" : "";
+        let isWarning = (count === 1) ? "warning" : "";
+        let icon = (count === 1) ? "🔥" : "🂠";
+        
+        html += `
+            <div class="opp-box ${isActive}">
+                <div class="opp-name">電腦 ${i}</div>
+                <div class="opp-count ${isWarning}">${icon} ${count}</div>
+            </div>
+        `;
+    }
+    hud.innerHTML = html;
+}
+
+/* ===== 發牌與 UI ===== */
+function createDeck(){ deck = []; for(let r of ranks) for(let s of suits) deck.push({rank: r, suit: s}); }
+function shuffle(){ for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; } }
+function deal(){
+    for(let i=0; i<52; i++) players[i%4].push(deck[i]);
+    players.forEach(p => p.sort((a,b) => rankValue[a.rank] == rankValue[b.rank] ? suitValue[a.suit] - suitValue[b.suit] : rankValue[a.rank] - rankValue[b.rank]));
+}
+function findStarter(){ for(let i=0; i<4; i++) if(players[i].some(c => c.rank == 3 && c.suit == "♣")) current = i; }
+
+function buildCardHTML(card){
+    let color = (card.suit == "♥" || card.suit == "♦") ? "red" : "black";
+    return `<div class="corner top-left ${color}">${card.rank}${card.suit}</div><div class="watermark ${color}">${card.suit}</div><div class="center ${color}">${card.suit}</div><div class="corner bottom-right ${color}">${card.rank}${card.suit}</div>`;
+}
+
+function renderPlayer(){
+    let area = document.getElementById("player"); area.innerHTML = "";
+    players[0].forEach((c, i) => {
+        let div = document.createElement("div"); div.className = "card";
+        if(selected.includes(i)) div.classList.add("selected");
+        div.style.zIndex = selected.includes(i) ? "10" : i; 
+        div.innerHTML = buildCardHTML(c); div.onclick = () => toggle(i);
+        area.appendChild(div);
+    });
+}
+
+function renderTable(cards){
+    let t = document.getElementById("table"); t.innerHTML = "";
+    cards.forEach((c, i) => {
+        let div = document.createElement("div"); div.className = "card"; div.style.zIndex = i; div.style.margin = "0 -15px"; 
+        div.innerHTML = buildCardHTML(c); t.appendChild(div);
+    });
+}
+
+function toggle(i){
+    if(selected.includes(i)) selected = selected.filter(x => x != i);
+    else selected.push(i);
+    renderPlayer();
+}
+
+function updateInfo(msg){ document.getElementById("info").innerText = msg; }
+
+/* ===== 牌型與演算法 ===== */
+function getRankCounts(cards) { let counts = {}; cards.forEach(c => { counts[c.rank] = (counts[c.rank] || 0) + 1; }); return counts; }
+function isStraight(cards) {
+    let sorted = [...cards].sort((a,b) => rankValue[a.rank] - rankValue[b.rank]); let isNormal = true;
+    for(let i = 1; i < 5; i++) if(rankValue[sorted[i].rank] !== rankValue[sorted[i-1].rank] + 1) { isNormal = false; break; }
+    if (isNormal) return sorted[4];
+    let ranks = sorted.map(c => c.rank);
+    if (ranks.includes("A") && ranks.includes(2) && ranks.includes(3) && ranks.includes(4) && ranks.includes(5)) return cards.find(c => c.rank === 2); 
+    return null;
+}
+function isFlush(cards) {
+    let suit = cards[0].suit; if (cards.every(c => c.suit === suit)) return [...cards].sort((a,b) => rankValue[a.rank] - rankValue[b.rank])[4];
+    return null;
+}
+function sameRank(cards){ return cards.every(c => c.rank == cards[0].rank); }
+function getPower(card){ return rankValue[card.rank] * 10 + suitValue[card.suit]; }
+
+function evaluate(cards){
+    if(cards.length == 1) return {type: 1, value: getPower(cards[0])};
+    if(cards.length == 2 && sameRank(cards)) return {type: 2, value: getPower(cards[0])};
+    if(cards.length == 3 && sameRank(cards)) return {type: 3, value: getPower(cards[0])};
+    if(cards.length == 5) {
+        let counts = getRankCounts(cards), countValues = Object.values(counts);
+        let straightMax = isStraight(cards), flushMax = isFlush(cards);
+        if (straightMax && flushMax) return { type: 5, value: 50000 + getPower(straightMax), name: "同花順" };
+        if (countValues.includes(4)) return { type: 5, value: 40000 + rankValue[Object.keys(counts).find(k => counts[k] === 4)] * 10, name: "鐵支" };
+        if (countValues.includes(3) && countValues.includes(2)) return { type: 5, value: 30000 + rankValue[Object.keys(counts).find(k => counts[k] === 3)] * 10, name: "葫蘆" };
+        if (flushMax) return { type: 5, value: 20000 + getPower(flushMax), name: "同花" };
+        if (straightMax) return { type: 5, value: 10000 + getPower(straightMax), name: "順子" };
+    }
+    return null;
+}
+
+function getCombinations(array, size) {
+    let result = [];
+    function p(t, i) {
+        if (t.length === size) { result.push(t); return; }
+        if (i + 1 > array.length) return;
+        p(t.concat(array[i]), i + 1); p(t, i + 1);
+    } p([], 0); return result;
+}
+
+/* ===== 智能 AI 決策樹 ===== */
+function executePlay(cards, r, isPlayer) {
+    playSound(sndPlayCard);
+    players[current] = players[current].filter(c => !cards.includes(c));
+    last = r; lastPlayer = current; consecutivePasses = 0; 
+    updateInfo(`玩家 ${current} 出了 ${last.name || (last.type + " 張牌")}`);
+    renderTable(cards);
+    renderOpponents(); // 即時更新卡牌數量
+    
+    if (isPlayer) { selected = []; renderPlayer(); }
+    next();
+}
+
+function aiPlay(){
+    let hand = players[current];
+    if(hand.length == 0) return;
+    let chosenCards = null;
+    let someoneHasOneCard = players.some((p, idx) => idx !== current && p.length === 1);
+
+    if(last == null){
+        let allPlays = [];
+        allPlays.push(...hand.map(c => [c]));
+        allPlays.push(...getCombinations(hand, 2).filter(c => evaluate(c)?.type === 2));
+        allPlays.push(...getCombinations(hand, 3).filter(c => evaluate(c)?.type === 3));
+        if (hand.length >= 5) allPlays.push(...getCombinations(hand, 5).filter(c => evaluate(c)?.type === 5));
+        if (isFirstTurn) { allPlays = allPlays.filter(play => play.some(c => c.rank == 3 && c.suit == "♣")); isFirstTurn = false; }
+        
+        if (aiDifficulty === 'hard') {
+            allPlays.sort((a, b) => {
+                if (a.length !== b.length) return b.length - a.length; 
+                if (someoneHasOneCard && a.length === 1) return evaluate(b).value - evaluate(a).value; 
+                return evaluate(a).value - evaluate(b).value;
+            });
+        } else {
+            allPlays.sort((a, b) => evaluate(a).value - evaluate(b).value);
+        }
+        chosenCards = allPlays[0];
+    } else {
+        let validPlays = [];
+        let typeNeeded = last.type;
+        if (typeNeeded === 1) validPlays = hand.map(c => [c]).filter(cards => evaluate(cards).value > last.value);
+        else if ([2,3,5].includes(typeNeeded)) {
+            let countNeeded = typeNeeded === 5 ? 5 : typeNeeded;
+            if (hand.length >= countNeeded) {
+                validPlays = getCombinations(hand, countNeeded)
+                    .filter(combo => evaluate(combo) !== null && evaluate(combo).type === typeNeeded && evaluate(combo).value > last.value);
+            }
+        }
+        
+        if (validPlays.length > 0) {
+            if (aiDifficulty === 'hard' && typeNeeded === 1 && someoneHasOneCard) {
+                validPlays.sort((a, b) => evaluate(b).value - evaluate(a).value);
+            } else {
+                validPlays.sort((a, b) => evaluate(a).value - evaluate(b).value);
+            }
+            chosenCards = validPlays[0]; 
+        }
+    }
+
+    if(chosenCards) executePlay(chosenCards, evaluate(chosenCards), false);
+    else executePass();
+}
+
+/* ===== 遊戲控制 ===== */
+function play(){
+    if(current != 0) return;
+    if(selected.length == 0) return;
+    let cards = selected.map(i => players[0][i]);
+    let r = evaluate(cards);
+    
+    if(!r){ updateInfo("⚠️ 無效牌型！"); return; }
+    if(last == null){
+        if(isFirstTurn && !cards.some(c => c.rank == 3 && c.suit == "♣")){ updateInfo("⚠️ 第一手需含梅花 3！"); return; }
+        isFirstTurn = false;
+    } else {
+        if(r.type !== last.type){ updateInfo("⚠️ 牌型不符！"); return; }
+        if(r.value <= last.value){ updateInfo("⚠️ 點數太小！"); return; }
+    }
+    executePlay(cards, r, true);
+}
+
+function pass(){
+    if(current != 0) return;
+    if(last == null){ updateInfo("⚠️ 擁有牌權時不能 Pass！"); return; }
+    selected = []; renderPlayer(); executePass();
+}
+
+function executePass(){
+    consecutivePasses++; updateInfo(`玩家 ${current} 選擇 Pass`);
+    if(consecutivePasses >= 3){
+        last = null; consecutivePasses = 0; current = lastPlayer; renderTable([]); 
+        updateInfo(`🔄 牌權回到 玩家 ${current}`);
+        renderOpponents(); // 更新焦點
+        if(current === 0) updateInfo("✨ 重新獲得牌權，請自由出牌");
+        else setTimeout(()=>{ aiPlay(); }, 1200);
+    } else {
+        current = (current + 1) % 4; 
+        renderOpponents(); // 更新焦點
+        if(current != 0) setTimeout(()=>{ aiPlay(); }, 1200);
+    }
+}
+
+/* ===== 結算與成績持久化 ===== */
+function calculateAndSaveScores(winnerIndex) {
+    let roundScores = [0, 0, 0, 0]; let winnerEarnings = 0;
+    for (let i = 0; i < 4; i++) {
+        if (i !== winnerIndex) {
+            let remainCards = players[i].length; let penaltyPoints = remainCards;
+            if (remainCards === 13) penaltyPoints *= 3; else if (remainCards >= 10) penaltyPoints *= 2;
+            roundScores[i] -= penaltyPoints; winnerEarnings += penaltyPoints; 
+        }
+    }
+    roundScores[winnerIndex] += winnerEarnings;
+    for (let i = 0; i < 4; i++) totalScores[i] += roundScores[i];
+    localStorage.setItem("big2_scores", JSON.stringify(totalScores));
+    return { roundScores, winnerEarnings };
+}
+
+function showScoreModal(winnerIndex) {
+    playSound(sndWin); 
+    let { roundScores, winnerEarnings } = calculateAndSaveScores(winnerIndex);
+    document.getElementById("modalTitle").innerHTML = winnerIndex === 0 ? `<span style="color:#d90429">🏆 恭喜，你贏了！(+${winnerEarnings})</span>` : `😢 遊戲結束，玩家 ${winnerIndex} 獲勝`;
+    let scoresHtml = `<div style="font-size: 13px; color: #666; margin-bottom: 8px;">(分數已自動儲存至記分板)</div>`;
+    for (let i = 0; i < 4; i++) {
+        let remainCards = players[i].length;
+        if (i === winnerIndex) scoresHtml += `<div style="color:#0f5132">➤ 玩家 ${i}：贏家 <span style="float:right; color:#4ade80">+${winnerEarnings}</span></div>`;
+        else {
+            let desc = remainCards === 13 ? "(💥慘電三倍)" : (remainCards >= 10 ? "(⚠️雙倍)" : "");
+            scoresHtml += `<div>➤ 玩家 ${i}：剩 ${remainCards} 張 ${desc} <span style="float:right; color:#f87171">${roundScores[i]}</span></div>`;
+        }
+    }
+    document.getElementById("modalScores").innerHTML = scoresHtml; document.getElementById("scoreModal").style.display = "flex";
+}
+
+function resetScores() { if(confirm("確定要清除所有積分記錄嗎？")) { localStorage.removeItem("big2_scores"); location.reload(); } }
+
+function next(){
+    if(players[current].length === 0){ setTimeout(() => { showScoreModal(current); }, 500); return; }
+    current = (current + 1) % 4; 
+    renderOpponents(); // 確保回合切換時高亮正確
+    if(current != 0) setTimeout(()=>{ aiPlay(); }, 1200); 
+}
+
+/* ===== 初始化 ===== */
+function init(){
+    renderScoreboard(); createDeck(); shuffle(); deal(); findStarter(); renderPlayer();
+    isFirstTurn = true; lastPlayer = current; updateInfo(`✨ 遊戲開始！由 玩家 ${current} 先出牌`);
+    renderOpponents(); // 開局初始化對手 UI
+    if(current !== 0) setTimeout(()=>{ aiPlay(); }, 1500);
+}
+init();
+</script>
+</body>
+</html>
