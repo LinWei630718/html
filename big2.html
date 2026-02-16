@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>BIG2 大老二 (含牌數追蹤)</title>
+<title>BIG2 大老二RWD版權牌數追蹤版</title>
 
 <style>
 /* ===== 全局與背景設定 ===== */
@@ -16,7 +16,7 @@ body {
     overflow-x: hidden;
 }
 
-h2 { margin-top: 15px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+h2 { margin-top: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); font-size: 22px; }
 h3 { margin: 10px 0; color: #e9ecef; font-size: 16px; }
 
 #info {
@@ -27,35 +27,42 @@ h3 { margin: 10px 0; color: #e9ecef; font-size: 16px; }
     height: 24px;
 }
 
-/* ===== 記分板與難度 UI ===== */
+/* ===== 記分板與難度 UI (RWD 響應式修正) ===== */
 .top-panel {
-    position: absolute;
-    top: 10px;
-    left: 10px;
     background: rgba(0, 0, 0, 0.4);
     border-radius: 8px;
     padding: 10px;
-    text-align: left;
-    font-size: 14px;
+    margin: 10px auto;
+    width: 90%;
+    max-width: 600px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     border: 1px solid rgba(255,255,255,0.2);
     z-index: 20;
 }
-.scoreboard-title { color: #ffc300; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 3px; }
-.score-item { margin: 3px 0; }
+.scoreboard-title { color: #ffc300; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 3px; font-size: 14px; }
+
+/* 讓分數在手機上橫向排列並自動折行 */
+#scoreDisplay {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px 15px;
+    font-size: 14px;
+    margin-top: 5px;
+}
 .score-positive { color: #4ade80; }
 .score-negative { color: #f87171; }
 
 .difficulty-select {
-    margin-top: 8px;
+    margin-top: 10px;
     background: #0f5132;
     color: white;
     border: 1px solid #4ade80;
-    padding: 4px;
+    padding: 4px 12px;
     border-radius: 4px;
     font-size: 13px;
-    width: 100%;
     outline: none;
+    cursor: pointer;
 }
 
 /* ===== 對手資訊列 (HUD) ===== */
@@ -88,7 +95,6 @@ h3 { margin: 10px 0; color: #e9ecef; font-size: 16px; }
 .opp-name { font-size: 13px; color: #ddd; margin-bottom: 4px; }
 .opp-count { font-size: 18px; font-weight: bold; color: #fff; }
 
-/* 聽牌警告動畫 */
 .warning { color: #f87171 !important; animation: blink 1s infinite; text-shadow: 0 0 8px red; }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
@@ -111,7 +117,7 @@ h3 { margin: 10px 0; color: #e9ecef; font-size: 16px; }
     display: flex;
     justify-content: flex-start;
     overflow-x: auto;
-    padding: 15px 10px 30px 10px;
+    padding: 15px 10px 20px 10px;
     -webkit-overflow-scrolling: touch;
     width: 95%;
     max-width: 800px;
@@ -168,6 +174,15 @@ button { padding: 10px 25px; margin: 0 10px; font-size: 16px; font-weight: bold;
 .btn-pass { background: #e0e0e0; color: #333; }
 .btn-pass:active { background: #ccc; transform: scale(0.95); }
 
+/* ===== 版權宣告區塊 ===== */
+.copyright {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 15px;
+    padding-bottom: 80px; /* 留足夠的空間避免被底部控制列遮擋 */
+    letter-spacing: 0.5px;
+}
+
 /* ===== 美化版 Modal 對話框 ===== */
 .modal-overlay {
     position: fixed;
@@ -199,8 +214,9 @@ button { padding: 10px 25px; margin: 0 10px; font-size: 16px; font-weight: bold;
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-body::after { content: ""; display: block; height: 80px; }
-@media (max-width: 480px) { h2 { display: none; } }
+
+/* 針對極小螢幕隱藏大標題，節省空間 */
+@media (max-width: 360px) { h2 { display: none; } }
 </style>
 </head>
 
@@ -225,6 +241,10 @@ body::after { content: ""; display: block; height: 80px; }
 
 <h3>你的手牌</h3>
 <div id="player" class="hand"></div>
+
+<div class="copyright">
+    &copy; 2026 LinWei's Big2 Created with Google Gemini 3
+</div>
 
 <div class="controls">
     <button class="btn-play" onclick="play()">出牌</button>
@@ -273,7 +293,7 @@ function renderScoreboard() {
         let colorClass = totalScores[i] >= 0 ? 'score-positive' : 'score-negative';
         let prefix = i === 0 ? "你 (0)" : `電腦 ${i}`;
         let sign = totalScores[i] > 0 ? "+" : "";
-        html += `<div class="score-item">${prefix}: <span class="${colorClass}">${sign}${totalScores[i]}</span></div>`;
+        html += `<div>${prefix}: <span class="${colorClass}">${sign}${totalScores[i]}</span></div>`;
     }
     display.innerHTML = html;
 }
@@ -282,7 +302,6 @@ function renderScoreboard() {
 function renderOpponents() {
     let hud = document.getElementById("opponentsHUD");
     let html = "";
-    // 電腦編號為 1, 2, 3
     for (let i = 1; i <= 3; i++) {
         let count = players[i].length;
         let isActive = (current === i) ? "active" : "";
@@ -389,7 +408,7 @@ function executePlay(cards, r, isPlayer) {
     last = r; lastPlayer = current; consecutivePasses = 0; 
     updateInfo(`玩家 ${current} 出了 ${last.name || (last.type + " 張牌")}`);
     renderTable(cards);
-    renderOpponents(); // 即時更新卡牌數量
+    renderOpponents(); 
     
     if (isPlayer) { selected = []; renderPlayer(); }
     next();
@@ -474,12 +493,12 @@ function executePass(){
     if(consecutivePasses >= 3){
         last = null; consecutivePasses = 0; current = lastPlayer; renderTable([]); 
         updateInfo(`🔄 牌權回到 玩家 ${current}`);
-        renderOpponents(); // 更新焦點
+        renderOpponents(); 
         if(current === 0) updateInfo("✨ 重新獲得牌權，請自由出牌");
         else setTimeout(()=>{ aiPlay(); }, 1200);
     } else {
         current = (current + 1) % 4; 
-        renderOpponents(); // 更新焦點
+        renderOpponents(); 
         if(current != 0) setTimeout(()=>{ aiPlay(); }, 1200);
     }
 }
@@ -521,7 +540,7 @@ function resetScores() { if(confirm("確定要清除所有積分記錄嗎？")) 
 function next(){
     if(players[current].length === 0){ setTimeout(() => { showScoreModal(current); }, 500); return; }
     current = (current + 1) % 4; 
-    renderOpponents(); // 確保回合切換時高亮正確
+    renderOpponents(); 
     if(current != 0) setTimeout(()=>{ aiPlay(); }, 1200); 
 }
 
@@ -529,13 +548,10 @@ function next(){
 function init(){
     renderScoreboard(); createDeck(); shuffle(); deal(); findStarter(); renderPlayer();
     isFirstTurn = true; lastPlayer = current; updateInfo(`✨ 遊戲開始！由 玩家 ${current} 先出牌`);
-    renderOpponents(); // 開局初始化對手 UI
+    renderOpponents(); 
     if(current !== 0) setTimeout(()=>{ aiPlay(); }, 1500);
 }
 init();
 </script>
 </body>
 </html>
-
-
-
