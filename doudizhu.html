@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>鬥地主 單機競技版</title>
+
+<style>
+/* ===== 全局與背景設定 ===== */
+body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: radial-gradient(circle, #b91c1c, #7f1d1d); color: white; text-align: center; overflow-x: hidden; padding-bottom: 80px; }
+h2 { margin-top: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); font-size: 22px; color: #fef08a; display: flex; justify-content: center; align-items: center; gap: 10px; }
+.btn-rules { background: #3b82f6; color: white; border: none; padding: 4px 10px; border-radius: 12px; font-size: 12px; cursor: pointer; }
+#info { margin-top: 5px; font-size: 16px; font-weight: bold; color: #fde047; height: 24px; }
+
+/* ===== 記分板與狀態列 ===== */
+.top-panel { background: rgba(0, 0, 0, 0.5); border-radius: 8px; padding: 10px; margin: 10px auto; width: 90%; max-width: 600px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); }
+#scoreDisplay { display: flex; justify-content: space-around; font-size: 14px; margin-top: 5px; }
+.score-positive { color: #4ade80; } .score-negative { color: #f87171; }
+.multiplier-badge { background: #d90429; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; animation: pulse 1.5s infinite; }
+
+/* ===== 底牌區域 ===== */
+.hole-cards { display: flex; justify-content: center; gap: 5px; margin: 10px 0; height: 60px; }
+.hole-card { width: 40px; height: 60px; background: repeating-linear-gradient(45deg, #1e3a8a, #1e3a8a 5px, #1e40af 5px, #1e40af 10px); border-radius: 4px; border: 1px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: #333; background-color: #fdfdfd; overflow: hidden; }
+.hole-card.hidden { color: transparent; }
+
+/* ===== 對手資訊列 ===== */
+.opponents-hud { display: flex; justify-content: space-around; align-items: center; width: 90%; max-width: 600px; margin: 10px auto; }
+.opp-box { background: rgba(0, 0, 0, 0.4); border: 1px solid #555; border-radius: 10px; padding: 8px 12px; width: 35%; transition: 0.3s; position: relative; }
+.opp-box.active { border-color: #fde047; background: rgba(253, 224, 71, 0.15); transform: scale(1.05); }
+.opp-name { font-size: 14px; color: #ddd; margin-bottom: 4px; }
+.opp-count { font-size: 20px; font-weight: bold; color: #fff; }
+.landlord-icon { position: absolute; top: -10px; right: -10px; font-size: 24px; display: none; }
+.is-landlord .landlord-icon { display: block; animation: pulse 1s infinite; }
+
+/* ===== 遊戲桌與手牌 ===== */
+#table { min-height: 120px; margin: 5px auto; display: flex; justify-content: center; flex-wrap: wrap; background: rgba(0,0,0,0.2); border-radius: 15px; width: 90%; max-width: 600px; padding: 20px 0; }
+.hand { display: flex; justify-content: flex-start; overflow-x: auto; padding: 15px 10px 20px 10px; width: 95%; max-width: 800px; margin: 0 auto; }
+
+/* ===== 卡牌設計 ===== */
+.card { 
+    flex: 0 0 auto; width: 65px; height: 95px; background: #fdfdfd; border-radius: 8px; margin: 0 -15px; 
+    position: relative; cursor: pointer; transition: transform 0.2s; 
+    box-shadow: -2px 0 8px rgba(0,0,0,0.4); border: 1px solid #ccc; user-select: none; color: #111; 
+    overflow: hidden; /* 修復：防止花色溢出干擾左右牌 */
+}
+.card:first-child { margin-left: 0; }
+.card:hover { transform: translateY(-10px); z-index: 10; }
+.card.selected { transform: translateY(-20px); box-shadow: 0 10px 20px rgba(0,0,0,0.6); border: 2px solid #fde047; }
+.corner { position: absolute; font-size: 14px; font-weight: 900; z-index: 2; }
+.top-left { top: 4px; left: 4px; }
+.bottom-right { bottom: 4px; right: 4px; transform: rotate(180deg); }
+.center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 28px; z-index: 2; width: 100%; }
+.red { color: #d90429; } .black { color: #111111; }
+
+/* ===== 王牌 (Joker) 專屬華麗設計 ===== */
+.full-cover { position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; box-sizing: border-box; }
+.joker-bg-red { background: radial-gradient(circle, #ef4444, #991b1b); color: #fde047; border: 2px solid #fde047; }
+.joker-bg-black { background: radial-gradient(circle, #52525b, #27272a); color: #e4e4e7; border: 2px solid #a1a1aa; }
+.joker-icon { font-size: 18px; margin-bottom: 2px; }
+.joker-text { writing-mode: vertical-rl; text-orientation: upright; font-size: 22px; font-weight: 900; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.6); margin: 0 auto; }
+
+/* ===== 底部控制面板 ===== */
+.controls { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(127, 29, 29, 0.95); padding: 12px 0; box-shadow: 0 -4px 10px rgba(0,0,0,0.4); z-index: 50; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+button { padding: 10px 20px; font-size: 15px; font-weight: bold; border-radius: 20px; border: none; cursor: pointer; transition: 0.2s; }
+.btn-play { background: #fde047; color: #7f1d1d; } 
+.btn-pass { background: #e0e0e0; color: #333; } 
+.btn-bid { background: #3b82f6; color: white; }
+
+/* ===== 模態框 (結算與規則) ===== */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: none; justify-content: center; align-items: center; z-index: 100; }
+.modal-content { background: #fff; color: #333; padding: 25px; border-radius: 15px; width: 85%; max-width: 450px; text-align: center; max-height: 80vh; overflow-y: auto; }
+.btn-restart { background: #7f1d1d; color: white; width: 100%; padding: 12px; margin-top: 15px; border-radius: 8px; }
+.rules-text { text-align: left; font-size: 14px; line-height: 1.6; color: #444; margin-top: 15px; }
+
+/* ===== 動畫與特效 ===== */
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+@keyframes shake { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 10%, 30%, 50%, 70%, 90% { transform: translate(-4px, -2px) rotate(-1deg); } 20%, 40%, 60%, 80% { transform: translate(4px, 2px) rotate(1deg); } }
+.shake-screen { animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+#confetti-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 999; display: none; overflow: hidden; }
+.confetti-piece { position: absolute; top: -20px; width: 10px; height: 20px; animation: confetti-fall linear forwards; border-radius: 2px; opacity: 0.9; }
+@keyframes confetti-fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+/* ===== 洗牌過場 ===== */
+#shuffleOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; }
+.shuffle-deck { position: relative; width: 65px; height: 95px; margin-bottom: 30px; }
+.shuffle-card-anim { position: absolute; width: 100%; height: 100%; background: repeating-linear-gradient(45deg, #1e3a8a, #1e3a8a 5px, #1e40af 5px, #1e40af 10px); border: 2px solid #fff; border-radius: 8px; animation: shuffle-move 0.5s infinite alternate ease-in-out; }
+.shuffle-card-anim:nth-child(1) { animation-delay: 0s; z-index: 3; }
+.shuffle-card-anim:nth-child(2) { animation-delay: 0.15s; z-index: 2; }
+.shuffle-card-anim:nth-child(3) { animation-delay: 0.3s; z-index: 1; }
+@keyframes shuffle-move { 0% { transform: translateX(0) rotate(0deg); } 100% { transform: translateX(50px) rotate(15deg); } }
+.shuffle-text { font-size: 20px; font-weight: bold; color: #fde047; animation: pulse 1s infinite; }
+
+/* 版權宣告 */
+.copyright { position: absolute; bottom: 70px; width: 100%; font-size: 11px; color: rgba(255,255,255,0.4); text-align: center; pointer-events: none; }
+
+/* RWD */
+@media (max-width: 600px) {
+    .card { width: 45px; height: 68px; margin: 0 -12px; }
+    .card.selected { transform: translateY(-12px); }
+    .center { font-size: 20px; } .corner { font-size: 11px; } .joker-text { font-size: 16px; }
+    button { padding: 8px 12px; font-size: 13px; }
+}
+</style>
+</head>
+<body>
+
+<div id="shuffleOverlay">
+    <div class="shuffle-deck"><div class="shuffle-card-anim"></div><div class="shuffle-card-anim"></div><div class="shuffle-card-anim"></div></div>
+    <div class="shuffle-text">洗牌發牌中...</div>
+</div>
+
+<div id="confetti-container"></div>
+
+<div class="top-panel" id="scoreboard">
+    <div style="color:#fde047; font-weight:bold; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;">
+        <span>💰 戰績積分板</span>
+        <span id="multiplierBadge" class="multiplier-badge" style="display:none;">倍數 x1</span>
+    </div>
+    <div id="scoreDisplay"></div>
+</div>
+
+<h2>🃏 鬥地主 單機競技版<button class="btn-rules" onclick="document.getElementById('rulesModal').style.display='flex'">📖 說明</button></h2>
+<div id="info">系統準備中...</div>
+
+<div class="hole-cards" id="holeCardsArea"></div>
+
+<div id="opponentsHUD" class="opponents-hud"></div>
+<div id="table"></div>
+<div id="player" class="hand"></div>
+
+<div class="copyright">&copy; 2026 LinWei's Big2 Created with Google Gemini 3</div>
+
+<div class="controls" id="controlPanel">
+    <button class="btn-bid" onclick="playerBid(1)" id="btnBid1" style="display:none;">1分</button>
+    <button class="btn-bid" onclick="playerBid(2)" id="btnBid2" style="display:none;">2分</button>
+    <button class="btn-bid" onclick="playerBid(3)" id="btnBid3" style="display:none;">3分</button>
+    <button class="btn-pass" onclick="playerBid(0)" id="btnNoBid" style="display:none;">不叫</button>
+    
+    <button class="btn-play" onclick="play()" id="btnPlay" style="display:none;">出牌</button>
+    <button class="btn-pass" onclick="pass()" id="btnPass" style="display:none;">不出</button>
+</div>
+
+<div id="scoreModal" class="modal-overlay">
+    <div class="modal-content">
+        <h2 id="modalTitle">局數結算</h2>
+        <div id="modalScores" style="margin-top:15px; font-weight:bold; line-height:1.8;"></div>
+        <button class="btn-restart" onclick="location.reload()">繼續下一局</button>
+        <button class="btn-restart" style="background:#555; margin-top:5px;" onclick="localStorage.removeItem('doudizhu_scores'); location.reload();">重置分數</button>
+    </div>
+</div>
+
+<div id="rulesModal" class="modal-overlay">
+    <div class="modal-content">
+        <h2>📜 遊戲玩法與規則</h2>
+        <div class="rules-text">
+            <b>1. 叫分搶地主：</b><br>玩家輪流叫分(1~3分)，叫分必須比前一人高。叫3分者直接成為地主，若全都不叫則重新洗牌。<br><br>
+            <b>2. 陣營對抗：</b><br>地主(1人)對抗農民(2人)。農民只要有一人出完牌，農民陣營即獲勝。<br><br>
+            <b>3. 倍數翻倍機制：</b><br>
+            • <b>炸彈/火箭：</b> 遊戲中每打出一次炸彈(四張相同)或火箭(雙王)，結算倍數乘2。<br>
+            • <b>春天：</b> 地主出完牌，農民連一張牌都沒出，倍數乘2。<br>
+            • <b>反春天：</b> 農民獲勝，且地主只出過第一手牌，倍數乘2。<br><br>
+            <b>4. 進階牌型支援：</b><br>
+            支援單、對、三條、三帶一單、三帶一對、順子、連對、飛機、四帶二。<i>(註：2與雙王不可參與順子或連對)</i>
+        </div>
+        <button class="btn-restart" onclick="document.getElementById('rulesModal').style.display='none'">我知道了</button>
+    </div>
+</div>
+
+<script>
+/* ===== 音效系統設定 ===== */
+const sndPlayCard = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'); 
+const sndBomb = new Audio('https://assets.mixkit.co/active_storage/sfx/1690/1690-preview.mp3');     
+sndPlayCard.volume = 0.6; sndBomb.volume = 0.9;
+function playSound(snd) { snd.currentTime = 0; snd.play().catch(e => {}); }
+
+/* ===== 系統與撲克牌設定 ===== */
+const suits = ["♣", "♦", "♥", "♠"];
+const ranks = ["3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A", "2"];
+const power = { "3":3, "4":4, "5":5, "6":6, "7":7, "8":8, "9":9, "10":10, "J":11, "Q":12, "K":13, "A":14, "2":15, "BJ":16, "RJ":17 };
+
+let deck = [], players = [[], [], []], holeCards = [];
+let current = 0, selected = [], last = null, consecutivePasses = 0, lastPlayer = -1;
+let totalScores = JSON.parse(localStorage.getItem("doudizhu_scores")) || [0, 0, 0];
+
+// 真實競技狀態變數
+let landlord = -1, baseScore = 0, gameMultiplier = 1;
+let currentBid = 0, bidQueue = [], bidIndex = 0;
+let landlordPlayCount = 0, farmerPlayCount = 0;
+
+/* ===== UI 渲染 ===== */
+function updateMultiplierUI() {
+    let badge = document.getElementById("multiplierBadge");
+    if (gameMultiplier > 1) { badge.style.display = "inline-block"; badge.innerText = `倍數 x${gameMultiplier}`; }
+}
+
+function renderScoreboard() {
+    let html = "";
+    for(let i=0; i<3; i++) {
+        let cls = totalScores[i] >= 0 ? 'score-positive' : 'score-negative';
+        html += `<div>${i===0 ? "玩家(你)" : "電腦"+i}: <span class="${cls}">${totalScores[i]>0?"+":""}${totalScores[i]}</span></div>`;
+    }
+    document.getElementById("scoreDisplay").innerHTML = html;
+}
+
+function renderHoleCards(reveal = false) {
+    let html = "";
+    if (!reveal) html = `<div class="hole-card hidden"></div><div class="hole-card hidden"></div><div class="hole-card hidden"></div>`;
+    else {
+        holeCards.forEach(c => {
+            // 修復：底牌若為王牌也套用華麗 UI (縮小版)
+            if (c.isJoker) {
+                let isRed = c.rank === "RJ";
+                let colorClass = isRed ? "joker-bg-red" : "joker-bg-black";
+                html += `<div class="hole-card ${colorClass}" style="position:relative; font-size:10px; flex-direction:column; line-height:1.2;">
+                            <div>${isRed?"👑":"🃏"}</div><div>${isRed?"大王":"小王"}</div>
+                         </div>`;
+            } else {
+                let colorClass = (c.suit === "♥" || c.suit === "♦") ? "red" : "black";
+                html += `<div class="hole-card ${colorClass}" style="background:none; border:1px solid #ccc;">${c.suit}${c.rank}</div>`;
+            }
+        });
+    }
+    document.getElementById("holeCardsArea").innerHTML = html;
+}
+
+function renderOpponents() {
+    let hud = document.getElementById("opponentsHUD"); hud.innerHTML = "";
+    for (let i = 1; i <= 2; i++) {
+        let isActive = current === i ? "active" : "", isLandlord = landlord === i ? "is-landlord" : "";
+        hud.innerHTML += `<div class="opp-box ${isActive} ${isLandlord}">
+            <div class="landlord-icon">🧑‍🌾</div>
+            <div class="opp-name">電腦 ${i}</div>
+            <div class="opp-count">🂠 ${players[i].length}</div>
+        </div>`;
+    }
+}
+
+function buildCardHTML(card) {
+    // 修復：王牌專屬滿版 UI
+    if (card.isJoker) {
+        let isRed = card.rank === "RJ";
+        let colorClass = isRed ? "joker-bg-red" : "joker-bg-black";
+        let icon = isRed ? "👑" : "🃏";
+        let text = isRed ? "大<br>王" : "小<br>王";
+        return `<div class="full-cover ${colorClass}">
+                    <div class="joker-icon">${icon}</div>
+                    <div class="joker-text">${text}</div>
+                </div>`;
+    }
+    let color = (card.suit === "♥" || card.suit === "♦") ? "red" : "black";
+    return `<div class="corner top-left ${color}">${card.rank}</div><div class="center ${color}">${card.suit}</div><div class="corner bottom-right ${color}">${card.rank}</div>`;
+}
+
+function renderPlayer() {
+    let area = document.getElementById("player"); area.innerHTML = "";
+    players[0].forEach((c, i) => {
+        let div = document.createElement("div"); div.className = "card";
+        if(selected.includes(i)) div.classList.add("selected");
+        div.innerHTML = buildCardHTML(c); div.onclick = () => toggle(i); area.appendChild(div);
+    });
+}
+
+function renderTable(cards) {
+    let t = document.getElementById("table"); t.innerHTML = "";
+    cards.forEach(c => { let div = document.createElement("div"); div.className = "card"; div.innerHTML = buildCardHTML(c); t.appendChild(div); });
+}
+
+function toggle(i) { if(selected.includes(i)) selected = selected.filter(x => x !== i); else selected.push(i); renderPlayer(); }
+function updateInfo(msg) { document.getElementById("info").innerHTML = msg; }
+
+/* ===== 核心牌型解析 ===== */
+function evaluate(cards) {
+    if (!cards || cards.length === 0) return null;
+    let sorted = [...cards].sort((a,b) => power[a.rank] - power[b.rank]);
+    let counts = {}; sorted.forEach(c => counts[c.rank] = (counts[c.rank] || 0) + 1);
+    let vals = Object.values(counts), keys = Object.keys(counts).sort((a,b) => power[a] - power[b]);
+
+    let isSeq = (rankArr) => {
+        if (rankArr.some(r => power[r] >= 15)) return false; 
+        for (let i = 1; i < rankArr.length; i++) { if (power[rankArr[i]] !== power[rankArr[i-1]] + 1) return false; }
+        return true;
+    };
+
+    if (cards.length === 1) return { type: 1, value: power[cards[0].rank], len: 1 };
+    if (cards.length === 2) {
+        if (cards[0].isJoker && cards[1].isJoker) return { type: 99, value: 999, len: 2 };
+        if (vals[0] === 2) return { type: 2, value: power[cards[0].rank], len: 2 };
+    }
+    if (cards.length === 3 && vals.includes(3)) return { type: 3, value: power[cards[0].rank], len: 3 };
+
+    if (cards.length === 4) {
+        if (vals.includes(4)) return { type: 10, value: power[sorted[0].rank], len: 4 };
+        if (vals.includes(3)) return { type: 4, value: power[Object.keys(counts).find(k => counts[k]===3)], len: 4 };
+    }
+    
+    if (cards.length === 5) {
+        if (vals.includes(3) && vals.includes(2)) return { type: 14, value: power[Object.keys(counts).find(k=>counts[k]===3)], len: 5 };
+    }
+
+    if (vals.includes(4)) {
+        let fourRank = Object.keys(counts).find(k => counts[k] === 4);
+        if (cards.length === 6) return { type: 6, value: power[fourRank], len: 6 }; 
+        if (cards.length === 8) {
+            let pairCount = vals.filter(v => v === 2).length, fourCount = vals.filter(v => v === 4).length;
+            if ((fourCount === 1 && pairCount === 2) || fourCount === 2) return { type: 7, value: power[fourRank], len: 8 }; 
+        }
+    }
+
+    if (cards.length >= 5 && vals.every(v => v === 1) && isSeq(keys)) return { type: 5, value: power[keys[keys.length-1]], len: cards.length };
+    if (cards.length >= 6 && cards.length % 2 === 0 && vals.every(v => v === 2) && isSeq(keys)) return { type: 8, value: power[keys[keys.length-1]], len: cards.length };
+
+    let threeRanks = Object.keys(counts).filter(k => counts[k] >= 3).sort((a,b) => power[a] - power[b]);
+    if (threeRanks.length >= 2) {
+        let seqThrees = [], temp = [threeRanks[0]];
+        for (let i = 1; i < threeRanks.length; i++) {
+            if (power[threeRanks[i]] === power[threeRanks[i-1]] + 1 && power[threeRanks[i]] < 15) temp.push(threeRanks[i]);
+            else { if (temp.length > seqThrees.length) seqThrees = temp; temp = [threeRanks[i]]; }
+        }
+        if (temp.length > seqThrees.length) seqThrees = temp;
+
+        let planeLen = seqThrees.length;
+        if (planeLen >= 2) {
+            let planeValue = power[seqThrees[seqThrees.length-1]];
+            if (cards.length === planeLen * 3) return { type: 11, value: planeValue, len: cards.length }; 
+            if (cards.length === planeLen * 4) return { type: 12, value: planeValue, len: cards.length }; 
+            if (cards.length === planeLen * 5) {
+                let remainingVals = [];
+                for (let k in counts) { let c = counts[k]; if (seqThrees.includes(k)) c -= 3; if (c > 0) remainingVals.push(c); }
+                if (remainingVals.every(v => v === 2 || v === 4)) return { type: 13, value: planeValue, len: cards.length }; 
+            }
+        }
+    }
+    return null;
+}
+
+/* ===== 執行出牌 ===== */
+function executePlay(cards, r) {
+    if (r && (r.type === 10 || r.type === 99)) {
+        playSound(sndBomb); document.body.classList.add("shake-screen"); 
+        setTimeout(() => document.body.classList.remove("shake-screen"), 400); 
+        gameMultiplier *= 2; updateMultiplierUI();
+        updateInfo("💥 炸彈！倍數翻倍！");
+    } else { playSound(sndPlayCard); }
+
+    if (current === landlord) landlordPlayCount++; else farmerPlayCount++;
+
+    players[current] = players[current].filter(c => !cards.includes(c));
+    last = r; lastPlayer = current; consecutivePasses = 0;
+    
+    renderTable(cards); renderOpponents();
+    if (current === 0) { selected = []; renderPlayer(); }
+    
+    if (players[current].length === 0) { setTimeout(() => endGame(current), 800); return; }
+    
+    current = (current + 1) % 3; renderOpponents(); 
+    if (r.type !== 10 && r.type !== 99) updateInfo(`輪到 電腦 ${current} 思考...`);
+    if (current !== 0) setTimeout(aiPlay, 1200); else updateInfo("你的回合，請出牌！");
+}
+
+/* ===== 修復：Pass 時保留桌面牌 ===== */
+function executePass() {
+    consecutivePasses++; 
+    // 移除原有的 renderTable([])，讓上一手牌繼續留在桌面上讓玩家參考
+    if (consecutivePasses >= 2) {
+        last = null; current = lastPlayer; consecutivePasses = 0;
+        // 只有當所有人都 Pass，牌權回到原本打牌的人手上時，才清空桌面準備新的一回合
+        renderTable([]); 
+        updateInfo(`🔄 牌權回到 玩家 ${current}`); renderOpponents();
+        if (current === 0) updateInfo("✨ 重新獲得牌權，請自由出牌"); else setTimeout(aiPlay, 1200);
+    } else {
+        current = (current + 1) % 3; renderOpponents();
+        if (current !== 0) setTimeout(aiPlay, 1200); else updateInfo("你的回合，請決定是否出牌");
+    }
+}
+
+function play() {
+    if (current !== 0 || selected.length === 0) return;
+    let cards = selected.map(i => players[0][i]); let r = evaluate(cards);
+    
+    if (!r) { updateInfo("⚠️ 牌型不符合規則！"); return; }
+    if (last) {
+        if (r.type === 99) {} 
+        else if (r.type === 10 && last.type !== 10 && last.type !== 99) {} 
+        else if (r.type !== last.type) { updateInfo("⚠️ 牌型必須與上家相同！"); return; }
+        else if (r.type === 5 && cards.length !== last.len) { updateInfo("⚠️ 順子長度不符！"); return; }
+        else if (r.value <= last.value) { updateInfo("⚠️ 牌面點數必須大於上家！"); return; }
+    }
+    executePlay(cards, r);
+}
+function pass() { if (current !== 0) return; if (!last) { updateInfo("⚠️ 擁有牌權時不能不出！"); return; } selected = []; renderPlayer(); executePass(); }
+
+/* ===== 智能 AI ===== */
+function aiPlay() {
+    let hand = players[current]; if (!hand || hand.length === 0) return;
+    let counts = {}, cardsByRank = {};
+    hand.forEach(c => { counts[c.rank] = (counts[c.rank] || 0) + 1; if (!cardsByRank[c.rank]) cardsByRank[c.rank] = []; cardsByRank[c.rank].push(c); });
+    let getRanksByMinCount = (min) => Object.keys(counts).filter(k => counts[k] >= min).sort((a,b) => power[a] - power[b]);
+    
+    let singles = getRanksByMinCount(1), pairs = getRanksByMinCount(2), triples = getRanksByMinCount(3), bombs = getRanksByMinCount(4), hasRocket = counts["BJ"] && counts["RJ"];
+    let playCards = null;
+    let buildPlay = (rankList, countPerRank, extraCards = []) => { let res = []; rankList.forEach(r => res.push(...cardsByRank[r].slice(0, countPerRank))); return res.concat(extraCards); };
+
+    if (last) {
+        let t = last.type, v = last.value, l = last.len;
+        if (t === 1) { let valid = singles.find(r => power[r] > v); if (valid) playCards = buildPlay([valid], 1); } 
+        else if (t === 2) { let valid = pairs.find(r => power[r] > v); if (valid) playCards = buildPlay([valid], 2); } 
+        else if (t === 3) { let valid = triples.find(r => power[r] > v); if (valid) playCards = buildPlay([valid], 3); } 
+        else if (t === 4) { let validThree = triples.find(r => power[r] > v); if (validThree) { let kicker = singles.find(k => k !== validThree); if (kicker) playCards = buildPlay([validThree], 3, buildPlay([kicker], 1)); } } 
+        else if (t === 14) { let validThree = triples.find(r => power[r] > v); if (validThree) { let validPair = pairs.find(p => p !== validThree); if (validPair) playCards = buildPlay([validThree], 3, buildPlay([validPair], 2)); } }
+        else if (t === 5) {
+            for (let i = 0; i <= singles.length - l; i++) {
+                let seq = [singles[i]], isValidSeq = true;
+                for (let j = 1; j < l; j++) { if (power[singles[i+j]] === power[seq[seq.length-1]] + 1 && power[singles[i+j]] < 15) seq.push(singles[i+j]); else { isValidSeq = false; break; } }
+                if (isValidSeq && power[seq[seq.length-1]] > v) { playCards = buildPlay(seq, 1); break; }
+            }
+        }
+        else if (t === 10) { let valid = bombs.find(r => power[r] > v); if (valid) playCards = buildPlay([valid], 4); }
+
+        if (!playCards && t !== 10 && t !== 99 && bombs.length > 0) playCards = buildPlay([bombs[0]], 4);
+        if (!playCards && t !== 99 && hasRocket) playCards = buildPlay(["BJ", "RJ"], 1);
+    } else {
+        if (triples.length > 0) { 
+            let r = triples[0], pairKicker = pairs.find(p => p !== r);
+            if (pairKicker) playCards = buildPlay([r], 3, buildPlay([pairKicker], 2)); 
+            else { let kicker = singles.find(k => k !== r && counts[k] === 1); if (kicker) playCards = buildPlay([r], 3, buildPlay([kicker], 1)); else playCards = buildPlay([r], 3); }
+        } 
+        else if (pairs.length > 0) playCards = buildPlay([pairs[0]], 2); 
+        else playCards = buildPlay([singles[0]], 1);
+    }
+
+    if (playCards) { let ev = evaluate(playCards); if (ev) executePlay(playCards, ev); else executePass(); } 
+    else executePass();
+}
+
+/* ===== 遞增叫分流程 ===== */
+function startBidding() {
+    currentBid = 0; bidIndex = 0;
+    let starter = Math.floor(Math.random() * 3);
+    bidQueue = [starter, (starter+1)%3, (starter+2)%3];
+    updateInfo("開始叫分...");
+    setTimeout(processBidding, 800);
+}
+
+function processBidding() {
+    if (bidIndex >= 3) {
+        if (currentBid === 0) { updateInfo("⚠️ 無人叫地主，重新洗牌..."); setTimeout(initGame, 1500); return; }
+        setLandlord(landlord, currentBid); return;
+    }
+    
+    let p = bidQueue[bidIndex];
+    if (p === 0) {
+        document.getElementById("btnBid1").style.display = currentBid < 1 ? "inline-block" : "none";
+        document.getElementById("btnBid2").style.display = currentBid < 2 ? "inline-block" : "none";
+        document.getElementById("btnBid3").style.display = currentBid < 3 ? "inline-block" : "none";
+        document.getElementById("btnNoBid").style.display = "inline-block";
+        updateInfo("你的回合，請叫分...");
+    } else {
+        let aiChoice = 0;
+        if (currentBid < 3 && Math.random() > 0.4) aiChoice = currentBid + 1;
+        
+        if (aiChoice > 0) {
+            currentBid = aiChoice; landlord = p;
+            updateInfo(`電腦 ${p} 叫了 ${currentBid} 分`);
+            if (currentBid === 3) { setTimeout(() => setLandlord(landlord, 3), 1200); return; }
+        } else {
+            updateInfo(`電腦 ${p} 不叫`);
+        }
+        bidIndex++; setTimeout(processBidding, 1200);
+    }
+}
+
+function playerBid(score) {
+    document.querySelectorAll('.btn-bid, .btn-pass').forEach(b => b.style.display = 'none');
+    if (score > 0) { currentBid = score; landlord = 0; updateInfo(`你叫了 ${score} 分`); } 
+    else { updateInfo("你不叫"); }
+    
+    bidIndex++;
+    if (currentBid === 3) { setTimeout(() => setLandlord(landlord, 3), 1000); return; }
+    setTimeout(processBidding, 1000);
+}
+
+function setLandlord(idx, score) {
+    landlord = idx; baseScore = score; current = landlord; lastPlayer = landlord;
+    landlordPlayCount = 0; farmerPlayCount = 0; gameMultiplier = 1; updateMultiplierUI();
+    
+    players[landlord].push(...holeCards);
+    players[landlord].sort((a,b) => power[b.rank] - power[a.rank]);
+    
+    renderHoleCards(true); renderPlayer(); renderOpponents();
+    updateInfo(`👑 玩家 ${landlord} 擔任地主 (底分 ${score})。請出牌！`);
+    
+    document.getElementById("btnPlay").style.display = "inline-block"; document.getElementById("btnPass").style.display = "inline-block";
+    if (current !== 0) setTimeout(aiPlay, 1500);
+}
+
+/* ===== 滿版彩帶與結算 ===== */
+function shootConfetti() {
+    const container = document.getElementById('confetti-container'); if (!container) return;
+    container.innerHTML = ''; container.style.display = 'block';
+    const colors = ['#fde047', '#d90429', '#4ade80', '#3b82f6', '#a855f7', '#ff007f', '#ffffff'];
+    for (let i = 0; i < 120; i++) {
+        let conf = document.createElement('div'); conf.className = 'confetti-piece';
+        conf.style.left = Math.random() * 100 + 'vw'; conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        conf.style.animationDuration = (Math.random() * 3 + 2) + 's'; conf.style.animationDelay = (Math.random() * 1.5) + 's';
+        container.appendChild(conf);
+    }
+}
+
+function endGame(winner) {
+    let isLandlordWin = (winner === landlord);
+    let isSpring = false, springText = "";
+
+    if (isLandlordWin && farmerPlayCount === 0) { isSpring = true; gameMultiplier *= 2; springText = "🌸 春天！倍數再翻倍！"; }
+    else if (!isLandlordWin && landlordPlayCount === 1) { isSpring = true; gameMultiplier *= 2; springText = "🌸 反春天！倍數再翻倍！"; }
+
+    let finalScore = baseScore * gameMultiplier;
+    let resultHTML = `<div style="color:#d90429; margin-bottom:10px;">總倍數：x${gameMultiplier} ${springText}</div>`;
+    
+    for (let i = 0; i < 3; i++) {
+        let name = i === 0 ? "玩家(你)" : `電腦 ${i}`, role = i === landlord ? "🧑‍🌾地主" : "🌾農民";
+        let change = isLandlordWin ? (i === landlord ? finalScore * 2 : -finalScore) : (i === landlord ? -finalScore * 2 : finalScore);
+        totalScores[i] += change;
+        resultHTML += `<div>${role} ${name}：${change > 0 ? '+'+change : change} 分</div>`;
+    }
+    
+    localStorage.setItem("doudizhu_scores", JSON.stringify(totalScores));
+    let playerWon = (winner === 0) || (landlord !== 0 && winner !== landlord);
+    
+    if (playerWon) { document.getElementById("modalTitle").innerHTML = "🎉 恭喜獲勝！"; shootConfetti(); } 
+    else { document.getElementById("modalTitle").innerHTML = "💥 遺憾落敗"; }
+
+    document.getElementById("modalScores").innerHTML = resultHTML; document.getElementById("scoreModal").style.display = "flex";
+}
+
+/* ===== 初始化 ===== */
+function initGame() {
+    document.querySelectorAll('.btn-bid, .btn-pass, .btn-play').forEach(b => b.style.display = 'none');
+    document.getElementById("multiplierBadge").style.display = "none";
+    renderScoreboard(); deck = [];
+    
+    for(let r of ranks) for(let s of suits) deck.push({rank: r, suit: s, isJoker: false});
+    deck.push({rank: "BJ", isJoker: true}); deck.push({rank: "RJ", isJoker: true});
+    deck.sort(() => Math.random() - 0.5);
+    
+    holeCards = deck.slice(0, 3); players = [[], [], []];
+    for(let i=3; i<54; i++) players[(i-3) % 3].push(deck[i]);
+    players.forEach(p => p.sort((a,b) => power[b.rank] - power[a.rank])); 
+    
+    document.getElementById('shuffleOverlay').style.display = 'flex';
+    setTimeout(() => {
+        document.getElementById('shuffleOverlay').style.display = 'none';
+        renderHoleCards(false); renderPlayer(); renderOpponents();
+        startBidding();
+    }, 1200);
+}
+
+initGame();
+</script>
+</body>
+</html>
