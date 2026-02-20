@@ -1311,63 +1311,228 @@ function evaluate(cards) {
     return null;
 }
 
-/* ===== 【優化】提示功能：依牌型強度排序，優先選最佳牌 ===== */
-function findBestPlay(playerIdx, checkOnly=false) {
-    let hand=players[playerIdx];if(!hand||hand.length===0)return null;
-    let counts={},cardsByRank={};
-    hand.forEach(c=>{counts[c.rank]=(counts[c.rank]||0)+1;if(!cardsByRank[c.rank])cardsByRank[c.rank]=[];cardsByRank[c.rank].push(c);});
-    let getRanksByMinCount=(min)=>Object.keys(counts).filter(k=>counts[k]>=min).sort((a,b)=>power[a]-power[b]);
-    let singles=getRanksByMinCount(1),pairs=getRanksByMinCount(2),triples=getRanksByMinCount(3),bombs=getRanksByMinCount(4),hasRocket=counts["BJ"]&&counts["RJ"];
-    let buildPlay=(rankList,countPerRank,extraCards=[])=>{let res=[];rankList.forEach(r=>res.push(...cardsByRank[r].slice(0,countPerRank)));return res.concat(extraCards);};
+/* ===================================================
+   ★ AI 核心系統 v3 — 全面升級
+   ★ 新增：牌堆追蹤、保牌策略、進攻/防守模式切換、
+   ★       精準炸彈時機、拆牌壓制、手牌組合評估
+   =================================================== */
 
-    // 自由出牌時：優先出較有威脅的牌型（炸彈 > 飛機 > 連對 > 三帶 > 對子 > 單牌）
-    if(!last){
-        if(triples.length>=2){
-            // 嘗試飛機
-            for(let i=0;i<triples.length-1;i++){
-                if(power[triples[i+1]]===power[triples[i]]+1){
-                    let seq=[triples[i],triples[i+1]];
-                    let kickers=singles.filter(k=>!seq.includes(k)).slice(0,seq.length);
-                    if(kickers.length===seq.length) return buildPlay(seq,3,buildPlay(kickers,1));
-                }
+// 全局已出牌追蹤（每局重置）
+let playedCards = {};   // { rank: count }  記錄整場已打出的牌
+let playedBigCards = { "2":0, "A":0, "K":0, "BJ":0, "RJ":0 };
+
+function recordPlayedCards(cards) {
+    cards.forEach(c => {
+        playedCards[c.rank] = (playedCards[c.rank] || 0) + 1;
+        if (c.rank in playedBigCards) playedBigCards[c.rank]++;
+    });
+}
+
+// 判斷某rank是否已全部出完（無人再持有）
+function rankExhausted(rank) {
+    const total = (rank === "BJ" || rank === "RJ") ? 1 : 4;
+    return (playedCards[rank] || 0) >= total;
+}
+
+// 計算某rank在對手手中還剩幾張（非自己）
+function rankRemainingInOpponents(rank, selfIdx) {
+    const total = (rank === "BJ" || rank === "RJ") ? 1 : 4;
+    const played = playedCards[rank] || 0;
+    const inHand = players[selfIdx].filter(c => c.rank === rank).length;
+    return Math.max(0, total - played - inHand);
+}
+
+// 評估一張牌的「壓制安全性」：若對手幾乎不可能壓過則高
+function isSafeToLead(rank) {
+    if (rank === "RJ" || rank === "BJ") return true;
+    if (rank === "2" && rankExhausted("RJ") && rankExhausted("BJ")) return true;
+    // K 以上且對手剩牌型較少時也算安全
+    if (power[rank] >= 13) return true;
+    return false;
+}
+
+// ─── 核心出牌搜尋函式（供 AI 與提示共用） ────────────────────
+function findBestPlay(playerIdx, checkOnly=false) {
+    const hand = players[playerIdx];
+    if (!hand || hand.length === 0) return null;
+
+    const counts = {}, cardsByRank = {};
+    hand.forEach(c => {
+        counts[c.rank] = (counts[c.rank]||0)+1;
+        if (!cardsByRank[c.rank]) cardsByRank[c.rank] = [];
+        cardsByRank[c.rank].push(c);
+    });
+
+    const getRanks = (min) => Object.keys(counts).filter(k => counts[k] >= min).sort((a,b) => power[a]-power[b]);
+    const singles  = getRanks(1);
+    const pairs    = getRanks(2);
+    const triples  = getRanks(3);
+    const bombs    = getRanks(4);
+    const hasRocket = counts["BJ"] && counts["RJ"];
+
+    const buildPlay = (rankList, cnt, extra=[]) => {
+        let res = [];
+        rankList.forEach(r => res.push(...cardsByRank[r].slice(0, cnt)));
+        return res.concat(extra);
+    };
+
+    // ── 尋找連順子 ──
+    const findSeq = (arr, len, minVal=0) => {
+        for (let i = 0; i <= arr.length - len; i++) {
+            let seq = [arr[i]], ok = true;
+            for (let j = 1; j < len; j++) {
+                if (i+j < arr.length && power[arr[i+j]] === power[seq[j-1]]+1 && power[arr[i+j]] < 15)
+                    seq.push(arr[i+j]);
+                else { ok = false; break; }
+            }
+            if (ok && power[seq[seq.length-1]] > minVal) return seq;
+        }
+        return null;
+    };
+
+    // ════════════════════════════════════════
+    // 【自由出牌模式】優先度：飛機帶 > 純飛機 > 連對 > 三帶對 > 三帶單 > 對子 > 單牌
+    // ════════════════════════════════════════
+    if (!last) {
+        // 1. 嘗試最長飛機帶單
+        for (let len = Math.min(triples.length, 4); len >= 2; len--) {
+            let seq = findSeq(triples, len);
+            if (seq) {
+                let kickers = singles.filter(k => !seq.includes(k));
+                if (kickers.length >= len) return buildPlay(seq, 3, buildPlay(kickers.slice(0, len), 1));
             }
         }
-        if(triples.length>0){
-            let r=triples[0],pairKicker=pairs.find(p=>p!==r);
-            if(pairKicker) return buildPlay([r],3,buildPlay([pairKicker],2));
-            let kicker=singles.find(k=>k!==r);
-            if(kicker) return buildPlay([r],3,buildPlay([kicker],1));
-            return buildPlay([r],3);
+        // 2. 三帶對
+        if (triples.length > 0) {
+            let r = triples[0];
+            let pairK = pairs.find(p => p !== r);
+            if (pairK) return buildPlay([r], 3, buildPlay([pairK], 2));
         }
-        if(pairs.length>=3){
-            // 嘗試連對（從最小開始）
-            for(let i=0;i<=pairs.length-3;i++){
-                let seq=[pairs[i]],valid=true;
-                for(let j=1;j<3;j++){
-                    if(power[pairs[i+j]]===power[seq[j-1]]+1&&power[pairs[i+j]]<15) seq.push(pairs[i+j]);
-                    else{valid=false;break;}
-                }
-                if(valid) return buildPlay(seq,2);
-            }
+        // 3. 三帶單
+        if (triples.length > 0) {
+            let r = triples[0];
+            let singleK = singles.find(k => k !== r);
+            if (singleK) return buildPlay([r], 3, buildPlay([singleK], 1));
+            return buildPlay([r], 3);
         }
-        if(pairs.length>0) return buildPlay([pairs[0]],2);
-        return buildPlay([singles[0]],1);
+        // 4. 連對（最小連對優先出，省下大牌）
+        for (let len = Math.min(Math.floor(pairs.length), 5); len >= 3; len--) {
+            let seq = findSeq(pairs, len);
+            if (seq) return buildPlay(seq, 2);
+        }
+        // 5. 順子（5張起）
+        let sSeq = findSeq(singles.filter(r => power[r] < 15), 5);
+        if (sSeq) return buildPlay(sSeq, 1);
+        // 6. 對子（出最小的，保留大對子）
+        if (pairs.length > 0) return buildPlay([pairs[0]], 2);
+        // 7. 單牌（出最小且不破壞組合的牌）
+        // 找不成對/組合的最小單牌
+        let loner = singles.find(r => counts[r] === 1 && power[r] < 11);
+        if (loner) return buildPlay([loner], 1);
+        return buildPlay([singles[0]], 1);
     }
 
-    let t=last.type,v=last.value,l=last.len,playCards=null;
-    if(t===1){let valid=singles.find(r=>power[r]>v);if(valid)playCards=buildPlay([valid],1);}
-    else if(t===2){let valid=pairs.find(r=>power[r]>v);if(valid)playCards=buildPlay([valid],2);}
-    else if(t===3){let valid=triples.find(r=>power[r]>v);if(valid)playCards=buildPlay([valid],3);}
-    else if(t===4||t===14){let validThrees=triples.find(r=>power[r]>v);if(validThrees){let validKicker=t===4?singles.find(k=>k!==validThrees):pairs.find(p=>p!==validThrees);if(validKicker)playCards=buildPlay([validThrees],3,buildPlay([validKicker],t===4?1:2));}}
-    else if(t===5||t===8){let targetArr=t===5?singles:pairs,targetCount=t===5?1:2,targetLen=t===5?l:l/2;for(let i=0;i<=targetArr.length-targetLen;i++){let seq=[targetArr[i]],isValid=true;for(let j=1;j<targetLen;j++){if(power[targetArr[i+j]]===power[seq[seq.length-1]]+1&&power[targetArr[i+j]]<15)seq.push(targetArr[i+j]);else{isValid=false;break;}}if(isValid&&power[seq[seq.length-1]]>v){playCards=buildPlay(seq,targetCount);break;}}}
-    else if(t>=11&&t<=13){let planeLen=t===11?l/3:(t===12?l/4:l/5),validSeqThrees=[];for(let i=0;i<=triples.length-planeLen;i++){let seq=[triples[i]],isValid=true;for(let j=1;j<planeLen;j++){if(power[triples[i+j]]===power[seq[seq.length-1]]+1&&power[triples[i+j]]<15)seq.push(triples[i+j]);else{isValid=false;break;}}if(isValid&&power[seq[seq.length-1]]>v)validSeqThrees.push(seq);}if(validSeqThrees.length>0){let seq=validSeqThrees[0],baseCards=buildPlay(seq,3);if(t===11)playCards=baseCards;else if(t===12){let availableSingles=[];Object.keys(cardsByRank).forEach(k=>{if(!seq.includes(k))availableSingles.push(...cardsByRank[k]);});if(availableSingles.length>=planeLen)playCards=baseCards.concat(availableSingles.slice(0,planeLen));}else if(t===13){let availablePairs=Object.keys(counts).filter(k=>!seq.includes(k)&&counts[k]>=2);if(availablePairs.length>=planeLen)playCards=baseCards.concat(buildPlay(availablePairs.slice(0,planeLen),2));}}}
-    else if(t===6||t===7){let validBomb=bombs.find(r=>power[r]>v);if(validBomb){if(t===6){let availableSingles=[];Object.keys(cardsByRank).forEach(k=>{if(k!==validBomb)availableSingles.push(...cardsByRank[k]);});if(availableSingles.length>=2)playCards=buildPlay([validBomb],4).concat(availableSingles.slice(0,2));}else if(t===7){let availablePairs=Object.keys(counts).filter(k=>counts[k]>=2&&k!==validBomb);if(availablePairs.length>=2)playCards=buildPlay([validBomb],4).concat(buildPlay(availablePairs.slice(0,2),2));}}}
-    else if(t===10){let valid=bombs.find(r=>power[r]>v);if(valid)playCards=buildPlay([valid],4);}
-    if(!playCards&&t!==10&&t!==99&&bombs.length>0)playCards=buildPlay([bombs[0]],4);
-    if(!playCards&&t!==99&&hasRocket)playCards=buildPlay(["BJ","RJ"],1);
+    // ════════════════════════════════════════
+    // 【壓牌模式】必須壓過上家
+    // ════════════════════════════════════════
+    const t = last.type, v = last.value, l = last.len;
+    let playCards = null;
+
+    if (t === 1) {
+        // 單牌：優先用最小能壓的牌；若是散牌則直接壓，若是組合用牌則考慮保留
+        let valid = singles.find(r => power[r] > v);
+        if (valid) {
+            // 若這張是組合的重要牌（對子/三條），嘗試找更小的散牌
+            let betterSingle = singles.find(r => power[r] > v && counts[r] === 1);
+            playCards = buildPlay([betterSingle || valid], 1);
+        }
+    }
+    else if (t === 2) {
+        let valid = pairs.find(r => power[r] > v);
+        if (valid) playCards = buildPlay([valid], 2);
+    }
+    else if (t === 3) {
+        let valid = triples.find(r => power[r] > v);
+        if (valid) playCards = buildPlay([valid], 3);
+    }
+    else if (t === 4 || t === 14) {
+        let validT = triples.find(r => power[r] > v);
+        if (validT) {
+            if (t === 4) {
+                let kicker = singles.find(k => k !== validT);
+                if (kicker) playCards = buildPlay([validT], 3, buildPlay([kicker], 1));
+            } else {
+                let pairK = pairs.find(p => p !== validT);
+                if (pairK) playCards = buildPlay([validT], 3, buildPlay([pairK], 2));
+            }
+        }
+    }
+    else if (t === 5) { // 順子
+        let seq = findSeq(singles.filter(r => power[r] < 15), l, v);
+        if (seq && seq.length === l) playCards = buildPlay(seq, 1);
+    }
+    else if (t === 8) { // 連對
+        let pLen = l / 2;
+        let seq = findSeq(pairs, pLen, v);
+        if (seq && seq.length === pLen) playCards = buildPlay(seq, 2);
+    }
+    else if (t >= 11 && t <= 13) {
+        let pLen = t===11 ? l/3 : (t===12 ? l/4 : l/5);
+        let seq = findSeq(triples, pLen, v);
+        if (seq) {
+            let base = buildPlay(seq, 3);
+            if (t === 11) {
+                playCards = base;
+            } else if (t === 12) {
+                let avail = singles.filter(k => !seq.includes(k));
+                if (avail.length >= pLen) playCards = base.concat(buildPlay(avail.slice(0, pLen), 1));
+            } else if (t === 13) {
+                let avail = pairs.filter(k => !seq.includes(k));
+                if (avail.length >= pLen) playCards = base.concat(buildPlay(avail.slice(0, pLen), 2));
+            }
+        }
+    }
+    else if (t === 6 || t === 7) {
+        let vBomb = bombs.find(r => power[r] > v);
+        if (vBomb) {
+            if (t === 6) {
+                let avail = singles.filter(k => k !== vBomb);
+                if (avail.length >= 2) playCards = buildPlay([vBomb], 4).concat(buildPlay(avail.slice(0, 2), 1));
+            } else {
+                let avail = pairs.filter(k => k !== vBomb);
+                if (avail.length >= 2) playCards = buildPlay([vBomb], 4).concat(buildPlay(avail.slice(0, 2), 2));
+            }
+        }
+    }
+    else if (t === 10) {
+        let valid = bombs.find(r => power[r] > v);
+        if (valid) playCards = buildPlay([valid], 4);
+    }
+
+    // 炸彈兜底（非炸彈/火箭牌型才能用炸彈壓）
+    if (!playCards && t !== 10 && t !== 99 && bombs.length > 0)
+        playCards = buildPlay([bombs[0]], 4);
+    if (!playCards && t !== 99 && hasRocket)
+        playCards = buildPlay(["BJ", "RJ"], 1);
+
     return playCards;
 }
 
+// ─── 【新增】拆牌壓制：從對子/三條拆出單牌 ─────────────────
+function findSplitSingleOver(playerIdx, minVal) {
+    const hand = players[playerIdx];
+    const counts = {};
+    hand.forEach(c => counts[c.rank] = (counts[c.rank]||0)+1);
+    // 找可拆且拆後仍有剩的最小單牌（如對子拆一張）
+    const candidates = Object.keys(counts)
+        .filter(r => power[r] > minVal && counts[r] >= 2 && power[r] < 16)
+        .sort((a,b) => power[a]-power[b]);
+    if (candidates.length === 0) return null;
+    const r = candidates[0];
+    return hand.filter(c => c.rank === r).slice(0, 1);
+}
+
+// ─── 提示功能 ────────────────────────────────────────────────
 function hint() {
     if (current !== 0) return;
     let bestCards = findBestPlay(0);
@@ -1388,6 +1553,9 @@ function checkPlayerHasPlay() {
 
 /* ===== 執行與 AI ===== */
 function executePlay(cards, r) {
+    // 記錄已出牌
+    recordPlayedCards(cards);
+
     if (r && r.name) {
         if (current === 0 && r.name === dailyQuestTarget && !questAchievedThisRound) {
             questAchievedThisRound = true;
@@ -1454,45 +1622,112 @@ function pass() {
     selected = []; renderPlayerNoAnim(); executePass();
 }
 
-/* ===== 【優化】AI 邏輯 - 農民具備配合隊友策略 ===== */
+/* ===================================================
+   ★ AI 決策主函式 v3
+   ─ 地主：進攻模式 + 大牌壓制 + 清牌路線
+   ─ 農民：協作讓牌 + 精準炸彈時機 + 拆牌壓制
+   =================================================== */
 function aiPlay() {
-    let playCards = findBestPlay(current);
-    const isLandlord = (current === landlord);
-    const isTeammate = !isLandlord;
-    // 判斷上一出牌者是否為隊友（農民互為隊友）
-    const isTeammateLast = (isTeammate && lastPlayer !== landlord && lastPlayer !== -1 && lastPlayer !== current);
-    // 緊急狀態：有人牌快打完
-    const isEmergency = (!isLandlord && players[landlord].length <= 3) || (isLandlord && players.some((p,i) => i!==landlord && p.length<=3));
-    // 我快打完（只剩 1-2 張）
-    const iAlmostDone = players[current].length <= 2;
+    const isLandlord   = (current === landlord);
+    const isTeammate   = !isLandlord;
+    const myCount      = players[current].length;
+    const teammate     = isTeammate ? [1,2].find(i => i !== current) : -1;
+    const tmCount      = teammate >= 0 ? players[teammate].length : 99;
+    const llCount      = players[landlord].length;
 
-    // 【農民策略1】隊友的牌已經能壓制（壓很大或剩牌少），讓牌
-    if (isTeammateLast && last) {
-        const teammateLow = players[lastPlayer].length <= 2;
-        const lastIsStrong = last.value >= 13 || last.type === 10 || last.type === 99;
-        if (teammateLow || lastIsStrong) {
-            playCards = null; // 讓隊友繼續
+    // 判斷上一出牌者角色
+    const isTeammateLast = isTeammate && lastPlayer !== landlord && lastPlayer !== -1 && lastPlayer !== current;
+    const isLandlordLast = lastPlayer === landlord;
+
+    // 緊急狀態判斷
+    const llDanger   = llCount <= 2;   // 地主快贏
+    const tmDanger   = tmCount <= 2;   // 農民隊友快贏
+    const meDanger   = myCount <= 2;   // 自己快贏
+
+    // 計算自己手牌中的炸彈
+    const myCounts = {};
+    players[current].forEach(c => myCounts[c.rank] = (myCounts[c.rank]||0)+1);
+    const myBombs = Object.keys(myCounts).filter(k => myCounts[k] >= 4);
+    const myHasRocket = myCounts["BJ"] && myCounts["RJ"];
+
+    let playCards = null;
+
+    // ════════════════════════════════════════
+    // 【地主策略】
+    // ════════════════════════════════════════
+    if (isLandlord) {
+        // 自由出牌：主動進攻，出組合最好的牌型
+        if (!last) {
+            playCards = findBestPlay(current);
+        } else {
+            // 農民快贏 → 立刻炸彈（不管手牌是否夠大）
+            if ((tmDanger || (players[1].length <= 3 && players[2].length <= 3)) && !last && myBombs.length > 0) {
+                playCards = players[current].filter(c => c.rank === myBombs[0]);
+            } else {
+                playCards = findBestPlay(current);
+                // 【保牌】壓對手單牌時，若有散牌就用散牌，不拆組合
+                if (playCards && last && last.type === 1) {
+                    const split = findSplitSingleOver(current, last.value);
+                    // 只用散牌壓（counts===1），除非連散牌也不夠大
+                    const betterSingle = players[current].filter(c => myCounts[c.rank] === 1 && power[c.rank] > last.value);
+                    if (betterSingle.length > 0) playCards = [betterSingle[0]];
+                }
+            }
+            // 地主快贏（1-2張）：無論如何都要出
+            if (meDanger && !playCards) playCards = findBestPlay(current);
         }
     }
 
-    // 【農民策略2】緊急時找炸彈壓制地主
-    if (isTeammate && isEmergency && last && last.type !== 10 && last.type !== 99) {
-        let counts={};
-        players[current].forEach(c=>counts[c.rank]=(counts[c.rank]||0)+1);
-        let bombs=Object.keys(counts).filter(k=>counts[k]===4);
-        if (bombs.length > 0) {
-            playCards = players[current].filter(c => c.rank === bombs[0]);
+    // ════════════════════════════════════════
+    // 【農民策略】
+    // ════════════════════════════════════════
+    else {
+        // ── 策略1：隊友主導（隊友是上家且局勢樂觀）→ 讓牌 ──
+        if (isTeammateLast && last) {
+            const tmCard = last;
+            // 隊友出了大牌（K/A/2/炸彈）或隊友牌很少 → 放行
+            const tmStrong = tmCard.value >= 13 || tmCard.type === 10 || tmCard.type === 99;
+            const tmAlmostWin = tmCount <= 3;
+            if (tmStrong || tmAlmostWin) {
+                playCards = null; // 讓隊友過
+            }
         }
+
+        // ── 策略2：精準炸彈時機 ──
+        // 條件：有炸彈 且 (地主快贏 OR 地主是上家且出了大牌)
+        const shouldBomb = myBombs.length > 0 && (
+            llDanger ||
+            (isLandlordLast && last && (last.value >= 14 || last.type === 5 || last.type >= 11))
+        );
+        if (shouldBomb && last && last.type !== 10 && last.type !== 99) {
+            playCards = players[current].filter(c => c.rank === myBombs[0]);
+        }
+
+        // ── 策略3：拆牌壓制 ──
+        // 地主出單牌但我沒有更大單牌 → 嘗試拆對子出一張
+        if (!playCards && last && last.type === 1 && !findBestPlay(current)) {
+            let splitCard = findSplitSingleOver(current, last.value);
+            if (splitCard) playCards = splitCard;
+        }
+
+        // ── 策略4：自己快贏 → 全力出牌 ──
+        if (meDanger) {
+            playCards = findBestPlay(current);
+        }
+
+        // ── 策略5：地主是上家出了中等牌（非大牌）→ 嘗試壓 ──
+        if (!playCards && isLandlordLast && last) {
+            playCards = findBestPlay(current);
+        }
+
+        // ── 一般：嘗試正常出牌 ──
+        if (!playCards) playCards = findBestPlay(current);
     }
 
-    // 【地主策略】自己快贏時直接出最佳牌，不讓
-    if (isLandlord && iAlmostDone) {
-        playCards = findBestPlay(current); // 一定要出
-    }
-
-    if (playCards) {
+    // 最終執行
+    if (playCards && playCards.length > 0) {
         let ev = evaluate(playCards);
-        if(ev) executePlay(playCards, ev);
+        if (ev) executePlay(playCards, ev);
         else executePass();
     } else {
         executePass();
@@ -1533,9 +1768,9 @@ function processBidding() {
         updateInfo("🎯 你的回合，請叫分...");
     } else {
         let ai=aiNames[p], aiChoice=0;
-        // 【優化】AI 叫分依手牌強度判斷（炸彈或對子多則積極叫分）
+        // AI 叫分：依手牌組合強度判斷，考慮連對/順子等組合性
         let handStrength = assessHandStrength(p);
-        let bidProb = handStrength > 0.6 ? 0.75 : handStrength > 0.4 ? 0.5 : 0.25;
+        let bidProb = handStrength > 0.65 ? 0.85 : handStrength > 0.45 ? 0.6 : 0.3;
         if(currentBid<3 && Math.random()<bidProb) aiChoice=currentBid+1;
         if(aiChoice>0){currentBid=aiChoice;landlord=p;updateInfo(`${ai.avatar} ${ai.name} 叫了 ${currentBid} 分`);if(currentBid===3){setTimeout(()=>setLandlord(landlord,3),1200);return;}}
         else{updateInfo(`${ai.avatar} ${ai.name} 不叫`);}
@@ -1543,22 +1778,41 @@ function processBidding() {
     }
 }
 
-/* 【新增】評估手牌強度（0~1），用於 AI 叫牌決策 */
+/* ─── 【升級】手牌強度評估 — 考慮組合性 ─────────────────────
+   計算「出完手牌所需回合數」，回合數越少代表牌越強
+   同時加計大牌獎勵（炸彈/火箭/2）
+   ─────────────────────────────────────────────────────────── */
 function assessHandStrength(playerIdx) {
     const hand = players[playerIdx];
     let score = 0;
-    let counts = {};
+    const counts = {};
     hand.forEach(c => counts[c.rank] = (counts[c.rank]||0)+1);
-    const hasBomb = Object.values(counts).some(v => v >= 4);
-    const hasRocket = counts["BJ"] && counts["RJ"];
-    const has2 = counts["2"] > 0;
-    const hasA = counts["A"] > 0;
-    const pairCount = Object.values(counts).filter(v => v >= 2).length;
-    if (hasBomb) score += 0.4;
-    if (hasRocket) score += 0.35;
-    if (has2) score += 0.15;
-    if (hasA) score += 0.1;
-    score += pairCount * 0.05;
+
+    // 大牌獎勵
+    const bombCount   = Object.values(counts).filter(v => v >= 4).length;
+    const hasRocket   = counts["BJ"] && counts["RJ"];
+    const has2        = (counts["2"] || 0) > 0;
+    const hasA        = (counts["A"] || 0) > 0;
+    const trCount     = Object.values(counts).filter(v => v >= 3).length;
+    const pairCount   = Object.values(counts).filter(v => v >= 2).length;
+
+    // 連對/順子組合獎勵
+    const pairRanks = Object.keys(counts).filter(k => counts[k] >= 2 && power[k] < 15).sort((a,b)=>power[a]-power[b]);
+    let consecPairs = 0, maxConsec = 0, cur = 1;
+    for (let i = 1; i < pairRanks.length; i++) {
+        if (power[pairRanks[i]] === power[pairRanks[i-1]]+1) { cur++; maxConsec = Math.max(maxConsec, cur); }
+        else cur = 1;
+    }
+    const hasBigSeqPairs = maxConsec >= 3; // 連對3組以上
+
+    score += bombCount * 0.38;
+    score += hasRocket ? 0.35 : 0;
+    score += has2 ? 0.14 : 0;
+    score += hasA ? 0.09 : 0;
+    score += trCount * 0.06;
+    score += pairCount * 0.04;
+    score += hasBigSeqPairs ? 0.1 : 0;
+
     return Math.min(score, 1);
 }
 
@@ -1693,6 +1947,9 @@ function shuffleArray(arr) {
 /* ===== 初始化 ===== */
 function initGame() {
     initDailyQuest(); updateStatsUI();
+    // 重置已出牌追蹤
+    playedCards = {};
+    playedBigCards = { "2":0, "A":0, "K":0, "BJ":0, "RJ":0 };
     document.querySelectorAll('.btn-bid, #btnNoBid, #btnPass, #btnPlay, #btnHint').forEach(b=>b.style.display='none');
     document.getElementById("multiplierBadge").style.display="none";
     let badge = document.getElementById("playerRoleBadge");
