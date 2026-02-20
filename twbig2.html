@@ -604,6 +604,153 @@ button {
     white-space: nowrap;
 }
 .power-notice.show { animation: powerIn 1.6s ease-out forwards; }
+
+/* ===================================================
+   RWD 響應式修正 — 手機直立 / 平板直立
+   =================================================== */
+
+/* --- 通用觸控優化：移除桌機 hover 在觸控裝置的殘影 --- */
+@media (hover: none) {
+    .card:hover { transform: none; box-shadow: -3px 0 10px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3); }
+    .btn-play:hover, .btn-pass:hover, .btn-hint:hover { transform: none; box-shadow: none; }
+    .btn-small:hover { transform: none; }
+    .theme-btn:hover { transform: none; }
+    /* 觸控按下回饋改用 active */
+    .card:active { transform: translateY(-8px) scale(1.03) !important; transition: transform 0.1s; }
+    .btn-play:active  { transform: scale(0.93) !important; }
+    .btn-pass:active  { transform: scale(0.93) !important; }
+    .btn-hint:active  { transform: scale(0.93) !important; }
+}
+
+/* --- iPhone / Android 瀏海底部安全區 --- */
+.controls {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+.copyright {
+    padding-bottom: calc(85px + env(safe-area-inset-bottom, 0px));
+}
+
+/* --- 平板直立 (600–900px) --- */
+@media (max-width: 900px) and (orientation: portrait) {
+    .top-panel { width: 95%; padding: 8px 10px; }
+    #table { width: 95%; min-height: 110px; padding: 12px 8px; }
+    .opponents-hud { width: 95%; gap: 6px; }
+    #player { height: 150px; }
+}
+
+/* --- 手機直立（≤ 600px）主要修正區 --- */
+@media (max-width: 600px) {
+
+    /* 標題縮小，防止換行 */
+    h2 { font-size: 20px; letter-spacing: 2px; margin-top: 6px; }
+    #info { font-size: 13px; height: 20px; }
+
+    /* 積分板頂列：標題與按鈕群改為上下排列 */
+    .top-panel {
+        width: 96%;
+        padding: 8px 10px;
+        margin: 6px auto;
+    }
+    .top-panel > div:first-child {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+    .scoreboard-title { font-size: 12px; }
+    .top-panel > div:first-child > div {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    .btn-small { font-size: 11px; padding: 4px 8px; }
+
+    /* 積分進度條：2欄 → 手機改為 2×2 */
+    #scoreDisplay {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px 8px;
+    }
+    .score-entry { min-width: 0; }
+    .score-label { font-size: 11px; }
+    .score-number { font-size: 16px; }
+
+    /* 對手HUD：確保最小寬度，牌堆高度縮小 */
+    .opponents-hud { width: 96%; gap: 5px; margin: 5px auto 3px auto; }
+    .opp-box { padding: 6px 6px; min-width: 0; border-radius: 10px; }
+    .opp-name { font-size: 10px; }
+    .opp-count { font-size: 16px; }
+    .opp-cards-stack { height: 30px; margin-bottom: 2px; }
+    .opp-card-mini { width: 11px; height: 17px; }
+
+    /* 桌面牌區縮小 */
+    #table {
+        width: 96%;
+        min-height: 100px;
+        padding: 10px 6px;
+        margin: 3px auto 8px auto;
+        border-radius: 14px;
+    }
+    /* 桌面上的牌縮小 */
+    #table .card { width: 52px; height: 76px; border-radius: 7px; }
+    #table .card .corner { font-size: 10px; }
+    #table .card .center { font-size: 20px; }
+    #table .card .face-card-text { font-size: 22px; }
+    #table .card .watermark { font-size: 48px; }
+
+    /* 扇形手牌區高度自適應 */
+    #player { height: 145px; }
+
+    /* 手牌卡牌尺寸縮小，適應小螢幕 */
+    #player .card { width: 58px; height: 84px; border-radius: 8px; }
+    #player .card .corner { font-size: 11px; }
+    #player .card .center { font-size: 22px; }
+    #player .card .face-card-text { font-size: 24px; }
+    #player .card .face-card-suit { font-size: 13px; }
+    #player .card .watermark { font-size: 52px; }
+
+    /* 底部按鈕：3顆等分排列，不讓任何一顆被截掉 */
+    .controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0;
+        padding: 10px 8px calc(12px + env(safe-area-inset-bottom, 0px));
+    }
+    button {
+        flex: 1;
+        max-width: 32%;
+        padding: 12px 4px;
+        margin: 0 4px;
+        font-size: 14px;
+        letter-spacing: 0.5px;
+    }
+
+    /* Toast 在手機靠左，避免右側超出 */
+    .toast-container { right: 8px; left: 8px; top: auto; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+    .toast { font-size: 13px; padding: 10px 14px; }
+    .toast-icon { font-size: 22px; }
+
+    /* 牌權動畫字體縮小 */
+    .power-notice { font-size: 22px; padding: 8px 20px; letter-spacing: 2px; }
+
+    /* Modal 全寬 */
+    .modal-content { width: 94%; padding: 20px 16px; }
+
+    /* 版權字移到更靠近底部 */
+    .copyright { font-size: 10px; }
+}
+
+/* --- 超小手機（≤ 380px，如 iPhone SE）--- */
+@media (max-width: 380px) {
+    h2 { font-size: 17px; letter-spacing: 1px; }
+    #player { height: 130px; }
+    #player .card { width: 52px; height: 76px; }
+    #player .card .corner { font-size: 10px; }
+    #player .card .center { font-size: 19px; }
+    #table { min-height: 90px; }
+    button { font-size: 13px; padding: 11px 2px; }
+    .opp-box { padding: 5px 4px; }
+    .opp-cards-stack { height: 26px; }
+}
 </style>
 </head>
 <body data-theme="green">
@@ -865,8 +1012,10 @@ function renderPlayer(isDealing = false){
     let total = players[0].length;
     if (total === 0) return;
 
-    // 扇形參數
-    const maxSpread = Math.min(total * 28, 320);
+    // 扇形參數（依螢幕寬度自適應）
+    const sw = window.innerWidth;
+    const spreadLimit = sw <= 380 ? 180 : sw <= 600 ? 240 : 320;
+    const maxSpread = Math.min(total * 28, spreadLimit);
     const maxRot    = Math.min(total * 2.2, 28);
     const arcLift   = Math.min(total * 1.5, 18);
 
@@ -887,7 +1036,9 @@ function renderPlayer(isDealing = false){
         div.style.position    = 'absolute';
         div.style.bottom      = '0';
         div.style.left        = '50%';
-        div.style.marginLeft  = '-33px';
+        // 依目前卡牌渲染寬度動態計算中心偏移
+        const cardW = sw <= 380 ? 52 : sw <= 600 ? 58 : 66;
+        div.style.marginLeft  = `-${Math.floor(cardW/2)}px`;
         div.style.transform   = baseTransform + selectedExtra;
         div.style.zIndex      = i;
         div.style.transition  = 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease';
@@ -1242,3 +1393,5 @@ init();
 </script>
 </body>
 </html>
+
+
