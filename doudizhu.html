@@ -3,220 +3,784 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>鬥地主 單機競技版</title>
+<title>鬥地主 巔峰競技大師版</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
 
 <style>
-/* ===== 全局與背景設定 ===== */
-body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: radial-gradient(circle, #b91c1c, #7f1d1d); color: white; text-align: center; overflow-x: hidden; padding-bottom: 80px; }
-h2 { margin-top: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); font-size: 22px; color: #fef08a; display: flex; justify-content: center; align-items: center; gap: 10px; }
-.btn-rules { background: #3b82f6; color: white; border: none; padding: 4px 10px; border-radius: 12px; font-size: 12px; cursor: pointer; }
-#info { margin-top: 5px; font-size: 16px; font-weight: bold; color: #fde047; height: 24px; }
+:root {
+    --gold: #f0c040;
+    --gold-light: #fde68a;
+    --gold-dark: #b8860b;
+    --red: #c0392b;
+    --red-deep: #7b1a1a;
+    --red-bright: #ef4444;
+    --green-felt: #1a4a2e;
+    --green-dark: #0f2d1c;
+    --black-card: #1a1a2e;
+    --white-card: #fdfaf5;
+    --table-bg: #16391f;
+}
 
-/* ===== 記分板與狀態列 ===== */
-.top-panel { background: rgba(0, 0, 0, 0.5); border-radius: 8px; padding: 10px; margin: 10px auto; width: 90%; max-width: 600px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); }
-#scoreDisplay { display: flex; justify-content: space-around; font-size: 14px; margin-top: 5px; }
-.score-positive { color: #4ade80; } .score-negative { color: #f87171; }
-.multiplier-badge { background: #d90429; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; animation: pulse 1.5s infinite; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ===== 底牌區域 ===== */
-.hole-cards { display: flex; justify-content: center; gap: 5px; margin: 10px 0; height: 60px; }
-.hole-card { width: 40px; height: 60px; background: repeating-linear-gradient(45deg, #1e3a8a, #1e3a8a 5px, #1e40af 5px, #1e40af 10px); border-radius: 4px; border: 1px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: #333; background-color: #fdfdfd; overflow: hidden; }
-.hole-card.hidden { color: transparent; }
+body {
+    font-family: 'Noto Serif TC', serif;
+    background: var(--green-dark);
+    color: #f0e6c8;
+    text-align: center;
+    overflow-x: hidden;
+    padding-bottom: 90px;
+    min-height: 100vh;
+    background-image:
+        radial-gradient(ellipse at 20% 20%, rgba(139,69,19,0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(139,69,19,0.15) 0%, transparent 50%),
+        repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255,255,255,0.012) 40px, rgba(255,255,255,0.012) 41px),
+        repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255,255,255,0.012) 40px, rgba(255,255,255,0.012) 41px);
+}
 
-/* ===== 對手資訊列 ===== */
-.opponents-hud { display: flex; justify-content: space-around; align-items: center; width: 90%; max-width: 600px; margin: 10px auto; }
-.opp-box { background: rgba(0, 0, 0, 0.4); border: 1px solid #555; border-radius: 10px; padding: 8px 12px; width: 35%; transition: 0.3s; position: relative; }
-.opp-box.active { border-color: #fde047; background: rgba(253, 224, 71, 0.15); transform: scale(1.05); }
-.opp-name { font-size: 14px; color: #ddd; margin-bottom: 4px; }
-.opp-count { font-size: 20px; font-weight: bold; color: #fff; }
-.landlord-icon { position: absolute; top: -10px; right: -10px; font-size: 24px; display: none; }
+.tension-bg {
+    background-color: #300000 !important;
+    animation: alarm 1.5s infinite;
+}
+@keyframes alarm { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.15) saturate(1.3); } }
+
+/* ===== 頂部面板 ===== */
+.stats-panel {
+    background: linear-gradient(135deg, rgba(0,0,0,0.7), rgba(20,10,0,0.8));
+    border-radius: 0 0 16px 16px;
+    padding: 10px 16px 12px;
+    margin: 0 auto 6px;
+    width: 100%;
+    max-width: 640px;
+    border: 1px solid rgba(240,192,64,0.3);
+    border-top: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(240,192,64,0.2);
+}
+
+.rank-badge {
+    font-size: 13px;
+    color: var(--gold);
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(240,192,64,0.2);
+}
+
+.win-streak {
+    background: linear-gradient(to right, #f97316, #dc2626);
+    padding: 3px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(249,115,22,0.4);
+    animation: pulse-streak 1.5s infinite;
+}
+@keyframes pulse-streak { 0%, 100% { box-shadow: 0 2px 8px rgba(249,115,22,0.4); } 50% { box-shadow: 0 2px 20px rgba(249,115,22,0.8); } }
+
+.daily-quest-banner {
+    font-size: 12px;
+    color: #c084fc;
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-shadow: 0 0 10px rgba(192,132,252,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: 0.3px;
+}
+.quest-done { color: #4ade80 !important; text-shadow: 0 0 10px rgba(74,222,128,0.6) !important; }
+
+#scoreDisplay {
+    display: flex;
+    justify-content: space-around;
+    font-size: 12px;
+    gap: 4px;
+}
+
+.score-item {
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    padding: 4px 10px;
+    flex: 1;
+    border: 1px solid rgba(240,192,64,0.15);
+}
+
+.score-label { color: #a8956a; font-size: 10px; margin-bottom: 2px; }
+.score-value { font-weight: 900; font-size: 14px; }
+
+/* ===== 標題 ===== */
+.game-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 16px;
+    color: var(--gold);
+    text-shadow: 0 0 20px rgba(240,192,64,0.6), 2px 2px 0 rgba(0,0,0,0.8);
+    margin: 8px 0 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    letter-spacing: 1px;
+}
+
+.rules-btn {
+    background: transparent;
+    color: var(--gold);
+    padding: 2px 10px;
+    font-size: 10px;
+    border-radius: 6px;
+    border: 1px solid var(--gold);
+    cursor: pointer;
+    font-family: 'Noto Serif TC', serif;
+    transition: all 0.2s;
+}
+.rules-btn:hover { background: var(--gold); color: #1a0a00; }
+
+#info {
+    margin: 4px auto;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gold-light);
+    height: 22px;
+    text-shadow: 0 0 12px rgba(253,230,138,0.5);
+    letter-spacing: 0.3px;
+}
+
+/* ===== 底牌區 ===== */
+.hole-cards-wrapper {
+    margin: 8px auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.hole-cards-label {
+    font-size: 11px;
+    color: rgba(240,192,64,0.6);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.hole-cards {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    height: 70px;
+}
+
+/* ===== 倍數徽章 ===== */
+.multiplier-badge {
+    position: fixed;
+    top: 140px;
+    right: 12px;
+    background: linear-gradient(135deg, #dc2626, #7f1d1d);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 900;
+    z-index: 60;
+    border: 1px solid rgba(255,100,100,0.5);
+    box-shadow: 0 2px 12px rgba(220,38,38,0.5);
+    animation: pulse-badge 1s infinite;
+    display: none;
+}
+@keyframes pulse-badge { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+
+/* 倍數爆炸效果 */
+.multiplier-burst {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 72px;
+    font-weight: 900;
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(240,192,64,0.9);
+    z-index: 500;
+    pointer-events: none;
+    animation: burst-anim 1.2s ease-out forwards;
+}
+@keyframes burst-anim {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.3); }
+    40% { opacity: 1; transform: translate(-50%, -50%) scale(1.3); }
+    100% { opacity: 0; transform: translate(-50%, -70%) scale(0.8); }
+}
+
+/* ===== 對手 HUD ===== */
+.opponents-hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 92%;
+    max-width: 640px;
+    margin: 6px auto;
+    gap: 8px;
+}
+
+.table-center-icon {
+    font-size: 28px;
+    opacity: 0.3;
+    flex: 0 0 auto;
+}
+
+.opp-box {
+    background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(10,20,10,0.6));
+    border: 1px solid rgba(100,120,100,0.4);
+    border-radius: 14px;
+    padding: 10px 12px;
+    flex: 1;
+    position: relative;
+    transition: all 0.3s;
+    overflow: hidden;
+}
+
+.opp-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: transparent;
+    transition: background 0.3s;
+}
+
+.opp-box.active {
+    border-color: var(--gold);
+    box-shadow: 0 0 20px rgba(240,192,64,0.3);
+}
+.opp-box.active::before {
+    background: linear-gradient(to right, transparent, var(--gold), transparent);
+}
+
+.opp-avatar { font-size: 26px; margin-bottom: 3px; }
+.opp-name { font-size: 11px; color: #a0a0a0; margin-bottom: 4px; letter-spacing: 0.3px; }
+.opp-count {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--white-card);
+    font-variant-numeric: tabular-nums;
+}
+.opp-count-label { font-size: 10px; color: #888; }
+
+.landlord-icon {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    font-size: 22px;
+    display: none;
+    animation: spin-in 0.4s ease;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+}
 .is-landlord .landlord-icon { display: block; animation: pulse 1s infinite; }
 
-/* ===== 遊戲桌與手牌 ===== */
-#table { min-height: 120px; margin: 5px auto; display: flex; justify-content: center; flex-wrap: wrap; background: rgba(0,0,0,0.2); border-radius: 15px; width: 90%; max-width: 600px; padding: 20px 0; }
-.hand { display: flex; justify-content: flex-start; overflow-x: auto; padding: 15px 10px 20px 10px; width: 95%; max-width: 800px; margin: 0 auto; }
+.thinking-dots {
+    display: none;
+    gap: 3px;
+    justify-content: center;
+    margin-top: 3px;
+}
+.opp-box.active .thinking-dots { display: flex; }
+.thinking-dots span {
+    width: 5px; height: 5px;
+    background: var(--gold);
+    border-radius: 50%;
+    animation: dot-bounce 1.2s infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot-bounce { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
 
-/* ===== 卡牌設計 ===== */
-.card { 
-    flex: 0 0 auto; width: 65px; height: 95px; background: #fdfdfd; border-radius: 8px; margin: 0 -15px; 
-    position: relative; cursor: pointer; transition: transform 0.2s; 
-    box-shadow: -2px 0 8px rgba(0,0,0,0.4); border: 1px solid #ccc; user-select: none; color: #111; 
-    overflow: hidden; /* 修復：防止花色溢出干擾左右牌 */
+/* ===== 遊戲桌面 ===== */
+#table {
+    min-height: 120px;
+    margin: 6px auto;
+    background:
+        radial-gradient(ellipse at center, rgba(26,74,46,0.8), rgba(10,35,20,0.9)),
+        repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.01) 10px, rgba(255,255,255,0.01) 11px);
+    border-radius: 20px;
+    width: 92%;
+    max-width: 640px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 15px;
+    flex-wrap: wrap;
+    border: 1px solid rgba(240,192,64,0.15);
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.4), 0 0 0 4px rgba(0,0,0,0.3);
+    position: relative;
+}
+
+.table-empty-hint {
+    color: rgba(240,192,64,0.25);
+    font-size: 13px;
+    letter-spacing: 2px;
+    position: absolute;
+    pointer-events: none;
+}
+
+/* ===== 手牌區 ===== */
+.hand-wrapper {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+.hand {
+    display: flex;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding: 18px 16px 24px 16px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.hand::-webkit-scrollbar { display: none; }
+
+/* ===== 牌面樣式 ===== */
+.card {
+    flex: 0 0 auto;
+    width: 60px;
+    height: 88px;
+    background: var(--white-card);
+    border-radius: 10px;
+    margin: 0 -13px;
+    border: 1px solid #e0d8cc;
+    position: relative;
+    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+    overflow: hidden;
+    color: #111;
+    user-select: none;
+    cursor: pointer;
+    box-shadow: -3px 0 10px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3);
 }
 .card:first-child { margin-left: 0; }
-.card:hover { transform: translateY(-10px); z-index: 10; }
-.card.selected { transform: translateY(-20px); box-shadow: 0 10px 20px rgba(0,0,0,0.6); border: 2px solid #fde047; }
-.corner { position: absolute; font-size: 14px; font-weight: 900; z-index: 2; }
-.top-left { top: 4px; left: 4px; }
-.bottom-right { bottom: 4px; right: 4px; transform: rotate(180deg); }
-.center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 28px; z-index: 2; width: 100%; }
-.red { color: #d90429; } .black { color: #111111; }
+.card:hover { transform: translateY(-14px) rotate(-1deg); z-index: 10; box-shadow: -3px 0 10px rgba(0,0,0,0.3), 0 14px 24px rgba(0,0,0,0.5); }
+.card.selected {
+    transform: translateY(-24px) scale(1.04);
+    border: 2px solid var(--gold);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.7), 0 0 0 1px var(--gold-dark), 0 0 20px rgba(240,192,64,0.3);
+    z-index: 100 !important;
+}
 
-/* ===== 王牌 (Joker) 專屬華麗設計 ===== */
+/* 牌面花紋背景 */
+.card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%);
+    pointer-events: none;
+    border-radius: 9px;
+}
+
+.corner { position: absolute; font-size: 13px; font-weight: 900; z-index: 2; line-height: 1.1; text-align: center; }
+.corner-suit { font-size: 10px; }
+.top-left { top: 4px; left: 5px; }
+.bottom-right { bottom: 4px; right: 5px; transform: rotate(180deg); }
+.center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 26px; z-index: 2; }
+
+/* 紅黑花色 */
+.suit-heart, .suit-diamond { color: #cc1111; }
+.suit-spade, .suit-club { color: #111; }
+
+/* 小王大王 */
 .full-cover { position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; box-sizing: border-box; }
-.joker-bg-red { background: radial-gradient(circle, #ef4444, #991b1b); color: #fde047; border: 2px solid #fde047; }
-.joker-bg-black { background: radial-gradient(circle, #52525b, #27272a); color: #e4e4e7; border: 2px solid #a1a1aa; }
-.joker-icon { font-size: 18px; margin-bottom: 2px; }
-.joker-text { writing-mode: vertical-rl; text-orientation: upright; font-size: 22px; font-weight: 900; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.6); margin: 0 auto; }
+.joker-bg-red {
+    background: linear-gradient(145deg, #dc2626, #7f1d1d);
+    color: #fff;
+    border: 2px solid var(--gold);
+}
+.joker-bg-black {
+    background: linear-gradient(145deg, #374151, #111827);
+    color: #fff;
+    border: 2px solid #6b7280;
+}
+.joker-icon { font-size: 20px; margin-bottom: 1px; }
+.joker-text { writing-mode: vertical-rl; font-size: 17px; font-weight: 900; letter-spacing: 3px; text-shadow: 2px 2px 4px rgba(0,0,0,0.6); }
 
-/* ===== 底部控制面板 ===== */
-.controls { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(127, 29, 29, 0.95); padding: 12px 0; box-shadow: 0 -4px 10px rgba(0,0,0,0.4); z-index: 50; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
-button { padding: 10px 20px; font-size: 15px; font-weight: bold; border-radius: 20px; border: none; cursor: pointer; transition: 0.2s; }
-.btn-play { background: #fde047; color: #7f1d1d; } 
-.btn-pass { background: #e0e0e0; color: #333; } 
-.btn-bid { background: #3b82f6; color: white; }
+/* 底牌中的小牌 */
+.hole-card {
+    width: 44px; height: 66px;
+    background: var(--white-card);
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 900;
+    position: relative; overflow: hidden;
+    animation: flip-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.hole-card.hidden {
+    background: repeating-linear-gradient(45deg, #1e4a8a, #1e4a8a 4px, #1e6ab4 4px, #1e6ab4 8px);
+    color: transparent;
+}
 
-/* ===== 模態框 (結算與規則) ===== */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: none; justify-content: center; align-items: center; z-index: 100; }
-.modal-content { background: #fff; color: #333; padding: 25px; border-radius: 15px; width: 85%; max-width: 450px; text-align: center; max-height: 80vh; overflow-y: auto; }
-.btn-restart { background: #7f1d1d; color: white; width: 100%; padding: 12px; margin-top: 15px; border-radius: 8px; }
-.rules-text { text-align: left; font-size: 14px; line-height: 1.6; color: #444; margin-top: 15px; }
+@keyframes flip-in {
+    from { transform: rotateY(90deg) scale(0.8); opacity: 0; }
+    to { transform: rotateY(0deg) scale(1); opacity: 1; }
+}
+.hole-card:nth-child(2) { animation-delay: 0.1s; }
+.hole-card:nth-child(3) { animation-delay: 0.2s; }
 
-/* ===== 動畫與特效 ===== */
-@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-@keyframes shake { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 10%, 30%, 50%, 70%, 90% { transform: translate(-4px, -2px) rotate(-1deg); } 20%, 40%, 60%, 80% { transform: translate(4px, 2px) rotate(1deg); } }
-.shake-screen { animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
-#confetti-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 999; display: none; overflow: hidden; }
-.confetti-piece { position: absolute; top: -20px; width: 10px; height: 20px; animation: confetti-fall linear forwards; border-radius: 2px; opacity: 0.9; }
+/* ===== 控制器 ===== */
+.controls {
+    position: fixed;
+    bottom: 0; left: 0;
+    width: 100%;
+    background: linear-gradient(to top, rgba(10,25,15,0.98), rgba(15,35,20,0.95));
+    padding: 10px 0 14px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.6), 0 -1px 0 rgba(240,192,64,0.2);
+    z-index: 50;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 900;
+    border-radius: 24px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+    font-family: 'Noto Serif TC', serif;
+    letter-spacing: 0.5px;
+}
+button:active { transform: scale(0.95) !important; }
+
+.btn-play {
+    background: linear-gradient(135deg, var(--gold), #d4a017);
+    color: #1a0a00;
+    box-shadow: 0 4px 15px rgba(240,192,64,0.4);
+    padding: 10px 32px;
+    font-size: 15px;
+    border: 1px solid rgba(255,220,100,0.5);
+}
+.btn-play:hover { box-shadow: 0 6px 25px rgba(240,192,64,0.6); transform: translateY(-2px); }
+
+.btn-pass {
+    background: rgba(80,80,80,0.6);
+    color: #ccc;
+    border: 1px solid rgba(150,150,150,0.3);
+}
+.btn-pass:hover { background: rgba(100,100,100,0.7); }
+
+.btn-bid {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    border: 1px solid rgba(96,165,250,0.4);
+    box-shadow: 0 3px 10px rgba(37,99,235,0.4);
+}
+.btn-bid:hover { box-shadow: 0 5px 18px rgba(37,99,235,0.6); transform: translateY(-2px); }
+
+.btn-hint {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    color: white;
+    border: 1px solid rgba(167,139,250,0.4);
+    box-shadow: 0 3px 10px rgba(124,58,237,0.4);
+}
+.btn-hint:hover { box-shadow: 0 5px 18px rgba(124,58,237,0.6); transform: translateY(-2px); }
+
+/* ===== 彈窗 ===== */
+.modal-overlay {
+    position: fixed; top:0; left:0;
+    width:100%; height:100%;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(6px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: linear-gradient(145deg, #1c1008, #2a1810);
+    color: #f0e6c8;
+    padding: 28px 24px;
+    border-radius: 20px;
+    width: 88%;
+    max-width: 420px;
+    max-height: 85vh;
+    overflow-y: auto;
+    border: 1px solid rgba(240,192,64,0.4);
+    box-shadow: 0 0 60px rgba(240,192,64,0.15), 0 20px 60px rgba(0,0,0,0.8);
+    animation: modal-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes modal-in { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.modal-title-win { color: var(--gold); font-size: 26px; font-weight: 900; margin-bottom: 16px; text-shadow: 0 0 20px rgba(240,192,64,0.5); }
+.modal-title-lose { color: #f87171; font-size: 24px; font-weight: 900; margin-bottom: 16px; }
+
+.result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+.result-row.player-row {
+    background: rgba(240,192,64,0.1);
+    border-color: rgba(240,192,64,0.3);
+}
+.result-change { font-weight: 900; font-size: 16px; }
+
+.btn-restart {
+    background: linear-gradient(135deg, var(--gold), #d4a017);
+    color: #1a0a00;
+    width: 100%;
+    padding: 13px;
+    margin-top: 16px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 900;
+    box-shadow: 0 4px 15px rgba(240,192,64,0.3);
+    transition: all 0.2s;
+}
+.btn-restart:hover { box-shadow: 0 6px 25px rgba(240,192,64,0.5); }
+.btn-reset {
+    background: rgba(80,80,80,0.4);
+    color: #aaa;
+    border: 1px solid rgba(150,150,150,0.2);
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    border-radius: 10px;
+    font-size: 13px;
+}
+
+.rules-text { text-align: left; font-size: 13px; color: #c8b88a; line-height: 1.9; }
+.rules-text b { color: var(--gold); }
+.rules-section { margin-bottom: 10px; padding: 10px 12px; background: rgba(255,255,255,0.04); border-radius: 10px; border-left: 3px solid var(--gold); }
+
+/* ===== 動畫 ===== */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+@keyframes shake { 0%, 100% { transform: translate(0) rotate(0deg); } 10%, 30%, 50%, 70%, 90% { transform: translate(-5px,-2px) rotate(-1deg); } 20%, 40%, 60%, 80% { transform: translate(5px,2px) rotate(1deg); } }
+.shake-screen { animation: shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+
+/* 彩帶 */
+#confetti-container { position: fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:999; display:none; overflow:hidden; }
+.confetti-piece {
+    position: absolute; top: -20px;
+    width: 10px; height: 16px;
+    animation: confetti-fall linear forwards;
+    border-radius: 3px;
+    opacity: 0.9;
+}
 @keyframes confetti-fall { to { transform: translateY(110vh) rotate(720deg); } }
 
-/* ===== 洗牌過場 ===== */
-#shuffleOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; }
-.shuffle-deck { position: relative; width: 65px; height: 95px; margin-bottom: 30px; }
-.shuffle-card-anim { position: absolute; width: 100%; height: 100%; background: repeating-linear-gradient(45deg, #1e3a8a, #1e3a8a 5px, #1e40af 5px, #1e40af 10px); border: 2px solid #fff; border-radius: 8px; animation: shuffle-move 0.5s infinite alternate ease-in-out; }
-.shuffle-card-anim:nth-child(1) { animation-delay: 0s; z-index: 3; }
-.shuffle-card-anim:nth-child(2) { animation-delay: 0.15s; z-index: 2; }
-.shuffle-card-anim:nth-child(3) { animation-delay: 0.3s; z-index: 1; }
-@keyframes shuffle-move { 0% { transform: translateX(0) rotate(0deg); } 100% { transform: translateX(50px) rotate(15deg); } }
-.shuffle-text { font-size: 20px; font-weight: bold; color: #fde047; animation: pulse 1s infinite; }
+/* 勝利光效 */
+.win-glow {
+    position: fixed; top:0; left:0; right:0; bottom:0;
+    background: radial-gradient(ellipse at center, rgba(240,192,64,0.15), transparent 70%);
+    pointer-events: none;
+    z-index: 998;
+    animation: win-glow-anim 2s ease-out forwards;
+}
+@keyframes win-glow-anim { 0% { opacity: 1; } 100% { opacity: 0; } }
 
-/* 版權宣告 */
-.copyright { position: absolute; bottom: 70px; width: 100%; font-size: 11px; color: rgba(255,255,255,0.4); text-align: center; pointer-events: none; }
+/* 版權 */
+.copyright { font-size: 10px; color: rgba(240,192,64,0.2); text-align: center; padding: 8px 0 4px; letter-spacing: 1px; }
 
-/* RWD */
 @media (max-width: 600px) {
-    .card { width: 45px; height: 68px; margin: 0 -12px; }
-    .card.selected { transform: translateY(-12px); }
-    .center { font-size: 20px; } .corner { font-size: 11px; } .joker-text { font-size: 16px; }
-    button { padding: 8px 12px; font-size: 13px; }
+    .card { width: 46px; height: 70px; margin: 0 -12px; }
+    .corner { font-size: 11px; } .center { font-size: 20px; }
+    .joker-text { font-size: 14px; } .joker-icon { font-size: 16px; }
+    button { padding: 9px 14px; font-size: 13px; }
+    .btn-play { padding: 9px 24px; }
+    .game-title { font-size: 13px; }
+    .opp-count { font-size: 20px; }
 }
 </style>
 </head>
 <body>
 
-<div id="shuffleOverlay">
-    <div class="shuffle-deck"><div class="shuffle-card-anim"></div><div class="shuffle-card-anim"></div><div class="shuffle-card-anim"></div></div>
-    <div class="shuffle-text">洗牌發牌中...</div>
-</div>
-
 <div id="confetti-container"></div>
 
-<div class="top-panel" id="scoreboard">
-    <div style="color:#fde047; font-weight:bold; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;">
-        <span>💰 戰績積分板</span>
-        <span id="multiplierBadge" class="multiplier-badge" style="display:none;">倍數 x1</span>
+<div class="stats-panel">
+    <div class="rank-badge">
+        <span id="playerRank">🎖️ 載入中...</span>
+        <span id="winStreakBadge" class="win-streak" style="display:none;">🔥 0 連勝</span>
     </div>
+    <div id="dailyQuestBanner" class="daily-quest-banner">🎯 今日任務：載入中...</div>
     <div id="scoreDisplay"></div>
 </div>
 
-<h2>🃏 鬥地主 單機競技版<button class="btn-rules" onclick="document.getElementById('rulesModal').style.display='flex'">📖 說明</button></h2>
+<div class="game-title">
+    🃏 鬥地主 巔峰大師版
+    <button class="rules-btn" onclick="document.getElementById('rulesModal').style.display='flex'">規則</button>
+</div>
 <div id="info">系統準備中...</div>
 
-<div class="hole-cards" id="holeCardsArea"></div>
-
-<div id="opponentsHUD" class="opponents-hud"></div>
-<div id="table"></div>
-<div id="player" class="hand"></div>
-
-<div class="copyright">&copy; 2026 LinWei's Big2 Created with Google Gemini 3</div>
-
-<div class="controls" id="controlPanel">
-    <button class="btn-bid" onclick="playerBid(1)" id="btnBid1" style="display:none;">1分</button>
-    <button class="btn-bid" onclick="playerBid(2)" id="btnBid2" style="display:none;">2分</button>
-    <button class="btn-bid" onclick="playerBid(3)" id="btnBid3" style="display:none;">3分</button>
-    <button class="btn-pass" onclick="playerBid(0)" id="btnNoBid" style="display:none;">不叫</button>
-    
-    <button class="btn-play" onclick="play()" id="btnPlay" style="display:none;">出牌</button>
-    <button class="btn-pass" onclick="pass()" id="btnPass" style="display:none;">不出</button>
+<div class="hole-cards-wrapper">
+    <div class="hole-cards-label">底 牌</div>
+    <div class="hole-cards" id="holeCardsArea"></div>
 </div>
 
+<div id="multiplierBadge" class="multiplier-badge">x1</div>
+
+<div id="opponentsHUD" class="opponents-hud"></div>
+<div id="table"><span class="table-empty-hint" id="tableEmptyHint">出牌區</span></div>
+
+<div class="hand-wrapper">
+    <div id="player" class="hand"></div>
+</div>
+
+<div class="copyright">&copy; 2026 LinWei's Doudizhu · Enhanced Edition</div>
+
+<div class="controls" id="controlPanel">
+    <button class="btn-bid" onclick="playerBid(1)" id="btnBid1" style="display:none;">叫 1 分</button>
+    <button class="btn-bid" onclick="playerBid(2)" id="btnBid2" style="display:none;">叫 2 分</button>
+    <button class="btn-bid" onclick="playerBid(3)" id="btnBid3" style="display:none;">叫 3 分</button>
+    <button class="btn-pass" onclick="playerBid(0)" id="btnNoBid" style="display:none;">不叫</button>
+    
+    <button class="btn-hint" onclick="hint()" id="btnHint" style="display:none;">💡 提示</button>
+    <button class="btn-play" onclick="play()" id="btnPlay" style="display:none;">出 牌</button>
+    <button class="btn-pass" onclick="pass()" id="btnPass" style="display:none;">不 出</button>
+</div>
+
+<!-- 結算彈窗 -->
 <div id="scoreModal" class="modal-overlay">
     <div class="modal-content">
-        <h2 id="modalTitle">局數結算</h2>
-        <div id="modalScores" style="margin-top:15px; font-weight:bold; line-height:1.8;"></div>
-        <button class="btn-restart" onclick="location.reload()">繼續下一局</button>
-        <button class="btn-restart" style="background:#555; margin-top:5px;" onclick="localStorage.removeItem('doudizhu_scores'); location.reload();">重置分數</button>
+        <div id="modalTitle" class="modal-title-win">局數結算</div>
+        <div id="modalScores" style="margin-top:12px; line-height:1.8;"></div>
+        <button class="btn-restart" onclick="location.reload()">▶ 繼續下一局</button>
+        <button class="btn-reset" onclick="localStorage.removeItem('doudizhu_stats'); location.reload();">重置所有分數</button>
     </div>
 </div>
 
+<!-- 規則彈窗 -->
 <div id="rulesModal" class="modal-overlay">
     <div class="modal-content">
-        <h2>📜 遊戲玩法與規則</h2>
+        <div class="modal-title-win" style="font-size:20px;">📜 遊戲規則</div>
         <div class="rules-text">
-            <b>1. 叫分搶地主：</b><br>玩家輪流叫分(1~3分)，叫分必須比前一人高。叫3分者直接成為地主，若全都不叫則重新洗牌。<br><br>
-            <b>2. 陣營對抗：</b><br>地主(1人)對抗農民(2人)。農民只要有一人出完牌，農民陣營即獲勝。<br><br>
-            <b>3. 倍數翻倍機制：</b><br>
-            • <b>炸彈/火箭：</b> 遊戲中每打出一次炸彈(四張相同)或火箭(雙王)，結算倍數乘2。<br>
-            • <b>春天：</b> 地主出完牌，農民連一張牌都沒出，倍數乘2。<br>
-            • <b>反春天：</b> 農民獲勝，且地主只出過第一手牌，倍數乘2。<br><br>
-            <b>4. 進階牌型支援：</b><br>
-            支援單、對、三條、三帶一單、三帶一對、順子、連對、飛機、四帶二。<i>(註：2與雙王不可參與順子或連對)</i>
+            <div class="rules-section"><b>💡 智能提示：</b>點擊提示按鈕，系統自動挑選最佳牌型。若無牌可壓，顯示「要不起」。</div>
+            <div class="rules-section"><b>🎯 每日任務：</b>每天指定一種牌型（如飛機）。打出並獲勝，勝分額外<b>翻倍</b>！</div>
+            <div class="rules-section"><b>🎖️ 職稱系統：</b>累積積分晉升階級。連勝3場以上，勝分加成20%。</div>
+            <div class="rules-section"><b>🤖 地獄AI：</b>電腦具備頂牌、防守與保送隊友的極限思維，地主瀕危時紅光警報亮起。</div>
+            <div class="rules-section"><b>💥 翻倍機制：</b>炸彈/火箭、春天/反春天，倍數均乘以2。</div>
         </div>
-        <button class="btn-restart" onclick="document.getElementById('rulesModal').style.display='none'">我知道了</button>
+        <button class="btn-restart" onclick="document.getElementById('rulesModal').style.display='none'">準備迎戰 ！</button>
     </div>
 </div>
 
 <script>
-/* ===== 音效系統設定 ===== */
-const sndPlayCard = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'); 
-const sndBomb = new Audio('https://assets.mixkit.co/active_storage/sfx/1690/1690-preview.mp3');     
-sndPlayCard.volume = 0.6; sndBomb.volume = 0.9;
+/* ===== 音效 ===== */
+const sndPlayCard = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
+const sndBomb = new Audio('https://assets.mixkit.co/active_storage/sfx/1690/1690-preview.mp3');
+sndPlayCard.volume = 0.5; sndBomb.volume = 0.8;
 function playSound(snd) { snd.currentTime = 0; snd.play().catch(e => {}); }
 
-/* ===== 系統與撲克牌設定 ===== */
+/* ===== 基礎設定 ===== */
 const suits = ["♣", "♦", "♥", "♠"];
 const ranks = ["3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A", "2"];
-const power = { "3":3, "4":4, "5":5, "6":6, "7":7, "8":8, "9":9, "10":10, "J":11, "Q":12, "K":13, "A":14, "2":15, "BJ":16, "RJ":17 };
+const power = { "3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":10,"J":11,"Q":12,"K":13,"A":14,"2":15,"BJ":16,"RJ":17 };
+
+// AI角色設定
+const aiNames = ["", { name: "龍哥", avatar: "🐉" }, { name: "狐狸妹", avatar: "🦊" }];
+const playerAvatar = "🎭";
 
 let deck = [], players = [[], [], []], holeCards = [];
 let current = 0, selected = [], last = null, consecutivePasses = 0, lastPlayer = -1;
-let totalScores = JSON.parse(localStorage.getItem("doudizhu_scores")) || [0, 0, 0];
-
-// 真實競技狀態變數
 let landlord = -1, baseScore = 0, gameMultiplier = 1;
 let currentBid = 0, bidQueue = [], bidIndex = 0;
 let landlordPlayCount = 0, farmerPlayCount = 0;
 
-/* ===== UI 渲染 ===== */
-function updateMultiplierUI() {
-    let badge = document.getElementById("multiplierBadge");
-    if (gameMultiplier > 1) { badge.style.display = "inline-block"; badge.innerText = `倍數 x${gameMultiplier}`; }
+/* ===== 統計與任務 ===== */
+let stats = JSON.parse(localStorage.getItem("doudizhu_stats")) || { totalScores:[0,0,0], currentWinStreak:0, maxWinStreak:0 };
+let dailyQuestTarget = "", questAchievedThisRound = false;
+const questPool = ["順子","連對","三帶一單","三帶一對","純飛機","飛機帶單牌","飛機帶對子","四帶二單","四帶二對"];
+
+function initDailyQuest() {
+    let today = new Date().toDateString();
+    let saved = JSON.parse(localStorage.getItem("doudizhu_daily_quest"));
+    if (saved && saved.date === today) dailyQuestTarget = saved.target;
+    else { dailyQuestTarget = questPool[Math.floor(Math.random() * questPool.length)]; localStorage.setItem("doudizhu_daily_quest", JSON.stringify({date: today, target: dailyQuestTarget})); }
+    document.getElementById("dailyQuestBanner").innerHTML = `🎯 今日任務：打出【${dailyQuestTarget}】勝分 x2`;
 }
 
-function renderScoreboard() {
+function getRankName(score) {
+    if (score < 0) return "🏚️ 貧農";
+    if (score < 50) return "🌾 中農";
+    if (score < 200) return "🏡 富農";
+    if (score < 500) return "👑 地主";
+    return "💰 賭神";
+}
+
+function updateStatsUI() {
+    document.getElementById("playerRank").innerText = `🎖️ ${getRankName(stats.totalScores[0])}`;
+    if (stats.currentWinStreak >= 2) {
+        let b = document.getElementById("winStreakBadge");
+        b.style.display = "inline-block";
+        b.innerText = `🔥 ${stats.currentWinStreak} 連勝`;
+    } else { document.getElementById("winStreakBadge").style.display = "none"; }
+
     let html = "";
-    for(let i=0; i<3; i++) {
-        let cls = totalScores[i] >= 0 ? 'score-positive' : 'score-negative';
-        html += `<div>${i===0 ? "玩家(你)" : "電腦"+i}: <span class="${cls}">${totalScores[i]>0?"+":""}${totalScores[i]}</span></div>`;
+    const labels = ["你", "龍哥", "狐狸妹"];
+    for (let i = 0; i < 3; i++) {
+        let s = stats.totalScores[i];
+        let cls = i === 0 ? "player-score" : "";
+        html += `<div class="score-item ${cls}">
+            <div class="score-label">${labels[i]}</div>
+            <div class="score-value" style="color:${s>=0?'#4ade80':'#f87171'}">${s>=0?'+'+s:s}</div>
+        </div>`;
     }
     document.getElementById("scoreDisplay").innerHTML = html;
 }
 
+function updateMultiplierUI() {
+    let badge = document.getElementById("multiplierBadge");
+    if (gameMultiplier > 1) {
+        badge.style.display = "inline-block";
+        badge.innerText = `倍數 ×${gameMultiplier}`;
+    }
+}
+
+function showMultiplierBurst(text) {
+    let el = document.createElement('div');
+    el.className = 'multiplier-burst';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1200);
+}
+
+function checkTension() {
+    if (landlord !== -1 && players[landlord].length > 0 && players[landlord].length <= 3)
+        document.body.classList.add("tension-bg");
+    else
+        document.body.classList.remove("tension-bg");
+}
+
+/* ===== 渲染 ===== */
 function renderHoleCards(reveal = false) {
     let html = "";
-    if (!reveal) html = `<div class="hole-card hidden"></div><div class="hole-card hidden"></div><div class="hole-card hidden"></div>`;
-    else {
+    if (!reveal) {
+        for (let i = 0; i < 3; i++) html += `<div class="hole-card hidden"></div>`;
+    } else {
         holeCards.forEach(c => {
-            // 修復：底牌若為王牌也套用華麗 UI (縮小版)
             if (c.isJoker) {
                 let isRed = c.rank === "RJ";
-                let colorClass = isRed ? "joker-bg-red" : "joker-bg-black";
-                html += `<div class="hole-card ${colorClass}" style="position:relative; font-size:10px; flex-direction:column; line-height:1.2;">
-                            <div>${isRed?"👑":"🃏"}</div><div>${isRed?"大王":"小王"}</div>
-                         </div>`;
+                html += `<div class="hole-card ${isRed ? 'joker-bg-red' : 'joker-bg-black'}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                    <span style="font-size:16px">${isRed?'👑':'🃏'}</span>
+                    <span style="font-size:11px;font-weight:900;color:#fff;">${isRed?'大王':'小王'}</span>
+                </div>`;
             } else {
-                let colorClass = (c.suit === "♥" || c.suit === "♦") ? "red" : "black";
-                html += `<div class="hole-card ${colorClass}" style="background:none; border:1px solid #ccc;">${c.suit}${c.rank}</div>`;
+                let suitClass = (c.suit==='♥'||c.suit==='♦') ? 'suit-heart' : 'suit-spade';
+                html += `<div class="hole-card">
+                    <div style="display:flex;flex-direction:column;align-items:center;">
+                        <span class="${suitClass}" style="font-weight:900;font-size:13px;">${c.rank}</span>
+                        <span class="${suitClass}" style="font-size:14px;">${c.suit}</span>
+                    </div>
+                </div>`;
             }
         });
     }
@@ -224,334 +788,388 @@ function renderHoleCards(reveal = false) {
 }
 
 function renderOpponents() {
-    let hud = document.getElementById("opponentsHUD"); hud.innerHTML = "";
+    let hud = document.getElementById("opponentsHUD");
+    hud.innerHTML = "";
     for (let i = 1; i <= 2; i++) {
-        let isActive = current === i ? "active" : "", isLandlord = landlord === i ? "is-landlord" : "";
-        hud.innerHTML += `<div class="opp-box ${isActive} ${isLandlord}">
+        let isActive = current === i ? "active" : "";
+        let isLandlordClass = landlord === i ? "is-landlord" : "";
+        let ai = aiNames[i];
+        hud.innerHTML += `
+        <div class="opp-box ${isActive} ${isLandlordClass}">
             <div class="landlord-icon">🧑‍🌾</div>
-            <div class="opp-name">電腦 ${i}</div>
-            <div class="opp-count">🂠 ${players[i].length}</div>
+            <div class="opp-avatar">${ai.avatar}</div>
+            <div class="opp-name">${ai.name}</div>
+            <div class="opp-count">${players[i].length}<span class="opp-count-label"> 張</span></div>
+            <div class="thinking-dots"><span></span><span></span><span></span></div>
         </div>`;
     }
+    // 中間桌面圖示位置
+    hud.innerHTML = hud.innerHTML; // 已是innerHTML，不需再設定
+    checkTension();
 }
 
 function buildCardHTML(card) {
-    // 修復：王牌專屬滿版 UI
     if (card.isJoker) {
         let isRed = card.rank === "RJ";
-        let colorClass = isRed ? "joker-bg-red" : "joker-bg-black";
-        let icon = isRed ? "👑" : "🃏";
-        let text = isRed ? "大<br>王" : "小<br>王";
-        return `<div class="full-cover ${colorClass}">
-                    <div class="joker-icon">${icon}</div>
-                    <div class="joker-text">${text}</div>
-                </div>`;
+        return `<div class="full-cover ${isRed ? 'joker-bg-red' : 'joker-bg-black'}">
+            <div class="joker-icon">${isRed ? '👑' : '🃏'}</div>
+            <div class="joker-text">${isRed ? '大<br>王' : '小<br>王'}</div>
+        </div>`;
     }
-    let color = (card.suit === "♥" || card.suit === "♦") ? "red" : "black";
-    return `<div class="corner top-left ${color}">${card.rank}</div><div class="center ${color}">${card.suit}</div><div class="corner bottom-right ${color}">${card.rank}</div>`;
+    let isRed = card.suit === '♥' || card.suit === '♦';
+    let sc = isRed ? 'suit-heart' : 'suit-spade';
+    return `<div class="corner top-left ${sc}">${card.rank}<div class="corner-suit">${card.suit}</div></div>
+            <div class="center ${sc}">${card.suit}</div>
+            <div class="corner bottom-right ${sc}">${card.rank}<div class="corner-suit">${card.suit}</div></div>`;
 }
 
 function renderPlayer() {
-    let area = document.getElementById("player"); area.innerHTML = "";
+    let area = document.getElementById("player");
+    area.innerHTML = "";
     players[0].forEach((c, i) => {
-        let div = document.createElement("div"); div.className = "card";
-        if(selected.includes(i)) div.classList.add("selected");
-        div.innerHTML = buildCardHTML(c); div.onclick = () => toggle(i); area.appendChild(div);
+        let div = document.createElement("div");
+        div.className = "card";
+        if (selected.includes(i)) div.classList.add("selected");
+        div.innerHTML = buildCardHTML(c);
+        div.onclick = () => toggle(i);
+        area.appendChild(div);
     });
 }
 
 function renderTable(cards) {
-    let t = document.getElementById("table"); t.innerHTML = "";
-    cards.forEach(c => { let div = document.createElement("div"); div.className = "card"; div.innerHTML = buildCardHTML(c); t.appendChild(div); });
+    let t = document.getElementById("table");
+    let hint = document.getElementById("tableEmptyHint");
+    t.innerHTML = "";
+    if (cards.length === 0) {
+        let h = document.createElement('span');
+        h.className = 'table-empty-hint';
+        h.id = 'tableEmptyHint';
+        if (current === 0 && landlord !== -1) h.textContent = '✨ 你獲得牌權，請自由出牌';
+        else if (landlord !== -1) h.textContent = '⏳ 等待出牌...';
+        else h.textContent = '出牌區';
+        t.appendChild(h);
+    } else {
+        cards.forEach(c => {
+            let div = document.createElement("div");
+            div.className = "card";
+            div.style.animation = "fadeIn 0.2s ease";
+            div.innerHTML = buildCardHTML(c);
+            t.appendChild(div);
+        });
+    }
 }
 
-function toggle(i) { if(selected.includes(i)) selected = selected.filter(x => x !== i); else selected.push(i); renderPlayer(); }
-function updateInfo(msg) { document.getElementById("info").innerHTML = msg; }
+function toggle(i) {
+    if (selected.includes(i)) selected = selected.filter(x => x !== i);
+    else selected.push(i);
+    renderPlayer();
+}
 
-/* ===== 核心牌型解析 ===== */
+function updateInfo(msg) {
+    let el = document.getElementById("info");
+    el.innerHTML = msg;
+    el.style.animation = 'none';
+    el.offsetHeight;
+    el.style.animation = 'fadeIn 0.3s ease';
+}
+
+/* ===== 牌型解析（完整保留原版邏輯） ===== */
 function evaluate(cards) {
     if (!cards || cards.length === 0) return null;
     let sorted = [...cards].sort((a,b) => power[a.rank] - power[b.rank]);
-    let counts = {}; sorted.forEach(c => counts[c.rank] = (counts[c.rank] || 0) + 1);
-    let vals = Object.values(counts), keys = Object.keys(counts).sort((a,b) => power[a] - power[b]);
+    let counts = {}; sorted.forEach(c => counts[c.rank] = (counts[c.rank]||0)+1);
+    let vals = Object.values(counts), keys = Object.keys(counts).sort((a,b) => power[a]-power[b]);
+    let isSeq = (rankArr) => { if (rankArr.some(r => power[r] >= 15)) return false; for (let i=1;i<rankArr.length;i++){if(power[rankArr[i]]!==power[rankArr[i-1]]+1)return false;}return true; };
 
-    let isSeq = (rankArr) => {
-        if (rankArr.some(r => power[r] >= 15)) return false; 
-        for (let i = 1; i < rankArr.length; i++) { if (power[rankArr[i]] !== power[rankArr[i-1]] + 1) return false; }
-        return true;
-    };
-
-    if (cards.length === 1) return { type: 1, value: power[cards[0].rank], len: 1 };
-    if (cards.length === 2) {
-        if (cards[0].isJoker && cards[1].isJoker) return { type: 99, value: 999, len: 2 };
-        if (vals[0] === 2) return { type: 2, value: power[cards[0].rank], len: 2 };
+    if (cards.length===1) return {type:1,value:power[cards[0].rank],len:1,name:"單牌"};
+    if (cards.length===2) {
+        if (cards[0].isJoker && cards[1].isJoker) return {type:99,value:999,len:2,name:"火箭(雙王)"};
+        if (vals[0]===2) return {type:2,value:power[cards[0].rank],len:2,name:"對子"};
     }
-    if (cards.length === 3 && vals.includes(3)) return { type: 3, value: power[cards[0].rank], len: 3 };
-
-    if (cards.length === 4) {
-        if (vals.includes(4)) return { type: 10, value: power[sorted[0].rank], len: 4 };
-        if (vals.includes(3)) return { type: 4, value: power[Object.keys(counts).find(k => counts[k]===3)], len: 4 };
+    if (cards.length===3 && vals.includes(3)) return {type:3,value:power[cards[0].rank],len:3,name:"三條"};
+    if (cards.length===4) {
+        if (vals.includes(4)) return {type:10,value:power[sorted[0].rank],len:4,name:"炸彈(四條)"};
+        if (vals.includes(3)) return {type:4,value:power[Object.keys(counts).find(k=>counts[k]===3)],len:4,name:"三帶一單"};
     }
-    
-    if (cards.length === 5) {
-        if (vals.includes(3) && vals.includes(2)) return { type: 14, value: power[Object.keys(counts).find(k=>counts[k]===3)], len: 5 };
-    }
-
+    if (cards.length===5 && vals.includes(3) && vals.includes(2)) return {type:14,value:power[Object.keys(counts).find(k=>counts[k]===3)],len:5,name:"三帶一對"};
     if (vals.includes(4)) {
-        let fourRank = Object.keys(counts).find(k => counts[k] === 4);
-        if (cards.length === 6) return { type: 6, value: power[fourRank], len: 6 }; 
-        if (cards.length === 8) {
-            let pairCount = vals.filter(v => v === 2).length, fourCount = vals.filter(v => v === 4).length;
-            if ((fourCount === 1 && pairCount === 2) || fourCount === 2) return { type: 7, value: power[fourRank], len: 8 }; 
-        }
+        let fourRank = Object.keys(counts).find(k=>counts[k]===4);
+        if (cards.length===6) return {type:6,value:power[fourRank],len:6,name:"四帶二單"};
+        if (cards.length===8){let pairCount=vals.filter(v=>v===2).length,fourCount=vals.filter(v=>v===4).length;if((fourCount===1&&pairCount===2)||fourCount===2)return {type:7,value:power[fourRank],len:8,name:"四帶二對"};}
     }
-
-    if (cards.length >= 5 && vals.every(v => v === 1) && isSeq(keys)) return { type: 5, value: power[keys[keys.length-1]], len: cards.length };
-    if (cards.length >= 6 && cards.length % 2 === 0 && vals.every(v => v === 2) && isSeq(keys)) return { type: 8, value: power[keys[keys.length-1]], len: cards.length };
-
-    let threeRanks = Object.keys(counts).filter(k => counts[k] >= 3).sort((a,b) => power[a] - power[b]);
-    if (threeRanks.length >= 2) {
-        let seqThrees = [], temp = [threeRanks[0]];
-        for (let i = 1; i < threeRanks.length; i++) {
-            if (power[threeRanks[i]] === power[threeRanks[i-1]] + 1 && power[threeRanks[i]] < 15) temp.push(threeRanks[i]);
-            else { if (temp.length > seqThrees.length) seqThrees = temp; temp = [threeRanks[i]]; }
-        }
-        if (temp.length > seqThrees.length) seqThrees = temp;
-
-        let planeLen = seqThrees.length;
-        if (planeLen >= 2) {
-            let planeValue = power[seqThrees[seqThrees.length-1]];
-            if (cards.length === planeLen * 3) return { type: 11, value: planeValue, len: cards.length }; 
-            if (cards.length === planeLen * 4) return { type: 12, value: planeValue, len: cards.length }; 
-            if (cards.length === planeLen * 5) {
-                let remainingVals = [];
-                for (let k in counts) { let c = counts[k]; if (seqThrees.includes(k)) c -= 3; if (c > 0) remainingVals.push(c); }
-                if (remainingVals.every(v => v === 2 || v === 4)) return { type: 13, value: planeValue, len: cards.length }; 
-            }
+    if (cards.length>=5 && vals.every(v=>v===1) && isSeq(keys)) return {type:5,value:power[keys[keys.length-1]],len:cards.length,name:"順子"};
+    if (cards.length>=6 && cards.length%2===0 && vals.every(v=>v===2) && isSeq(keys)) return {type:8,value:power[keys[keys.length-1]],len:cards.length,name:"連對"};
+    let threeRanks = Object.keys(counts).filter(k=>counts[k]>=3).sort((a,b)=>power[a]-power[b]);
+    if (threeRanks.length>=2) {
+        let validSeqs=[];
+        for(let i=0;i<threeRanks.length;i++){let seq=[threeRanks[i]];for(let j=i+1;j<threeRanks.length;j++){if(power[threeRanks[j]]===power[seq[seq.length-1]]+1&&power[threeRanks[j]]<15){seq.push(threeRanks[j]);if(seq.length>=2)validSeqs.push([...seq]);}else break;}}
+        validSeqs.sort((a,b)=>b.length-a.length);
+        for(let seq of validSeqs){
+            let planeLen=seq.length,planeValue=power[seq[seq.length-1]];
+            if(cards.length===planeLen*3)return{type:11,value:planeValue,len:cards.length,name:"純飛機"};
+            if(cards.length===planeLen*4)return{type:12,value:planeValue,len:cards.length,name:"飛機帶單牌"};
+            if(cards.length===planeLen*5){let remainingVals=[];for(let k in counts){let c=counts[k];if(seq.includes(k))c-=3;if(c>0)remainingVals.push(c);}if(remainingVals.every(v=>v===2||v===4))return{type:13,value:planeValue,len:cards.length,name:"飛機帶對子"};}
         }
     }
     return null;
 }
 
-/* ===== 執行出牌 ===== */
-function executePlay(cards, r) {
-    if (r && (r.type === 10 || r.type === 99)) {
-        playSound(sndBomb); document.body.classList.add("shake-screen"); 
-        setTimeout(() => document.body.classList.remove("shake-screen"), 400); 
-        gameMultiplier *= 2; updateMultiplierUI();
-        updateInfo("💥 炸彈！倍數翻倍！");
-    } else { playSound(sndPlayCard); }
-
-    if (current === landlord) landlordPlayCount++; else farmerPlayCount++;
-
-    players[current] = players[current].filter(c => !cards.includes(c));
-    last = r; lastPlayer = current; consecutivePasses = 0;
-    
-    renderTable(cards); renderOpponents();
-    if (current === 0) { selected = []; renderPlayer(); }
-    
-    if (players[current].length === 0) { setTimeout(() => endGame(current), 800); return; }
-    
-    current = (current + 1) % 3; renderOpponents(); 
-    if (r.type !== 10 && r.type !== 99) updateInfo(`輪到 電腦 ${current} 思考...`);
-    if (current !== 0) setTimeout(aiPlay, 1200); else updateInfo("你的回合，請出牌！");
+/* ===== 提示與要不起 ===== */
+function findBestPlay(playerIdx, checkOnly=false) {
+    let hand=players[playerIdx];if(!hand||hand.length===0)return null;
+    let counts={},cardsByRank={};
+    hand.forEach(c=>{counts[c.rank]=(counts[c.rank]||0)+1;if(!cardsByRank[c.rank])cardsByRank[c.rank]=[];cardsByRank[c.rank].push(c);});
+    let getRanksByMinCount=(min)=>Object.keys(counts).filter(k=>counts[k]>=min).sort((a,b)=>power[a]-power[b]);
+    let singles=getRanksByMinCount(1),pairs=getRanksByMinCount(2),triples=getRanksByMinCount(3),bombs=getRanksByMinCount(4),hasRocket=counts["BJ"]&&counts["RJ"];
+    let buildPlay=(rankList,countPerRank,extraCards=[])=>{let res=[];rankList.forEach(r=>res.push(...cardsByRank[r].slice(0,countPerRank)));return res.concat(extraCards);};
+    if(!last){if(triples.length>0){let r=triples[0],pairKicker=pairs.find(p=>p!==r);if(pairKicker)return buildPlay([r],3,buildPlay([pairKicker],2));let kicker=singles.find(k=>k!==r);if(kicker)return buildPlay([r],3,buildPlay([kicker],1));return buildPlay([r],3);}if(pairs.length>0)return buildPlay([pairs[0]],2);return buildPlay([singles[0]],1);}
+    let t=last.type,v=last.value,l=last.len,playCards=null;
+    if(t===1){let valid=singles.find(r=>power[r]>v);if(valid)playCards=buildPlay([valid],1);}
+    else if(t===2){let valid=pairs.find(r=>power[r]>v);if(valid)playCards=buildPlay([valid],2);}
+    else if(t===3){let valid=triples.find(r=>power[r]>v);if(valid)playCards=buildPlay([valid],3);}
+    else if(t===4||t===14){let validThrees=triples.find(r=>power[r]>v);if(validThrees){let validKicker=t===4?singles.find(k=>k!==validThrees):pairs.find(p=>p!==validThrees);if(validKicker)playCards=buildPlay([validThrees],3,buildPlay([validKicker],t===4?1:2));}}
+    else if(t===5||t===8){let targetArr=t===5?singles:pairs,targetCount=t===5?1:2,targetLen=t===5?l:l/2;for(let i=0;i<=targetArr.length-targetLen;i++){let seq=[targetArr[i]],isValid=true;for(let j=1;j<targetLen;j++){if(power[targetArr[i+j]]===power[seq[seq.length-1]]+1&&power[targetArr[i+j]]<15)seq.push(targetArr[i+j]);else{isValid=false;break;}}if(isValid&&power[seq[seq.length-1]]>v){playCards=buildPlay(seq,targetCount);break;}}}
+    else if(t>=11&&t<=13){let planeLen=t===11?l/3:(t===12?l/4:l/5),validSeqThrees=[];for(let i=0;i<=triples.length-planeLen;i++){let seq=[triples[i]],isValid=true;for(let j=1;j<planeLen;j++){if(power[triples[i+j]]===power[seq[seq.length-1]]+1&&power[triples[i+j]]<15)seq.push(triples[i+j]);else{isValid=false;break;}}if(isValid&&power[seq[seq.length-1]]>v)validSeqThrees.push(seq);}if(validSeqThrees.length>0){let seq=validSeqThrees[0],baseCards=buildPlay(seq,3);if(t===11)playCards=baseCards;else if(t===12){let availableSingles=[];Object.keys(cardsByRank).forEach(k=>{if(!seq.includes(k))availableSingles.push(...cardsByRank[k]);});if(availableSingles.length>=planeLen)playCards=baseCards.concat(availableSingles.slice(0,planeLen));}else if(t===13){let availablePairs=Object.keys(counts).filter(k=>!seq.includes(k)&&counts[k]>=2);if(availablePairs.length>=planeLen)playCards=baseCards.concat(buildPlay(availablePairs.slice(0,planeLen),2));}}}
+    else if(t===6||t===7){let validBomb=bombs.find(r=>power[r]>v);if(validBomb){if(t===6){let availableSingles=[];Object.keys(cardsByRank).forEach(k=>{if(k!==validBomb)availableSingles.push(...cardsByRank[k]);});if(availableSingles.length>=2)playCards=buildPlay([validBomb],4).concat(availableSingles.slice(0,2));}else if(t===7){let availablePairs=Object.keys(counts).filter(k=>counts[k]>=2&&k!==validBomb);if(availablePairs.length>=2)playCards=buildPlay([validBomb],4).concat(buildPlay(availablePairs.slice(0,2),2));}}}
+    else if(t===10){let valid=bombs.find(r=>power[r]>v);if(valid)playCards=buildPlay([valid],4);}
+    if(!playCards&&t!==10&&t!==99&&bombs.length>0)playCards=buildPlay([bombs[0]],4);
+    if(!playCards&&t!==99&&hasRocket)playCards=buildPlay(["BJ","RJ"],1);
+    return playCards;
 }
 
-/* ===== 修復：Pass 時保留桌面牌 ===== */
+function hint() {
+    if (current !== 0) return;
+    let bestCards = findBestPlay(0);
+    if (bestCards) {
+        selected = [];
+        bestCards.forEach(c => { let idx = players[0].indexOf(c); if (idx !== -1) selected.push(idx); });
+        renderPlayer();
+    } else { updateInfo("⚠️ 要不起（無牌可壓）"); }
+}
+
+function checkPlayerHasPlay() {
+    if (current === 0 && last) {
+        let hasPlay = findBestPlay(0, true);
+        if (!hasPlay) updateInfo("⚠️ 要不起，沒有可壓的牌");
+        else updateInfo("🎯 你的回合，請出牌！");
+    } else if (current === 0) { updateInfo("✨ 你的回合，自由出牌！"); }
+}
+
+/* ===== 執行與 AI ===== */
+function executePlay(cards, r) {
+    if (r && r.name) {
+        if (current === 0 && r.name === dailyQuestTarget && !questAchievedThisRound) {
+            questAchievedThisRound = true;
+            document.getElementById("dailyQuestBanner").innerHTML = `✅ 達成任務：打出【${dailyQuestTarget}】`;
+            document.getElementById("dailyQuestBanner").classList.add("quest-done");
+        }
+        if (r.type === 10 || r.type === 99) {
+            playSound(sndBomb);
+            document.body.classList.add("shake-screen");
+            setTimeout(() => document.body.classList.remove("shake-screen"), 450);
+            gameMultiplier *= 2; updateMultiplierUI();
+            showMultiplierBurst(`💥 ×${gameMultiplier}`);
+            updateInfo(`💥 打出 ${r.name}！倍數翻倍 ×${gameMultiplier}！`);
+        } else {
+            playSound(sndPlayCard);
+            let prefix = (r.type >= 11 && r.type <= 13) ? "✈️" : "🃏";
+            let who = current === 0 ? "你" : aiNames[current].name;
+            updateInfo(`${prefix} ${who} 打出 ${r.name}`);
+        }
+    }
+    if (current === landlord) landlordPlayCount++; else farmerPlayCount++;
+    players[current] = players[current].filter(c => !cards.includes(c));
+    last = r; lastPlayer = current; consecutivePasses = 0;
+    renderTable(cards); renderOpponents();
+    if (current === 0) { selected = []; renderPlayer(); }
+    if (players[current].length === 0) { setTimeout(() => endGame(current), 800); return; }
+    current = (current + 1) % 3; renderOpponents();
+    if (current !== 0) setTimeout(aiPlay, 1500); else checkPlayerHasPlay();
+}
+
 function executePass() {
-    consecutivePasses++; 
-    // 移除原有的 renderTable([])，讓上一手牌繼續留在桌面上讓玩家參考
+    consecutivePasses++;
     if (consecutivePasses >= 2) {
         last = null; current = lastPlayer; consecutivePasses = 0;
-        // 只有當所有人都 Pass，牌權回到原本打牌的人手上時，才清空桌面準備新的一回合
-        renderTable([]); 
-        updateInfo(`🔄 牌權回到 玩家 ${current}`); renderOpponents();
-        if (current === 0) updateInfo("✨ 重新獲得牌權，請自由出牌"); else setTimeout(aiPlay, 1200);
+        renderTable([]); renderOpponents();
+        if (current === 0) { checkPlayerHasPlay(); } else setTimeout(aiPlay, 1200);
     } else {
+        let who = current === 0 ? "你" : aiNames[current].name;
+        updateInfo(`🙅 ${who} 不出`);
         current = (current + 1) % 3; renderOpponents();
-        if (current !== 0) setTimeout(aiPlay, 1200); else updateInfo("你的回合，請決定是否出牌");
+        if (current !== 0) setTimeout(aiPlay, 1200); else checkPlayerHasPlay();
     }
 }
 
 function play() {
     if (current !== 0 || selected.length === 0) return;
-    let cards = selected.map(i => players[0][i]); let r = evaluate(cards);
-    
+    let cards = selected.map(i => players[0][i]);
+    let r = evaluate(cards);
     if (!r) { updateInfo("⚠️ 牌型不符合規則！"); return; }
     if (last) {
-        if (r.type === 99) {} 
-        else if (r.type === 10 && last.type !== 10 && last.type !== 99) {} 
+        if (r.type === 99) {}
+        else if (r.type === 10 && last.type !== 10 && last.type !== 99) {}
         else if (r.type !== last.type) { updateInfo("⚠️ 牌型必須與上家相同！"); return; }
         else if (r.type === 5 && cards.length !== last.len) { updateInfo("⚠️ 順子長度不符！"); return; }
-        else if (r.value <= last.value) { updateInfo("⚠️ 牌面點數必須大於上家！"); return; }
+        else if (r.value <= last.value) { updateInfo("⚠️ 點數必須大於上家！"); return; }
     }
     executePlay(cards, r);
 }
-function pass() { if (current !== 0) return; if (!last) { updateInfo("⚠️ 擁有牌權時不能不出！"); return; } selected = []; renderPlayer(); executePass(); }
 
-/* ===== 智能 AI ===== */
+function pass() {
+    if (current !== 0) return;
+    if (!last) { updateInfo("⚠️ 擁有牌權時不能不出！"); return; }
+    selected = []; renderPlayer(); executePass();
+}
+
+/* ===== AI ===== */
 function aiPlay() {
-    let hand = players[current]; if (!hand || hand.length === 0) return;
-    let counts = {}, cardsByRank = {};
-    hand.forEach(c => { counts[c.rank] = (counts[c.rank] || 0) + 1; if (!cardsByRank[c.rank]) cardsByRank[c.rank] = []; cardsByRank[c.rank].push(c); });
-    let getRanksByMinCount = (min) => Object.keys(counts).filter(k => counts[k] >= min).sort((a,b) => power[a] - power[b]);
-    
-    let singles = getRanksByMinCount(1), pairs = getRanksByMinCount(2), triples = getRanksByMinCount(3), bombs = getRanksByMinCount(4), hasRocket = counts["BJ"] && counts["RJ"];
-    let playCards = null;
-    let buildPlay = (rankList, countPerRank, extraCards = []) => { let res = []; rankList.forEach(r => res.push(...cardsByRank[r].slice(0, countPerRank))); return res.concat(extraCards); };
-
-    if (last) {
-        let t = last.type, v = last.value, l = last.len;
-        if (t === 1) { let valid = singles.find(r => power[r] > v); if (valid) playCards = buildPlay([valid], 1); } 
-        else if (t === 2) { let valid = pairs.find(r => power[r] > v); if (valid) playCards = buildPlay([valid], 2); } 
-        else if (t === 3) { let valid = triples.find(r => power[r] > v); if (valid) playCards = buildPlay([valid], 3); } 
-        else if (t === 4) { let validThree = triples.find(r => power[r] > v); if (validThree) { let kicker = singles.find(k => k !== validThree); if (kicker) playCards = buildPlay([validThree], 3, buildPlay([kicker], 1)); } } 
-        else if (t === 14) { let validThree = triples.find(r => power[r] > v); if (validThree) { let validPair = pairs.find(p => p !== validThree); if (validPair) playCards = buildPlay([validThree], 3, buildPlay([validPair], 2)); } }
-        else if (t === 5) {
-            for (let i = 0; i <= singles.length - l; i++) {
-                let seq = [singles[i]], isValidSeq = true;
-                for (let j = 1; j < l; j++) { if (power[singles[i+j]] === power[seq[seq.length-1]] + 1 && power[singles[i+j]] < 15) seq.push(singles[i+j]); else { isValidSeq = false; break; } }
-                if (isValidSeq && power[seq[seq.length-1]] > v) { playCards = buildPlay(seq, 1); break; }
-            }
-        }
-        else if (t === 10) { let valid = bombs.find(r => power[r] > v); if (valid) playCards = buildPlay([valid], 4); }
-
-        if (!playCards && t !== 10 && t !== 99 && bombs.length > 0) playCards = buildPlay([bombs[0]], 4);
-        if (!playCards && t !== 99 && hasRocket) playCards = buildPlay(["BJ", "RJ"], 1);
-    } else {
-        if (triples.length > 0) { 
-            let r = triples[0], pairKicker = pairs.find(p => p !== r);
-            if (pairKicker) playCards = buildPlay([r], 3, buildPlay([pairKicker], 2)); 
-            else { let kicker = singles.find(k => k !== r && counts[k] === 1); if (kicker) playCards = buildPlay([r], 3, buildPlay([kicker], 1)); else playCards = buildPlay([r], 3); }
-        } 
-        else if (pairs.length > 0) playCards = buildPlay([pairs[0]], 2); 
-        else playCards = buildPlay([singles[0]], 1);
+    let playCards = findBestPlay(current);
+    let isLandlord = (current === landlord), isTeammateLast = (!isLandlord && lastPlayer !== landlord && lastPlayer !== -1);
+    let isEmergency = (!isLandlord && players[landlord].length <= 3) || (isLandlord && players.some((p,i) => i!==landlord && p.length<=3));
+    let isBlockingLandlord = (!isLandlord && (current+1)%3 === landlord);
+    if (last && isTeammateLast && (last.value >= 13 || players[lastPlayer].length <= 2)) playCards = null;
+    else if (last && isEmergency && last.type !== 10 && last.type !== 99) {
+        let counts={}; players[current].forEach(c=>counts[c.rank]=(counts[c.rank]||0)+1);
+        let bombs=Object.keys(counts).filter(k=>counts[k]===4);
+        if (bombs.length>0) playCards=players[current].filter(c=>c.rank===bombs[0]);
     }
-
-    if (playCards) { let ev = evaluate(playCards); if (ev) executePlay(playCards, ev); else executePass(); } 
+    if (playCards) { let ev=evaluate(playCards); if(ev) executePlay(playCards,ev); else executePass(); }
     else executePass();
 }
 
-/* ===== 遞增叫分流程 ===== */
+/* ===== 叫牌 ===== */
 function startBidding() {
-    currentBid = 0; bidIndex = 0;
-    let starter = Math.floor(Math.random() * 3);
-    bidQueue = [starter, (starter+1)%3, (starter+2)%3];
-    updateInfo("開始叫分...");
-    setTimeout(processBidding, 800);
+    currentBid=0; bidIndex=0;
+    let starter=Math.floor(Math.random()*3); bidQueue=[starter,(starter+1)%3,(starter+2)%3];
+    updateInfo("📢 開始叫分..."); setTimeout(processBidding, 800);
 }
 
 function processBidding() {
     if (bidIndex >= 3) {
-        if (currentBid === 0) { updateInfo("⚠️ 無人叫地主，重新洗牌..."); setTimeout(initGame, 1500); return; }
+        if (currentBid===0) { updateInfo("⚠️ 無人叫地主，重新洗牌..."); setTimeout(initGame, 1500); return; }
         setLandlord(landlord, currentBid); return;
     }
-    
-    let p = bidQueue[bidIndex];
-    if (p === 0) {
-        document.getElementById("btnBid1").style.display = currentBid < 1 ? "inline-block" : "none";
-        document.getElementById("btnBid2").style.display = currentBid < 2 ? "inline-block" : "none";
-        document.getElementById("btnBid3").style.display = currentBid < 3 ? "inline-block" : "none";
+    let p=bidQueue[bidIndex];
+    if (p===0) {
+        document.getElementById("btnBid1").style.display = currentBid<1?"inline-block":"none";
+        document.getElementById("btnBid2").style.display = currentBid<2?"inline-block":"none";
+        document.getElementById("btnBid3").style.display = currentBid<3?"inline-block":"none";
         document.getElementById("btnNoBid").style.display = "inline-block";
-        updateInfo("你的回合，請叫分...");
+        updateInfo("🎯 你的回合，請叫分...");
     } else {
-        let aiChoice = 0;
-        if (currentBid < 3 && Math.random() > 0.4) aiChoice = currentBid + 1;
-        
-        if (aiChoice > 0) {
-            currentBid = aiChoice; landlord = p;
-            updateInfo(`電腦 ${p} 叫了 ${currentBid} 分`);
-            if (currentBid === 3) { setTimeout(() => setLandlord(landlord, 3), 1200); return; }
-        } else {
-            updateInfo(`電腦 ${p} 不叫`);
-        }
+        let ai=aiNames[p], aiChoice=0;
+        if(currentBid<3 && Math.random()>0.4) aiChoice=currentBid+1;
+        if(aiChoice>0){currentBid=aiChoice;landlord=p;updateInfo(`${ai.avatar} ${ai.name} 叫了 ${currentBid} 分`);if(currentBid===3){setTimeout(()=>setLandlord(landlord,3),1200);return;}}
+        else{updateInfo(`${ai.avatar} ${ai.name} 不叫`);}
         bidIndex++; setTimeout(processBidding, 1200);
     }
 }
 
 function playerBid(score) {
-    document.querySelectorAll('.btn-bid, .btn-pass').forEach(b => b.style.display = 'none');
-    if (score > 0) { currentBid = score; landlord = 0; updateInfo(`你叫了 ${score} 分`); } 
-    else { updateInfo("你不叫"); }
-    
-    bidIndex++;
-    if (currentBid === 3) { setTimeout(() => setLandlord(landlord, 3), 1000); return; }
-    setTimeout(processBidding, 1000);
+    document.querySelectorAll('.btn-bid, #btnNoBid').forEach(b => b.style.display='none');
+    if (score>0){currentBid=score;landlord=0;updateInfo(`🙋 你叫了 ${score} 分`);}else{updateInfo("你選擇不叫");}
+    bidIndex++; if(currentBid===3){setTimeout(()=>setLandlord(landlord,3),1000);return;}setTimeout(processBidding,1000);
 }
 
 function setLandlord(idx, score) {
-    landlord = idx; baseScore = score; current = landlord; lastPlayer = landlord;
-    landlordPlayCount = 0; farmerPlayCount = 0; gameMultiplier = 1; updateMultiplierUI();
-    
-    players[landlord].push(...holeCards);
-    players[landlord].sort((a,b) => power[b.rank] - power[a.rank]);
-    
+    landlord=idx; baseScore=score; current=landlord; lastPlayer=landlord;
+    landlordPlayCount=0; farmerPlayCount=0; gameMultiplier=1; updateMultiplierUI();
+    players[landlord].push(...holeCards); players[landlord].sort((a,b)=>power[b.rank]-power[a.rank]);
     renderHoleCards(true); renderPlayer(); renderOpponents();
-    updateInfo(`👑 玩家 ${landlord} 擔任地主 (底分 ${score})。請出牌！`);
-    
-    document.getElementById("btnPlay").style.display = "inline-block"; document.getElementById("btnPass").style.display = "inline-block";
-    if (current !== 0) setTimeout(aiPlay, 1500);
+    let name = idx===0 ? "你" : `${aiNames[idx].avatar} ${aiNames[idx].name}`;
+    updateInfo(`👑 ${name} 擔任地主（底分 ${score}）`);
+    document.getElementById("btnPlay").style.display="inline-block";
+    document.getElementById("btnPass").style.display="inline-block";
+    document.getElementById("btnHint").style.display="inline-block";
+    if(current!==0) setTimeout(aiPlay,1500); else checkPlayerHasPlay();
 }
 
-/* ===== 滿版彩帶與結算 ===== */
+/* ===== 彩帶 ===== */
 function shootConfetti() {
-    const container = document.getElementById('confetti-container'); if (!container) return;
-    container.innerHTML = ''; container.style.display = 'block';
-    const colors = ['#fde047', '#d90429', '#4ade80', '#3b82f6', '#a855f7', '#ff007f', '#ffffff'];
-    for (let i = 0; i < 120; i++) {
-        let conf = document.createElement('div'); conf.className = 'confetti-piece';
-        conf.style.left = Math.random() * 100 + 'vw'; conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-        conf.style.animationDuration = (Math.random() * 3 + 2) + 's'; conf.style.animationDelay = (Math.random() * 1.5) + 's';
+    const container=document.getElementById('confetti-container');
+    if(!container)return;
+    container.innerHTML=''; container.style.display='block';
+    const colors=['#f0c040','#dc2626','#4ade80','#3b82f6','#a855f7','#ff80ab','#ffffff','#fde68a'];
+    for(let i=0;i<140;i++){
+        let conf=document.createElement('div');
+        conf.className='confetti-piece';
+        conf.style.left=Math.random()*100+'vw';
+        conf.style.backgroundColor=colors[Math.floor(Math.random()*colors.length)];
+        conf.style.animationDuration=(Math.random()*3+2)+'s';
+        conf.style.animationDelay=(Math.random()*1.5)+'s';
+        conf.style.width=(Math.random()*10+6)+'px';
+        conf.style.height=(Math.random()*14+8)+'px';
+        conf.style.borderRadius=Math.random()>0.5?'50%':'3px';
         container.appendChild(conf);
     }
+    // 勝利光效
+    let glow=document.createElement('div');
+    glow.className='win-glow';
+    document.body.appendChild(glow);
+    setTimeout(()=>glow.remove(), 2000);
+    setTimeout(()=>{container.style.display='none'; container.innerHTML='';},6000);
 }
 
+/* ===== 結算 ===== */
 function endGame(winner) {
-    let isLandlordWin = (winner === landlord);
-    let isSpring = false, springText = "";
+    let isLandlordWin=(winner===landlord), playerWon=(winner===0)||(landlord!==0&&winner!==landlord);
+    let isSpring=false, springText="";
+    if(playerWon){stats.currentWinStreak++;if(stats.currentWinStreak>stats.maxWinStreak)stats.maxWinStreak=stats.currentWinStreak;}
+    else{stats.currentWinStreak=0;}
+    if(isLandlordWin&&farmerPlayCount===0){isSpring=true;gameMultiplier*=2;springText="🌸 春天！";}
+    else if(!isLandlordWin&&landlordPlayCount===1){isSpring=true;gameMultiplier*=2;springText="🌸 反春天！";}
+    let questBonusText="";
+    if(playerWon&&questAchievedThisRound){gameMultiplier*=2;questBonusText=`<div style="color:#c084fc;margin-bottom:8px;font-size:13px;">🎯 任務達成：×2</div>`;}
+    questAchievedThisRound=false;
+    let finalScore=baseScore*gameMultiplier;
+    let modal=document.getElementById("scoreModal");
+    let titleEl=document.getElementById("modalTitle");
 
-    if (isLandlordWin && farmerPlayCount === 0) { isSpring = true; gameMultiplier *= 2; springText = "🌸 春天！倍數再翻倍！"; }
-    else if (!isLandlordWin && landlordPlayCount === 1) { isSpring = true; gameMultiplier *= 2; springText = "🌸 反春天！倍數再翻倍！"; }
-
-    let finalScore = baseScore * gameMultiplier;
-    let resultHTML = `<div style="color:#d90429; margin-bottom:10px;">總倍數：x${gameMultiplier} ${springText}</div>`;
-    
-    for (let i = 0; i < 3; i++) {
-        let name = i === 0 ? "玩家(你)" : `電腦 ${i}`, role = i === landlord ? "🧑‍🌾地主" : "🌾農民";
-        let change = isLandlordWin ? (i === landlord ? finalScore * 2 : -finalScore) : (i === landlord ? -finalScore * 2 : finalScore);
-        totalScores[i] += change;
-        resultHTML += `<div>${role} ${name}：${change > 0 ? '+'+change : change} 分</div>`;
+    if(playerWon){
+        titleEl.className="modal-title-win";
+        titleEl.innerHTML="🎉 恭喜獲勝！";
+        shootConfetti();
+    } else {
+        titleEl.className="modal-title-lose";
+        titleEl.innerHTML="💥 遺憾落敗";
     }
-    
-    localStorage.setItem("doudizhu_scores", JSON.stringify(totalScores));
-    let playerWon = (winner === 0) || (landlord !== 0 && winner !== landlord);
-    
-    if (playerWon) { document.getElementById("modalTitle").innerHTML = "🎉 恭喜獲勝！"; shootConfetti(); } 
-    else { document.getElementById("modalTitle").innerHTML = "💥 遺憾落敗"; }
 
-    document.getElementById("modalScores").innerHTML = resultHTML; document.getElementById("scoreModal").style.display = "flex";
+    let html=`<div style="color:${gameMultiplier>1?'#f0c040':'#aaa'};margin-bottom:10px;font-size:13px;text-align:center;">
+        總倍數：×${gameMultiplier} ${springText}
+    </div>${questBonusText}`;
+
+    const names=["你（玩家）", `${aiNames[1].avatar} ${aiNames[1].name}`, `${aiNames[2].avatar} ${aiNames[2].name}`];
+    for(let i=0;i<3;i++){
+        let role=i===landlord?"🧑‍🌾 地主":"🌾 農民";
+        let change=isLandlordWin?(i===landlord?finalScore*2:-finalScore):(i===landlord?-finalScore*2:finalScore);
+        if(i===0&&playerWon&&stats.currentWinStreak>=3){let bonus=Math.floor(change*0.2);change+=bonus;html+=`<div style="color:#f97316;font-size:12px;text-align:center;margin-bottom:6px;">🔥 連勝紅利 +${bonus}</div>`;}
+        stats.totalScores[i]+=change;
+        html+=`<div class="result-row${i===0?' player-row':''}">
+            <span>${role} ${names[i]}</span>
+            <span class="result-change" style="color:${change>=0?'#4ade80':'#f87171'}">${change>=0?'+'+change:change}</span>
+        </div>`;
+    }
+    localStorage.setItem("doudizhu_stats", JSON.stringify(stats));
+    document.getElementById("modalScores").innerHTML=html;
+    modal.style.display="flex";
 }
 
 /* ===== 初始化 ===== */
 function initGame() {
-    document.querySelectorAll('.btn-bid, .btn-pass, .btn-play').forEach(b => b.style.display = 'none');
-    document.getElementById("multiplierBadge").style.display = "none";
-    renderScoreboard(); deck = [];
-    
-    for(let r of ranks) for(let s of suits) deck.push({rank: r, suit: s, isJoker: false});
-    deck.push({rank: "BJ", isJoker: true}); deck.push({rank: "RJ", isJoker: true});
-    deck.sort(() => Math.random() - 0.5);
-    
-    holeCards = deck.slice(0, 3); players = [[], [], []];
-    for(let i=3; i<54; i++) players[(i-3) % 3].push(deck[i]);
-    players.forEach(p => p.sort((a,b) => power[b.rank] - power[a.rank])); 
-    
-    document.getElementById('shuffleOverlay').style.display = 'flex';
-    setTimeout(() => {
-        document.getElementById('shuffleOverlay').style.display = 'none';
-        renderHoleCards(false); renderPlayer(); renderOpponents();
-        startBidding();
-    }, 1200);
+    initDailyQuest(); updateStatsUI();
+    document.querySelectorAll('.btn-bid, #btnNoBid, #btnPass, #btnPlay, #btnHint').forEach(b=>b.style.display='none');
+    document.getElementById("multiplierBadge").style.display="none";
+    deck=[];
+    for(let r of ranks) for(let s of suits) deck.push({rank:r,suit:s,isJoker:false});
+    deck.push({rank:"BJ",isJoker:true}); deck.push({rank:"RJ",isJoker:true});
+    deck.sort(()=>Math.random()-0.5);
+    holeCards=deck.slice(0,3); players=[[],[],[]];
+    for(let i=3;i<54;i++) players[(i-3)%3].push(deck[i]);
+    players.forEach(p=>p.sort((a,b)=>power[b.rank]-power[a.rank]));
+    renderHoleCards(false); renderPlayer(); renderOpponents(); renderTable([]);
+    updateInfo("🎲 發牌完成，準備叫地主");
+    setTimeout(startBidding,800);
 }
 
 initGame();
