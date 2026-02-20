@@ -486,10 +486,12 @@ button {
 .achievements-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 16px; }
 .badge {
     display: flex; flex-direction: column; align-items: center;
-    width: 45%; background: rgba(255,255,255,0.05);
-    padding: 12px 8px; border-radius: 10px;
+    width: calc(50% - 5px);
+    background: rgba(255,255,255,0.05);
+    padding: 12px 8px 10px; border-radius: 10px;
     border: 1px solid rgba(255,255,255,0.1);
     transition: all 0.3s;
+    position: relative;
 }
 .badge.locked { filter: grayscale(100%); opacity: 0.35; }
 .badge.unlocked {
@@ -497,9 +499,19 @@ button {
     background: rgba(255,195,0,0.08);
     box-shadow: 0 0 16px var(--accent-glow-soft);
 }
-.badge-icon { font-size: 32px; margin-bottom: 6px; }
-.badge-title { font-size: 13px; font-weight: 700; color: #fff; }
-.badge-desc { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 3px; }
+.badge-icon { font-size: 30px; margin-bottom: 5px; }
+.badge-title { font-size: 12px; font-weight: 700; color: #fff; text-align: center; line-height: 1.3; }
+.badge-desc { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 4px; text-align: center; line-height: 1.4; }
+.badge-progress {
+    margin-top: 5px;
+    font-size: 10px;
+    color: var(--accent-color);
+    background: rgba(255,195,0,0.1);
+    border: 1px solid rgba(255,195,0,0.25);
+    border-radius: 20px;
+    padding: 2px 8px;
+    letter-spacing: 0.5px;
+}
 
 /* 主題選擇 */
 .theme-grid { display: flex; justify-content: space-around; gap: 10px; margin-bottom: 16px; }
@@ -877,14 +889,70 @@ function setTheme(themeName) {
 /* ===== 戰績與成就系統 ===== */
 const defaultStats = {
     matches: 0, wins: 0, monstersPlayed: 0, maxScore: 0,
+    // 新追蹤欄位
+    dragonsPlayed: 0,        // 累計一條龍次數
+    fourOfAKindCount: 0,     // 累計鐵支次數
+    passStreak: 0,           // 本局最長連續Pass次數（臨時）
+    passStreakMax: 0,         // 歷史最長連續Pass
+    lowestScore: 0,          // 歷史最低分（用於絕地反攻判定）
+    lastCardWinPending: false,// 本局是否剩1張牌
     achievements: {
-        firstBlood: { unlocked: false, title: "初嘗勝果", icon: "🥉", desc: "贏得第一場勝利" },
-        cleanSweep: { unlocked: false, title: "秋風掃落葉", icon: "🌪️", desc: "獲勝時有對手剩餘 13 張牌" },
-        dragonSlayer: { unlocked: false, title: "神龍降臨", icon: "🐉", desc: "成功打出一次一條龍" },
-        centurion: { unlocked: false, title: "百帝", icon: "👑", desc: "累計積分達到 100 分奪冠" }
+        // ── 原有4個 ──
+        firstBlood:   { unlocked: false, title: "初嘗勝果",   icon: "🥉", desc: "贏得第一場勝利" },
+        cleanSweep:   { unlocked: false, title: "秋風掃落葉", icon: "🌪️", desc: "獲勝時有對手剩餘 13 張牌" },
+        dragonSlayer: { unlocked: false, title: "神龍降臨",   icon: "🐉", desc: "成功打出一次一條龍" },
+        centurion:    { unlocked: false, title: "百帝",       icon: "👑", desc: "累計積分達到 100 分奪冠" },
+        // ── 新增8個 ──
+        dragonFist: {
+            unlocked: false, icon: "🐲",
+            title: "龍五手上有槍",
+            desc: "累計打出 5 次一條龍，你的手就是傳說"
+        },
+        millenniumEmperor: {
+            unlocked: false, icon: "🏯",
+            title: "千古一帝",
+            desc: "累計積分突破 1000 分，史書已為你保留一頁"
+        },
+        untouchable: {
+            unlocked: false, icon: "👻",
+            title: "我是空氣",
+            desc: "單局連續 Pass 達 5 次，存在感比空氣還稀薄"
+        },
+        lastStand: {
+            unlocked: false, icon: "🗡️",
+            title: "背水一戰",
+            desc: "手中僅剩 1 張牌時出牌並贏得該局，這就是武士精神"
+        },
+        speedDemon: {
+            unlocked: false, icon: "⚡",
+            title: "閃電戰神",
+            desc: "累積出賽不超過 10 局即贏得 5 場，效率之神"
+        },
+        butcher: {
+            unlocked: false, icon: "🩸",
+            title: "屠殺現場",
+            desc: "贏局時三位對手全都剩 10 張以上，你根本沒在跟他們玩"
+        },
+        ironCurtain: {
+            unlocked: false, icon: "🛡️",
+            title: "鐵幕降臨",
+            desc: "累計打出 20 次鐵支，你已成為鋼鐵意志的化身"
+        },
+        comebackKid: {
+            unlocked: false, icon: "🔥",
+            title: "絕地大反攻",
+            desc: "積分曾跌至 -50 以下，最終仍登頂奪冠，逆天改命"
+        }
     }
 };
-let playerStats = JSON.parse(localStorage.getItem("big2_stats")) || defaultStats;
+let playerStats = (() => {
+    let saved = JSON.parse(localStorage.getItem("big2_stats"));
+    if (!saved) return JSON.parse(JSON.stringify(defaultStats));
+    // 合併新欄位（舊存檔沒有的欄位補上預設值）
+    let merged = Object.assign({}, defaultStats, saved);
+    merged.achievements = Object.assign({}, defaultStats.achievements, saved.achievements || {});
+    return merged;
+})();
 function saveStats() { localStorage.setItem("big2_stats", JSON.stringify(playerStats)); }
 
 function unlockAchievement(id) {
@@ -906,10 +974,30 @@ function openStatsModal() {
     document.getElementById("statWins").innerText = playerStats.wins;
     document.getElementById("statMonsters").innerText = playerStats.monstersPlayed;
     document.getElementById("statMaxScore").innerText = playerStats.maxScore;
+
+    // 進度輔助文字
+    const progressHints = {
+        dragonFist:        `${playerStats.dragonsPlayed || 0} / 5 次一條龍`,
+        millenniumEmperor: `累計贏分 ${localStorage.getItem("big2_lifetimeScore")||0} / 1000`,
+        ironCurtain:       `${playerStats.fourOfAKindCount || 0} / 20 次鐵支`,
+        speedDemon:        `${playerStats.wins} 勝 / ${playerStats.matches} 局`,
+        untouchable:       `歷史最長連Pass：${playerStats.passStreakMax || 0} 次`,
+        dragonSlayer:      `已解鎖即可`,
+        centurion:         `總分 ${Math.max(...totalScores)} / 100`,
+        comebackKid:       `歷史最低分 ${playerStats.lowestScore || 0}`,
+    };
+
     let badgesHtml = "";
     for (let key in playerStats.achievements) {
-        let ach = playerStats.achievements[key]; let statusClass = ach.unlocked ? "unlocked" : "locked";
-        badgesHtml += `<div class="badge ${statusClass}"><div class="badge-icon">${ach.icon}</div><div class="badge-title">${ach.title}</div><div class="badge-desc">${ach.desc}</div></div>`;
+        let ach = playerStats.achievements[key];
+        let statusClass = ach.unlocked ? "unlocked" : "locked";
+        let hint = (!ach.unlocked && progressHints[key]) ? `<div class="badge-progress">${progressHints[key]}</div>` : '';
+        badgesHtml += `<div class="badge ${statusClass}">
+            <div class="badge-icon">${ach.icon}</div>
+            <div class="badge-title">${ach.title}</div>
+            <div class="badge-desc">${ach.desc}</div>
+            ${hint}
+        </div>`;
     }
     document.getElementById("badgesContainer").innerHTML = badgesHtml;
     document.getElementById("statsModal").style.display = "flex";
@@ -1159,22 +1247,48 @@ function spawnFloatingText(text, isMonster) {
 }
 
 function executePlay(cards, r, isPlayer) {
-    playSound(sndPlayCard); players[current] = players[current].filter(c => !cards.includes(c)); last = r; lastPlayer = current; consecutivePasses = 0; 
+    playSound(sndPlayCard);
+    players[current] = players[current].filter(c => !cards.includes(c));
+    last = r; lastPlayer = current; consecutivePasses = 0;
+    // 出牌即重置本局Pass連streak
+    if (isPlayer) playerStats.passStreak = 0;
+
     let playName = r.name || (r.type + " 張牌");
-    updateInfo(`玩家 ${current} 出了 ${playName}`); 
-    renderTable(cards); renderOpponents(); 
-    
+    updateInfo(`玩家 ${current} 出了 ${playName}`);
+    renderTable(cards); renderOpponents();
+
     if (isPlayer) {
         if (r.monsterLevel > 0) {
             playerStats.monstersPlayed++; saveStats();
-            if (r.type === 13) unlockAchievement("dragonSlayer");
+
+            // 一條龍系列
+            if (r.type === 13) {
+                unlockAchievement("dragonSlayer");
+                playerStats.dragonsPlayed++;
+                if (playerStats.dragonsPlayed >= 5) unlockAchievement("dragonFist");
+                saveStats();
+            }
+
+            // 鐵支系列
+            if (r.subType === "four") {
+                playerStats.fourOfAKindCount = (playerStats.fourOfAKindCount || 0) + 1;
+                if (playerStats.fourOfAKindCount >= 20) unlockAchievement("ironCurtain");
+                saveStats();
+            }
         }
+
+        // 背水一戰：出這張後剩0張 → 在 showScoreModal 判斷是否是最後1張觸發
+        if (players[0].length === 0 && playerStats.lastCardWinPending) {
+            // 留給 showScoreModal 確認是否贏局
+        }
+        // 標記「出牌前只剩1張」
+        playerStats.lastCardWinPending = (players[current].length === 0 && cards.length === 1);
     }
 
     if (r.name && ['順子','葫蘆'].includes(r.name)) spawnFloatingText(r.name, false);
     if (r.monsterLevel > 0) {
         spawnFloatingText(`🔥${r.name}🔥`, true);
-        document.body.classList.remove("shake-screen"); void document.body.offsetWidth; 
+        document.body.classList.remove("shake-screen"); void document.body.offsetWidth;
         document.body.classList.add("shake-screen");
     }
 
@@ -1328,7 +1442,17 @@ function play(){
 }
 
 
-function pass(){ if(current != 0) return; if(last == null){ updateInfo("⚠️ 擁有牌權時不能 Pass！"); return; } selected = []; renderPlayer(); executePass(); }
+function pass(){
+    if(current != 0) return;
+    if(last == null){ updateInfo("⚠️ 擁有牌權時不能 Pass！"); return; }
+    // 追蹤玩家Pass連streak
+    playerStats.passStreak = (playerStats.passStreak || 0) + 1;
+    if (playerStats.passStreak >= 5) {
+        unlockAchievement("untouchable");
+        saveStats();
+    }
+    selected = []; renderPlayer(); executePass();
+}
 function executePass(){
     consecutivePasses++; updateInfo(`玩家 ${current} 選擇 Pass`);
     if(consecutivePasses >= 3){ 
@@ -1356,42 +1480,99 @@ function shootConfetti() {
 
 function showScoreModal(winnerIndex) {
     let roundScores = [0, 0, 0, 0]; let winnerEarnings = 0; let hasOpponentWith13 = false;
+    let allOpponentsHeavy = true; // 屠殺現場：三位對手都剩10+張
+
     for (let i = 0; i < 4; i++) {
         if (i !== winnerIndex) {
             let remain = players[i].length; let penalty = remain;
-            if (remain === 13) { penalty *= 3; hasOpponentWith13 = true; } 
+            if (remain === 13) { penalty *= 3; hasOpponentWith13 = true; }
             else if (remain >= 10) penalty *= 2;
-            roundScores[i] -= penalty; winnerEarnings += penalty; 
+            else allOpponentsHeavy = false; // 有對手剩不到10張
+            roundScores[i] -= penalty; winnerEarnings += penalty;
         }
     }
     roundScores[winnerIndex] += winnerEarnings;
-    
+
     playerStats.matches++;
+    playerStats.passStreak = 0; // 每局結束重置
+
     if (winnerIndex === 0) {
         playerStats.wins++;
         if (winnerEarnings > playerStats.maxScore) playerStats.maxScore = winnerEarnings;
-        unlockAchievement("firstBlood"); if (hasOpponentWith13) unlockAchievement("cleanSweep");
+
+        // 原有成就
+        unlockAchievement("firstBlood");
+        if (hasOpponentWith13) unlockAchievement("cleanSweep");
+
+        // 背水一戰
+        if (playerStats.lastCardWinPending) unlockAchievement("lastStand");
+
+        // 屠殺現場：三位對手全都剩10+張
+        if (allOpponentsHeavy) unlockAchievement("butcher");
+
+        // 閃電戰神：不超過10局贏得5場
+        if (playerStats.wins >= 5 && playerStats.matches <= 10) unlockAchievement("speedDemon");
     }
-    saveStats(); 
+
+    playerStats.lastCardWinPending = false;
+    saveStats();
 
     let hasUltimate = false;
-    for (let i = 0; i < 4; i++) { totalScores[i] += roundScores[i]; if (totalScores[i] >= 100) hasUltimate = true; }
+    for (let i = 0; i < 4; i++) {
+        totalScores[i] += roundScores[i];
+        if (totalScores[i] >= 100) hasUltimate = true;
+    }
     localStorage.setItem("big2_scores", JSON.stringify(totalScores));
 
-    if (hasUltimate) { shootConfetti(); if (totalScores[0] >= 100) unlockAchievement("centurion"); }
+    // 記錄歷史最低分（用於絕地大反攻）
+    if (totalScores[0] < (playerStats.lowestScore || 0)) {
+        playerStats.lowestScore = totalScores[0];
+        saveStats();
+    }
 
-    document.getElementById("modalTitle").innerHTML = hasUltimate ? `👑 總冠軍誕生！` : (winnerIndex === 0 ? `🏆 你贏了！(+${winnerEarnings})` : `😢 電腦 ${winnerIndex} 獲勝`);
+    if (hasUltimate) {
+        shootConfetti();
+        if (totalScores[0] >= 100) {
+            unlockAchievement("centurion");
+            // 絕地大反攻：曾低於-50最終奪冠
+            if ((playerStats.lowestScore || 0) <= -50) unlockAchievement("comebackKid");
+        }
+    }
+
+    // 千古一帝：累計積分達1000（跨局累計，用lifetime積分追蹤）
+    let lifetimeScore = parseInt(localStorage.getItem("big2_lifetimeScore") || "0");
+    if (winnerIndex === 0 && winnerEarnings > 0) {
+        lifetimeScore += winnerEarnings;
+        localStorage.setItem("big2_lifetimeScore", lifetimeScore);
+        if (lifetimeScore >= 1000) unlockAchievement("millenniumEmperor");
+    }
+
+    document.getElementById("modalTitle").innerHTML = hasUltimate
+        ? `👑 總冠軍誕生！`
+        : (winnerIndex === 0 ? `🏆 你贏了！(+${winnerEarnings})` : `😢 電腦 ${winnerIndex} 獲勝`);
+
     let scoresHtml = "";
-    for (let i = 0; i < 4; i++) scoresHtml += `<div style="padding:5px">➤ ${i===0?"你":`電腦${i}`}：${i===winnerIndex?"贏家":`剩 ${players[i].length} 張`} <span style="float:right">${roundScores[i]} (總分: ${totalScores[i]})</span></div>`;
-    document.getElementById("modalScores").innerHTML = scoresHtml; 
+    for (let i = 0; i < 4; i++)
+        scoresHtml += `<div style="padding:5px">➤ ${i===0?"你":`電腦${i}`}：${i===winnerIndex?"贏家":`剩 ${players[i].length} 張`} <span style="float:right">${roundScores[i]} (總分: ${totalScores[i]})</span></div>`;
+    document.getElementById("modalScores").innerHTML = scoresHtml;
     document.getElementById("scoreModal").style.display = "flex";
 }
 
-function resetScores() { localStorage.removeItem("big2_scores"); location.reload(); }
+function resetScores() {
+    localStorage.removeItem("big2_scores");
+    localStorage.removeItem("big2_lifetimeScore");
+    localStorage.removeItem("big2_stats");
+    location.reload();
+}
 function next(){ if(players[current].length === 0){ setTimeout(() => { showScoreModal(current); }, 500); return; } current = (current + 1) % 4; renderOpponents(); if(current != 0) setTimeout(()=>{ aiPlay(); }, 1200); else checkAutoPass(); }
 
 /* ===== 初始化 ===== */
 function init(){
+    // 重置每局暫時追蹤欄位
+    if (playerStats) {
+        playerStats.passStreak = 0;
+        playerStats.lastCardWinPending = false;
+    }
     renderScoreboard(); createDeck(); shuffle(); deal(); findStarter(); renderOpponents();
     setTimeout(() => {
         renderPlayer(true);
