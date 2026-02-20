@@ -368,21 +368,34 @@ body {
     width: 92%;
     max-width: 640px;
     margin: 0 auto;
-    overflow-x: hidden;
+    /* 允許橫向捲動，讓桌機也能看到全部牌 */
+    overflow-x: auto;
     overflow-y: visible;
     background: linear-gradient(to bottom, rgba(0,0,0,0.35), rgba(0,0,0,0.2));
     border-radius: 0 0 14px 14px;
     border: 1px solid rgba(240,192,64,0.2);
     border-top: 2px solid rgba(240,192,64,0.35);
+    /* 桌機顯示細捲軸，手機隱藏 */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(240,192,64,0.35) transparent;
+}
+.hand-wrapper::-webkit-scrollbar { height: 4px; }
+.hand-wrapper::-webkit-scrollbar-track { background: transparent; }
+.hand-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(240,192,64,0.35);
+    border-radius: 2px;
 }
 
 .hand {
     display: flex;
     justify-content: flex-start;
-    overflow-x: auto;
+    /* 不在 .hand 層設 overflow，交給 .hand-wrapper 統一管理 */
+    overflow-x: visible;
+    overflow-y: visible;
     padding: 30px 16px 16px 16px;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    /* 確保內容不換行 */
+    width: max-content;
+    min-width: 100%;
 }
 .hand::-webkit-scrollbar { display: none; }
 
@@ -856,7 +869,8 @@ button:active { transform: scale(0.95) !important; }
     .player-label { font-size: 12px; }
     .player-card-count { font-size: 11px; }
     .player-role-badge { font-size: 10px; padding: 2px 8px; }
-    .hand-wrapper { width: 92%; }
+    .hand-wrapper { width: 92%; scrollbar-width: none; }
+    .hand-wrapper::-webkit-scrollbar { display: none; }
     .hand { padding: 26px 12px 14px 12px; }
     #table { min-height: 95px; padding: 10px 8px; border-radius: 14px; }
     .hole-cards { height: 60px; gap: 6px; }
