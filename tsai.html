@@ -289,9 +289,9 @@
       box-shadow: 0 2px 8px rgba(227, 154, 92, 0.3);
     }
     
-    /* Profile */
+    /* Profile - 新增卡片樣式 */
     .profile{
-      padding:28px;
+      padding:32px;
     }
     .profile > h3{
       margin:0 0 32px;
@@ -315,49 +315,169 @@
       flex-direction:column;
       gap:24px;
     }
+    
+    /* 照片卡片樣式 */
     .avatar{
       border-radius:var(--radius);
       overflow:hidden;
       box-shadow:var(--shadow);
-      background: var(--brand-light);
-      padding: 8px;
+      background: linear-gradient(135deg, var(--brand-light) 0%, var(--accent-light) 100%);
+      padding: 16px;
+      transition: all 0.3s ease;
+      border: 3px solid transparent;
+    }
+    .avatar:hover {
+      border-color: var(--brand);
+      transform: scale(1.02);
     }
     .avatar img{
       width:100%;
       height:auto;
       display:block;
-      border-radius: 14px;
+      border-radius: 12px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
     }
-    .bio section{
-      margin:24px 0;
-      padding: 24px;
-      background: var(--accent-light);
+    
+    /* 資訊卡片樣式 */
+    .info-card{
+      background: linear-gradient(135deg, #ffffff 0%, var(--accent-light) 100%);
       border-radius: 16px;
-      border-left: 5px solid var(--accent);
-      box-shadow: 0 2px 8px rgba(45, 109, 103, 0.1);
+      padding: 28px;
+      box-shadow: 0 8px 20px rgba(45, 109, 103, 0.15);
+      border: 3px solid var(--accent);
+      border-left-width: 8px;
       transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
     }
-    .bio section:hover{
-      transform: translateX(4px);
-      box-shadow: 0 4px 12px rgba(45, 109, 103, 0.15);
+    
+    .info-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 120px;
+      height: 120px;
+      background: radial-gradient(circle, rgba(45, 109, 103, 0.1) 0%, transparent 70%);
+      border-radius: 50%;
+      transform: translate(40px, -40px);
     }
-    .bio h3{
-      margin:0 0 16px;
+    
+    .info-card:hover{
+      transform: translateX(8px) translateY(-4px);
+      box-shadow: 0 12px 28px rgba(45, 109, 103, 0.25);
+      border-left-width: 12px;
+    }
+    
+    .info-card h3{
+      margin:0 0 20px;
       font-size:24px;
       color: var(--accent);
-      font-weight: 700;
-      letter-spacing: 0.5px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
     }
-    .bio ol{
-      margin:0 0 12px 1.5em;
-      padding:0;
+    
+    .info-card h3::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 0 4px rgba(45, 109, 103, 0.2);
     }
-    .bio li{
-      margin:12px 0;
+    
+    .info-card ol{
+      margin:0;
+      padding:0 0 0 1.8em;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .info-card li{
+      margin:14px 0;
       line-height: 2;
-      font-size: 17.5px;
+      font-size: 17px;
       color: var(--ink);
       font-weight: 500;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(45, 109, 103, 0.1);
+      transition: all 0.2s ease;
+    }
+    
+    .info-card li:last-child {
+      border-bottom: none;
+    }
+    
+    .info-card li:hover {
+      padding-left: 8px;
+      color: var(--accent);
+    }
+    
+    /* 歷年表彰特殊樣式 */
+    .awards-card {
+      background: linear-gradient(135deg, #ffffff 0%, var(--brand-light) 100%);
+      border-color: var(--brand);
+    }
+    
+    .awards-card::before {
+      background: radial-gradient(circle, rgba(227, 154, 92, 0.12) 0%, transparent 70%);
+    }
+    
+    .awards-card h3 {
+      color: var(--brand-dark);
+    }
+    
+    .awards-card h3::before {
+      background: var(--brand);
+      box-shadow: 0 0 0 4px rgba(227, 154, 92, 0.2);
+    }
+    
+    .awards-card li {
+      border-bottom-color: rgba(227, 154, 92, 0.15);
+    }
+    
+    .awards-card:hover {
+      border-color: var(--brand-dark);
+    }
+    
+    .awards-card li:hover {
+      color: var(--brand-dark);
+    }
+    
+    /* 訓練及進修特殊樣式 */
+    .training-card {
+      background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+      border-color: #3b82f6;
+    }
+    
+    .training-card::before {
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+    }
+    
+    .training-card h3 {
+      color: #1e40af;
+    }
+    
+    .training-card h3::before {
+      background: #3b82f6;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+    }
+    
+    .training-card li {
+      border-bottom-color: rgba(59, 130, 246, 0.1);
+    }
+    
+    .training-card:hover {
+      border-color: #1e40af;
+    }
+    
+    .training-card li:hover {
+      color: #1e40af;
     }
     
     /* Single Image */
@@ -507,12 +627,57 @@
             <figure class="avatar">
               <img src="https://linwei630718.github.io/html/tsai/tsai.jpg" alt="蔡玉貞校長照片" />
             </figure>
-            <section><h3>學歷</h3><ol><li>省立屏東師範專科學校普通科音樂組</li><li>國立屏東教育大學初等教育學系</li><li>國立臺中教育大學語文教育系碩士</li></ol></section>
-            <section><h3>經歷</h3><ol><li>苗栗縣苑裡鎮苑裡國小教師</li><li>臺中市烏日區旭光國小科任、組長</li><li>臺中市南屯區惠文國小教師、組長</li><li>臺中市北屯區仁愛國小主任</li><li>現職：臺中市沙鹿區公舘國小校長</li></ol></section>
+            
+            <div class="info-card">
+              <h3>學歷</h3>
+              <ol>
+                <li>省立屏東師範專科學校普通科音樂組</li>
+                <li>國立屏東教育大學初等教育學系</li>
+                <li>國立臺中教育大學語文教育系碩士</li>
+              </ol>
+            </div>
+            
+            <div class="info-card">
+              <h3>經歷</h3>
+              <ol>
+                <li>苗栗縣苒裡鎮苒裡國小教師</li>
+                <li>臺中市烏日區旭光國小科任、組長</li>
+                <li>臺中市南屯區惠文國小教師、組長</li>
+                <li>臺中市北屯區仁愛國小主任</li>
+                <li>現職：臺中市沙鹿區公舘國小校長</li>
+              </ol>
+            </div>
           </div>
+          
           <div class="profile-right">
-            <section><h3>歷年表彰</h3><ol><li>81年度 榮獲苗栗縣苑裡鎮青年楷模</li><li>83年度 榮獲苗栗縣績優教師</li><li>86年度 榮獲臺中縣績優教師</li><li>88年度 榮獲臺中縣藝能教學類優良教育人員</li><li>100年度 榮獲臺中市「友善校園獎」評選績優學校執行有功人員</li><li>103年度 榮獲臺中市優良輔導教育人員</li><li>108年度 榮獲臺中市優良教學人員</li><li>110年度 榮獲臺中市優良採購人員</li><li>113年度 榮獲臺中市優良教學人員</li></ol></section>
-            <section><h3>訓練及進修</h3><ol><li>國家教育研究院第183期國民小學校長儲訓班 成績及格結業</li><li>國家教育研究院第123期國民小學主任儲訓班 成績及格結業</li><li>中華民國童子軍國家研習營木章訓練第121期</li><li>臺中市「校園性別事件調查專業人員」初階結業</li><li>教師專業發展評鑑人員 初階證書</li><li>教育部「家庭展能教育支持計畫」輔導人員培育證書</li><li>行政院公共工程委員會 採購專業人員基礎訓練及格</li><li>中華民國工業安全衛生協會 乙種職業安全衛生主管教育訓練及格</li></ol></section>
+            <div class="info-card awards-card">
+              <h3>歷年表彰</h3>
+              <ol>
+                <li>81年度 榮獲苗栗縣苒裡鎮青年楷模</li>
+                <li>83年度 榮獲苗栗縣績優教師</li>
+                <li>86年度 榮獲臺中縣績優教師</li>
+                <li>88年度 榮獲臺中縣藝能教學類優良教育人員</li>
+                <li>100年度 榮獲臺中市「友善校園獎」評選績優學校執行有功人員</li>
+                <li>103年度 榮獲臺中市優良輔導教育人員</li>
+                <li>108年度 榮獲臺中市優良教學人員</li>
+                <li>110年度 榮獲臺中市優良採購人員</li>
+                <li>113年度 榮獲臺中市優良教學人員</li>
+              </ol>
+            </div>
+            
+            <div class="info-card training-card">
+              <h3>訓練及進修</h3>
+              <ol>
+                <li>國家教育研究院第183期國民小學校長儲訓班 成績及格結業</li>
+                <li>國家教育研究院第123期國民小學主任儲訓班 成績及格結業</li>
+                <li>中華民國童子軍國家研習營木章訓練第121期</li>
+                <li>臺中市「校園性別事件調查專業人員」初階結業</li>
+                <li>教師專業發展評鑑人員 初階證書</li>
+                <li>教育部「家庭展能教育支持計畫」輔導人員培育證書</li>
+                <li>行政院公共工程委員會 採購專業人員基礎訓練及格</li>
+                <li>中華民國工業安全衛生協會 乙種職業安全衛生主管教育訓練及格</li>
+              </ol>
+            </div>
           </div>
         </div>
       </div>
@@ -538,7 +703,7 @@
     <section id="philosophy" aria-labelledby="philosophy-title">
       <div class="section-head"><h2 id="philosophy-title">辦學理念</h2><div class="bar" aria-hidden="true"></div></div>
       <article class="card 理念">
-        <p><strong>辦學理念：以 LEARN‧LOVE‧LIVE 為脈絡，構築愛的學校，幸福學園。</strong></p>
+        <p><strong>辦學理念：以 LEARN・LOVE・LIVE 為脈絡，構築愛的學校，幸福學園。</strong></p>
 
         <img src="https://linwei630718.github.io/html/tsai/4L.png" alt="LEAD LEARN LOVE LIVE 圖示" />
 
@@ -574,60 +739,3 @@
   </footer>
 
   <!-- 使用說明 dialog -->
-  <dialog id="helpDialog" aria-labelledby="helpTitle">
-    <div class="help-header">
-      <h2 id="helpTitle" tabindex="-1">使用說明（無障礙操作提示）</h2>
-      <button class="close-btn" aria-label="關閉說明">×</button>
-    </div>
-    <div>
-      <ul>
-        <li>按 <kbd>Tab</kbd> 逐一瀏覽連結與按鈕。</li>
-        <li>按 <kbd>Enter</kbd> 或 <kbd>Space</kbd> 觸發操作。</li>
-        <li>按 <kbd>Esc</kbd> 可關閉視窗或對話框。</li>
-        <li>快速鍵：<kbd>Alt</kbd>+<kbd>H</kbd> 開啟/關閉本說明。</li>
-        <li>右下角「↑」按鈕可快速回到頂首。</li>
-      </ul>
-    </div>
-  </dialog>
-
-  <!-- 移到頂部 -->
-  <button id="toTop" aria-label="移到頂部" title="移到頂部">
-    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
-  </button>
-
-  <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
-    const toTop = document.getElementById('toTop');
-    const toggleTop = () => {
-      if(window.scrollY > 180) toTop.classList.add('show');
-      else toTop.classList.remove('show');
-    };
-    document.addEventListener('scroll', toggleTop, {passive:true});
-    toggleTop();
-    toTop.addEventListener('click', () => window.scrollTo({top:0, behavior:'smooth'}));
-    
-    const helpBtn = document.getElementById('helpBtn');
-    const helpDialog = document.getElementById('helpDialog');
-    const closeBtn = helpDialog.querySelector('.close-btn');
-    
-    function toggleHelp(){
-      if(helpDialog.open){
-        helpDialog.close();
-        helpBtn.focus();
-      } else {
-        helpDialog.showModal();
-        helpDialog.querySelector('h2').focus();
-      }
-    }
-    
-    helpBtn.addEventListener('click', toggleHelp);
-    closeBtn.addEventListener('click', () => helpDialog.close());
-    document.addEventListener('keydown', e => {
-      if(e.altKey && e.key.toLowerCase() === 'h'){
-        e.preventDefault();
-        toggleHelp();
-      }
-    });
-  </script>
-</body>
-</html>
