@@ -323,19 +323,57 @@ body {
     pointer-events: none;
 }
 
-/* ===== 手牌區 ===== */
+/* ===== 玩家資訊列 ===== */
+.player-info-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 92%;
+    max-width: 640px;
+    margin: 0 auto 2px;
+    padding: 6px 14px;
+    background: linear-gradient(135deg, rgba(240,192,64,0.08), rgba(0,0,0,0.3));
+    border-radius: 12px 12px 0 0;
+    border: 1px solid rgba(240,192,64,0.2);
+    border-bottom: none;
+}
+.player-avatar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.player-avatar { font-size: 22px; }
+.player-label { font-size: 13px; font-weight: 900; color: var(--gold); letter-spacing: 0.5px; }
+.player-role-badge {
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-weight: 900;
+    opacity: 0;
+    transition: opacity 0.4s;
+}
+.player-role-badge.landlord { background: linear-gradient(135deg,#f0c040,#b8860b); color:#1a0a00; opacity:1; }
+.player-role-badge.farmer { background: rgba(74,222,128,0.2); color:#4ade80; border:1px solid rgba(74,222,128,0.4); opacity:1; }
+.player-card-count { font-size: 12px; color: #a0a0a0; }
+.player-card-count span { color: var(--gold-light); font-weight: 900; }
+
+/* ===== 手牌底板 ===== */
 .hand-wrapper {
-    width: 100%;
-    max-width: 800px;
+    width: 92%;
+    max-width: 640px;
     margin: 0 auto;
     overflow: hidden;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.35), rgba(0,0,0,0.2));
+    border-radius: 0 0 14px 14px;
+    border: 1px solid rgba(240,192,64,0.2);
+    border-top: 2px solid rgba(240,192,64,0.35);
 }
 
 .hand {
     display: flex;
     justify-content: flex-start;
     overflow-x: auto;
-    padding: 18px 16px 24px 16px;
+    padding: 16px 16px 20px 16px;
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
@@ -381,13 +419,35 @@ body {
 .corner-suit { font-size: 10px; }
 .top-left { top: 4px; left: 5px; }
 .bottom-right { bottom: 4px; right: 5px; transform: rotate(180deg); }
-.center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 26px; z-index: 2; }
-
-/* 紅黑花色 */
+/* 小王大王 */
 .suit-heart, .suit-diamond { color: #cc1111; }
 .suit-spade, .suit-club { color: #111; }
 
-/* 小王大王 */
+/* 臉牌中央圖案 */
+.face-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -54%);
+    font-size: 28px;
+    z-index: 2;
+    line-height: 1;
+}
+.face-suit-stamp {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    z-index: 2;
+    opacity: 0.5;
+}
+
+/* 角落標籤永遠在最上層 */
+.corner { position: absolute; font-size: 13px; font-weight: 900; z-index: 5; line-height: 1.1; text-align: center; }
+.corner-suit { font-size: 10px; }
+.top-left { top: 4px; left: 5px; }
+.bottom-right { bottom: 4px; right: 5px; transform: rotate(180deg); }
 .full-cover { position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; box-sizing: border-box; }
 .joker-bg-red {
     background: linear-gradient(145deg, #dc2626, #7f1d1d);
@@ -415,8 +475,20 @@ body {
     animation: flip-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 .hole-card.hidden {
-    background: repeating-linear-gradient(45deg, #1e4a8a, #1e4a8a 4px, #1e6ab4 4px, #1e6ab4 8px);
+    background-color: #1a3a7a;
+    background-image:
+        repeating-linear-gradient(45deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 2px, transparent 2px, transparent 10px),
+        repeating-linear-gradient(-45deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 2px, transparent 2px, transparent 10px);
+    border: 2px solid rgba(255,255,255,0.15);
     color: transparent;
+}
+.hole-card.hidden::after {
+    content: '🂠';
+    position: absolute;
+    font-size: 28px;
+    opacity: 0.15;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 @keyframes flip-in {
@@ -431,9 +503,11 @@ body {
     position: fixed;
     bottom: 0; left: 0;
     width: 100%;
-    background: linear-gradient(to top, rgba(10,25,15,0.98), rgba(15,35,20,0.95));
+    background: linear-gradient(to top, rgba(5,15,8,0.97), rgba(10,25,12,0.93));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     padding: 10px 0 14px;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.6), 0 -1px 0 rgba(240,192,64,0.2);
+    box-shadow: 0 -1px 0 rgba(240,192,64,0.25), 0 -8px 32px rgba(0,0,0,0.7);
     z-index: 50;
     display: flex;
     justify-content: center;
@@ -561,7 +635,68 @@ button:active { transform: scale(0.95) !important; }
 .rules-text b { color: var(--gold); }
 .rules-section { margin-bottom: 10px; padding: 10px 12px; background: rgba(255,255,255,0.04); border-radius: 10px; border-left: 3px solid var(--gold); }
 
-/* ===== 動畫 ===== */
+/* ===== 叫牌按鈕進場動畫 ===== */
+@keyframes slide-up-btn {
+    from { opacity: 0; transform: translateY(28px) scale(0.9); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.btn-bid-anim { animation: slide-up-btn 0.35s cubic-bezier(0.34,1.56,0.64,1) both; }
+.btn-bid-anim:nth-child(2) { animation-delay: 0.07s; }
+.btn-bid-anim:nth-child(3) { animation-delay: 0.14s; }
+.btn-bid-anim:nth-child(4) { animation-delay: 0.21s; }
+
+/* 叫牌階段底欄提示標語 */
+.bid-label {
+    width: 100%;
+    text-align: center;
+    font-size: 11px;
+    color: rgba(240,192,64,0.5);
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+}
+
+/* ===== 地主宣告覆蓋層 ===== */
+.landlord-announce {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 900;
+    pointer-events: none;
+    animation: announce-anim 1.8s ease-out forwards;
+}
+@keyframes announce-anim {
+    0%   { opacity: 0; }
+    15%  { opacity: 1; }
+    70%  { opacity: 1; }
+    100% { opacity: 0; }
+}
+.landlord-announce-text {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 42px;
+    color: var(--gold);
+    text-shadow: 0 0 40px rgba(240,192,64,0.9), 0 0 80px rgba(240,192,64,0.4), 4px 4px 0 rgba(0,0,0,0.8);
+    letter-spacing: 4px;
+    animation: text-scale-in 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes text-scale-in {
+    from { transform: scale(0.4) rotate(-8deg); opacity: 0; }
+    to   { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.landlord-announce-sub {
+    font-size: 18px;
+    color: rgba(255,255,255,0.85);
+    margin-top: 10px;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+}
+.landlord-announce-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
+}
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
 @keyframes shake { 0%, 100% { transform: translate(0) rotate(0deg); } 10%, 30%, 50%, 70%, 90% { transform: translate(-5px,-2px) rotate(-1deg); } 20%, 40%, 60%, 80% { transform: translate(5px,2px) rotate(1deg); } }
@@ -588,17 +723,48 @@ button:active { transform: scale(0.95) !important; }
 }
 @keyframes win-glow-anim { 0% { opacity: 1; } 100% { opacity: 0; } }
 
+/* ===== 出牌區牌型標籤 ===== */
+.played-type-label {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: 900;
+    color: rgba(240,192,64,0.75);
+    letter-spacing: 1.5px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 10;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    animation: fadeIn 0.3s ease;
+}
+
+/* ===== 對手牌數危急高亮 ===== */
+.opp-count.danger  { color: #f87171 !important; animation: pulse 0.8s infinite; }
+.opp-count.warning { color: #fb923c !important; }
+
+/* ===== 發牌入場動畫 ===== */
+@keyframes card-deal {
+    from { opacity:0; transform: translateY(30px) rotate(5deg) scale(0.88); }
+    to   { opacity:1; transform: translateY(0) rotate(0deg) scale(1); }
+}
+.card-deal-anim { animation: card-deal 0.28s cubic-bezier(0.34,1.2,0.64,1) both; }
+
 /* 版權 */
 .copyright { font-size: 10px; color: rgba(240,192,64,0.2); text-align: center; padding: 8px 0 4px; letter-spacing: 1px; }
 
 @media (max-width: 600px) {
     .card { width: 46px; height: 70px; margin: 0 -12px; }
-    .corner { font-size: 11px; } .center { font-size: 20px; }
+    .corner { font-size: 11px; }
     .joker-text { font-size: 14px; } .joker-icon { font-size: 16px; }
     button { padding: 9px 14px; font-size: 13px; }
     .btn-play { padding: 9px 24px; }
     .game-title { font-size: 13px; }
     .opp-count { font-size: 20px; }
+    .player-info-bar { width: 92%; }
+    .hand-wrapper { width: 92%; max-width: 640px; }
+    .landlord-announce-text { font-size: 30px; }
 }
 </style>
 </head>
@@ -631,6 +797,16 @@ button:active { transform: scale(0.95) !important; }
 <div id="opponentsHUD" class="opponents-hud"></div>
 <div id="table"><span class="table-empty-hint" id="tableEmptyHint">出牌區</span></div>
 
+<div class="player-info-bar" id="playerInfoBar">
+    <div class="player-avatar-wrap">
+        <div class="player-avatar">🎭</div>
+        <div>
+            <div class="player-label">你</div>
+        </div>
+    </div>
+    <div id="playerRoleBadge" class="player-role-badge"></div>
+    <div class="player-card-count">手牌 <span id="playerCardCount">0</span> 張</div>
+</div>
 <div class="hand-wrapper">
     <div id="player" class="hand"></div>
 </div>
@@ -794,33 +970,99 @@ function renderOpponents() {
         let isActive = current === i ? "active" : "";
         let isLandlordClass = landlord === i ? "is-landlord" : "";
         let ai = aiNames[i];
+        let cnt = players[i].length;
+        let cntClass = cnt <= 1 ? "danger" : cnt <= 3 ? "warning" : "";
         hud.innerHTML += `
         <div class="opp-box ${isActive} ${isLandlordClass}">
             <div class="landlord-icon">🧑‍🌾</div>
             <div class="opp-avatar">${ai.avatar}</div>
             <div class="opp-name">${ai.name}</div>
-            <div class="opp-count">${players[i].length}<span class="opp-count-label"> 張</span></div>
+            <div class="opp-count ${cntClass}">${cnt}<span class="opp-count-label"> 張</span></div>
             <div class="thinking-dots"><span></span><span></span><span></span></div>
         </div>`;
     }
-    // 中間桌面圖示位置
-    hud.innerHTML = hud.innerHTML; // 已是innerHTML，不需再設定
     checkTension();
 }
 
+// ─── pip 座標定義 ─────────────────────────────────────────────────────────────
+// 牌面可繪區：x 6~54px, y 16~72px（已排除上下角落）
+// top = 正面方向 pip，bot = 倒置（rotate 180deg）pip
+// 座標用百分比 [x%, y%]，makePip() 再換算成實際 px
+const pipDefs = {
+    "A":  { top:[[50,50]],                                              bot:[] },
+    "2":  { top:[[50,15]],                                              bot:[[50,85]] },
+    "3":  { top:[[50,15],[50,50]],                                      bot:[[50,85]] },
+    "4":  { top:[[25,15],[75,15]],                                      bot:[[25,85],[75,85]] },
+    "5":  { top:[[25,15],[75,15],[50,50]],                              bot:[[25,85],[75,85]] },
+    "6":  { top:[[25,15],[75,15],[25,50],[75,50]],                      bot:[[25,85],[75,85]] },
+    "7":  { top:[[25,15],[75,15],[50,33],[25,50],[75,50]],              bot:[[25,85],[75,85]] },
+    "8":  { top:[[25,15],[75,15],[25,38],[75,38],[25,62],[75,62]],      bot:[[25,85],[75,85]] },
+    "9":  { top:[[25,15],[75,15],[25,42],[75,42],[50,50]],              bot:[[25,85],[75,85],[25,58],[75,58]] },
+    "10": { top:[[25,15],[75,15],[50,28],[25,42],[75,42]],              bot:[[25,85],[75,85],[50,72],[25,58],[75,58]] },
+    "J":null,"Q":null,"K":null
+};
+const faceIcons = { "J":"🫅","Q":"👸","K":"🤴" };
+
 function buildCardHTML(card) {
     if (card.isJoker) {
-        let isRed = card.rank === "RJ";
-        return `<div class="full-cover ${isRed ? 'joker-bg-red' : 'joker-bg-black'}">
-            <div class="joker-icon">${isRed ? '👑' : '🃏'}</div>
-            <div class="joker-text">${isRed ? '大<br>王' : '小<br>王'}</div>
+        const isRed = card.rank === "RJ";
+        return `<div class="full-cover ${isRed?'joker-bg-red':'joker-bg-black'}">
+            <div class="joker-icon">${isRed?'👑':'🃏'}</div>
+            <div class="joker-text">${isRed?'大<br>王':'小<br>王'}</div>
         </div>`;
     }
-    let isRed = card.suit === '♥' || card.suit === '♦';
-    let sc = isRed ? 'suit-heart' : 'suit-spade';
-    return `<div class="corner top-left ${sc}">${card.rank}<div class="corner-suit">${card.suit}</div></div>
-            <div class="center ${sc}">${card.suit}</div>
-            <div class="corner bottom-right ${sc}">${card.rank}<div class="corner-suit">${card.suit}</div></div>`;
+
+    // ── 顏色由花色決定，100% inline style，不依賴任何 CSS 繼承 ──
+    const isRed = card.suit==='♥' || card.suit==='♦';
+    const clr   = isRed ? '#cc1111' : '#111111';
+    const s = card.suit, r = card.rank;
+
+    // 角落 helper
+    const mkCorner = (topPx, leftPx, rotate) => {
+        const rs = rotate ? 'transform:rotate(180deg);' : '';
+        return `<div style="position:absolute;top:${topPx}px;left:${leftPx}px;${rs}
+                    font-size:13px;font-weight:900;line-height:1.1;text-align:center;
+                    z-index:5;color:${clr};">
+                    ${r}<div style="font-size:10px;color:${clr};">${s}</div>
+                </div>`;
+    };
+    // 左上正常、右下需反轉（絕對定位用 right/bottom）
+    const tlCorner = mkCorner(4,  5, false);
+    const brCorner = `<div style="position:absolute;bottom:4px;right:5px;transform:rotate(180deg);
+                        font-size:13px;font-weight:900;line-height:1.1;text-align:center;
+                        z-index:5;color:${clr};">
+                        ${r}<div style="font-size:10px;color:${clr};">${s}</div>
+                    </div>`;
+
+    const def = pipDefs[r];
+
+    // ── 臉牌 J/Q/K ──
+    if (!def) {
+        return `${tlCorner}
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-54%);
+                font-size:28px;z-index:2;line-height:1;">${faceIcons[r]}</div>
+            <div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
+                font-size:12px;z-index:2;opacity:0.45;color:${clr};">${s}</div>
+            ${brCorner}`;
+    }
+
+    // ── 數字牌 pip ──
+    // 可用區 x: 6~54px(寬48), y: 16~72px(高56)
+    const xMin=6, xW=48, yMin=16, yH=56;
+    const mkPip = (xp, yp, flip) => {
+        const x = (xMin + xp/100*xW).toFixed(1);
+        const y = (yMin + yp/100*yH).toFixed(1);
+        const rot = flip ? 'rotate(180deg)' : '';
+        return `<span style="position:absolute;left:${x}px;top:${y}px;
+                    transform:translate(-50%,-50%) ${rot};
+                    font-size:13px;line-height:1;color:${clr};z-index:2;
+                    display:block;">${s}</span>`;
+    };
+
+    const topPips = def.top.map(([xp,yp]) => mkPip(xp, yp, false)).join('');
+    const botPips = def.bot.map(([xp,yp]) => mkPip(xp, yp, true)).join('');
+
+    return `${tlCorner}${topPips}${botPips}${brCorner}`;
 }
 
 function renderPlayer() {
@@ -828,17 +1070,19 @@ function renderPlayer() {
     area.innerHTML = "";
     players[0].forEach((c, i) => {
         let div = document.createElement("div");
-        div.className = "card";
+        div.className = "card card-deal-anim";
+        div.style.animationDelay = (i * 0.03) + 's';
         if (selected.includes(i)) div.classList.add("selected");
         div.innerHTML = buildCardHTML(c);
         div.onclick = () => toggle(i);
         area.appendChild(div);
     });
+    let cc = document.getElementById("playerCardCount");
+    if (cc) cc.textContent = players[0].length;
 }
 
-function renderTable(cards) {
+function renderTable(cards, typeName) {
     let t = document.getElementById("table");
-    let hint = document.getElementById("tableEmptyHint");
     t.innerHTML = "";
     if (cards.length === 0) {
         let h = document.createElement('span');
@@ -849,10 +1093,17 @@ function renderTable(cards) {
         else h.textContent = '出牌區';
         t.appendChild(h);
     } else {
-        cards.forEach(c => {
+        // 牌型標籤
+        if (typeName) {
+            let lbl = document.createElement('div');
+            lbl.className = 'played-type-label';
+            lbl.textContent = typeName;
+            t.appendChild(lbl);
+        }
+        cards.forEach((c, idx) => {
             let div = document.createElement("div");
-            div.className = "card";
-            div.style.animation = "fadeIn 0.2s ease";
+            div.className = "card card-deal-anim";
+            div.style.animationDelay = (idx * 0.04) + 's';
             div.innerHTML = buildCardHTML(c);
             t.appendChild(div);
         });
@@ -862,7 +1113,22 @@ function renderTable(cards) {
 function toggle(i) {
     if (selected.includes(i)) selected = selected.filter(x => x !== i);
     else selected.push(i);
-    renderPlayer();
+    renderPlayerNoAnim();
+}
+
+function renderPlayerNoAnim() {
+    let area = document.getElementById("player");
+    area.innerHTML = "";
+    players[0].forEach((c, i) => {
+        let div = document.createElement("div");
+        div.className = "card";
+        if (selected.includes(i)) div.classList.add("selected");
+        div.innerHTML = buildCardHTML(c);
+        div.onclick = () => toggle(i);
+        area.appendChild(div);
+    });
+    let cc = document.getElementById("playerCardCount");
+    if (cc) cc.textContent = players[0].length;
 }
 
 function updateInfo(msg) {
@@ -943,7 +1209,7 @@ function hint() {
     if (bestCards) {
         selected = [];
         bestCards.forEach(c => { let idx = players[0].indexOf(c); if (idx !== -1) selected.push(idx); });
-        renderPlayer();
+        renderPlayerNoAnim();
     } else { updateInfo("⚠️ 要不起（無牌可壓）"); }
 }
 
@@ -980,8 +1246,8 @@ function executePlay(cards, r) {
     if (current === landlord) landlordPlayCount++; else farmerPlayCount++;
     players[current] = players[current].filter(c => !cards.includes(c));
     last = r; lastPlayer = current; consecutivePasses = 0;
-    renderTable(cards); renderOpponents();
-    if (current === 0) { selected = []; renderPlayer(); }
+    renderTable(cards, r ? r.name : ''); renderOpponents();
+    if (current === 0) { selected = []; renderPlayerNoAnim(); }
     if (players[current].length === 0) { setTimeout(() => endGame(current), 800); return; }
     current = (current + 1) % 3; renderOpponents();
     if (current !== 0) setTimeout(aiPlay, 1500); else checkPlayerHasPlay();
@@ -991,7 +1257,7 @@ function executePass() {
     consecutivePasses++;
     if (consecutivePasses >= 2) {
         last = null; current = lastPlayer; consecutivePasses = 0;
-        renderTable([]); renderOpponents();
+        renderTable([], ''); renderOpponents();
         if (current === 0) { checkPlayerHasPlay(); } else setTimeout(aiPlay, 1200);
     } else {
         let who = current === 0 ? "你" : aiNames[current].name;
@@ -1019,7 +1285,7 @@ function play() {
 function pass() {
     if (current !== 0) return;
     if (!last) { updateInfo("⚠️ 擁有牌權時不能不出！"); return; }
-    selected = []; renderPlayer(); executePass();
+    selected = []; renderPlayerNoAnim(); executePass();
 }
 
 /* ===== AI ===== */
@@ -1052,10 +1318,24 @@ function processBidding() {
     }
     let p=bidQueue[bidIndex];
     if (p===0) {
-        document.getElementById("btnBid1").style.display = currentBid<1?"inline-block":"none";
-        document.getElementById("btnBid2").style.display = currentBid<2?"inline-block":"none";
-        document.getElementById("btnBid3").style.display = currentBid<3?"inline-block":"none";
-        document.getElementById("btnNoBid").style.display = "inline-block";
+        // 先加 bid-label
+        let panel = document.getElementById("controlPanel");
+        let oldLabel = panel.querySelector('.bid-label');
+        if (!oldLabel) {
+            let lbl = document.createElement('div');
+            lbl.className = 'bid-label';
+            lbl.textContent = '— 請選擇叫分 —';
+            panel.insertBefore(lbl, panel.firstChild);
+        }
+        let b1 = document.getElementById("btnBid1");
+        let b2 = document.getElementById("btnBid2");
+        let b3 = document.getElementById("btnBid3");
+        let bn = document.getElementById("btnNoBid");
+        [b1,b2,b3,bn].forEach((b,idx) => { b.classList.add('btn-bid-anim'); });
+        b1.style.display = currentBid<1?"inline-block":"none";
+        b2.style.display = currentBid<2?"inline-block":"none";
+        b3.style.display = currentBid<3?"inline-block":"none";
+        bn.style.display = "inline-block";
         updateInfo("🎯 你的回合，請叫分...");
     } else {
         let ai=aiNames[p], aiChoice=0;
@@ -1068,8 +1348,34 @@ function processBidding() {
 
 function playerBid(score) {
     document.querySelectorAll('.btn-bid, #btnNoBid').forEach(b => b.style.display='none');
+    let lbl = document.getElementById("controlPanel").querySelector('.bid-label');
+    if (lbl) lbl.remove();
     if (score>0){currentBid=score;landlord=0;updateInfo(`🙋 你叫了 ${score} 分`);}else{updateInfo("你選擇不叫");}
     bidIndex++; if(currentBid===3){setTimeout(()=>setLandlord(landlord,3),1000);return;}setTimeout(processBidding,1000);
+}
+
+function showLandlordAnnounce(name, isPlayer) {
+    let overlay = document.createElement('div');
+    overlay.className = 'landlord-announce';
+    overlay.innerHTML = `
+        <div class="landlord-announce-bg"></div>
+        <div class="landlord-announce-text">👑 地主</div>
+        <div class="landlord-announce-sub">${name} 擔任地主</div>
+    `;
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.remove(), 1900);
+}
+
+function updatePlayerRoleBadge() {
+    let badge = document.getElementById("playerRoleBadge");
+    if (!badge || landlord === -1) return;
+    if (landlord === 0) {
+        badge.textContent = "🧑‍🌾 地主";
+        badge.className = "player-role-badge landlord";
+    } else {
+        badge.textContent = "🌾 農民";
+        badge.className = "player-role-badge farmer";
+    }
 }
 
 function setLandlord(idx, score) {
@@ -1079,10 +1385,21 @@ function setLandlord(idx, score) {
     renderHoleCards(true); renderPlayer(); renderOpponents();
     let name = idx===0 ? "你" : `${aiNames[idx].avatar} ${aiNames[idx].name}`;
     updateInfo(`👑 ${name} 擔任地主（底分 ${score}）`);
+
+    // 地主宣告動畫
+    showLandlordAnnounce(name, idx===0);
+
+    // 玩家身份徽章
+    updatePlayerRoleBadge();
+
+    // 清除叫牌 label
+    let lbl = document.getElementById("controlPanel").querySelector('.bid-label');
+    if (lbl) lbl.remove();
+
     document.getElementById("btnPlay").style.display="inline-block";
     document.getElementById("btnPass").style.display="inline-block";
     document.getElementById("btnHint").style.display="inline-block";
-    if(current!==0) setTimeout(aiPlay,1500); else checkPlayerHasPlay();
+    if(current!==0) setTimeout(aiPlay,2000); else checkPlayerHasPlay();
 }
 
 /* ===== 彩帶 ===== */
@@ -1160,6 +1477,9 @@ function initGame() {
     initDailyQuest(); updateStatsUI();
     document.querySelectorAll('.btn-bid, #btnNoBid, #btnPass, #btnPlay, #btnHint').forEach(b=>b.style.display='none');
     document.getElementById("multiplierBadge").style.display="none";
+    // 重設身份徽章
+    let badge = document.getElementById("playerRoleBadge");
+    if (badge) { badge.textContent=""; badge.className="player-role-badge"; }
     deck=[];
     for(let r of ranks) for(let s of suits) deck.push({rank:r,suit:s,isJoker:false});
     deck.push({rank:"BJ",isJoker:true}); deck.push({rank:"RJ",isJoker:true});
@@ -1167,7 +1487,7 @@ function initGame() {
     holeCards=deck.slice(0,3); players=[[],[],[]];
     for(let i=3;i<54;i++) players[(i-3)%3].push(deck[i]);
     players.forEach(p=>p.sort((a,b)=>power[b.rank]-power[a.rank]));
-    renderHoleCards(false); renderPlayer(); renderOpponents(); renderTable([]);
+    renderHoleCards(false); renderPlayer(); renderOpponents(); renderTable([], '');
     updateInfo("🎲 發牌完成，準備叫地主");
     setTimeout(startBidding,800);
 }
