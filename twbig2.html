@@ -296,6 +296,9 @@ h2 {
     padding: 0;
     overflow: visible;
     position: relative;
+    /* 關鍵：確保容器本身置中且寬度正確 */
+    display: block;
+    box-sizing: border-box;
 }
 
 
@@ -1008,48 +1011,54 @@ function buildCardHTML(card){
 }
 
 function renderPlayer(isDealing = false){
-    let area = document.getElementById("player"); area.innerHTML = "";
+    let area = document.getElementById("player");
+    area.innerHTML = "";
     let total = players[0].length;
     if (total === 0) return;
 
-    // 扇形參數（依螢幕寬度自適應）
-    const sw = window.innerWidth;
-    const spreadLimit = sw <= 380 ? 180 : sw <= 600 ? 240 : 320;
-    const maxSpread = Math.min(total * 28, spreadLimit);
+    // ── 取容器真實渲染寬度（不依賴 window.innerWidth，避免 Android DPR 問題）
+    const areaW  = area.getBoundingClientRect().width || area.offsetWidth || 320;
+    const usable = areaW * 0.92;   // 保留兩側各 4% 邊距
+
+    // ── 扇形參數（根據容器寬度，而非螢幕寬度）
+    const maxSpread = Math.min(total * 28, usable * 0.48);
     const maxRot    = Math.min(total * 2.2, 28);
     const arcLift   = Math.min(total * 1.5, 18);
 
     players[0].forEach((c, i) => {
-        let div = document.createElement("div"); div.className = "card";
-        if(selected.includes(i)) div.classList.add("selected");
-
-        // 標示梅花3閃爍
+        let div = document.createElement("div");
+        div.className = "card";
+        if (selected.includes(i)) div.classList.add("selected");
         if (isFirstTurn && c.rank == 3 && c.suit == "♣") div.classList.add("club-three-hint");
 
-        let t = total > 1 ? (i / (total - 1)) : 0.5;
-        let xOff  = (t - 0.5) * maxSpread;
-        let rot   = (t - 0.5) * maxRot * 2;
-        let yLift = -arcLift + arcLift * (1 - Math.pow(t * 2 - 1, 2));
+        let t      = total > 1 ? (i / (total - 1)) : 0.5;
+        let xOff   = (t - 0.5) * maxSpread;
+        let rot    = (t - 0.5) * maxRot * 2;
+        let yLift  = -arcLift + arcLift * (1 - Math.pow(t * 2 - 1, 2));
 
-        let baseTransform = `translateX(${xOff}px) translateY(${yLift}px) rotate(${rot}deg)`;
-        let selectedExtra = selected.includes(i) ? ` translateY(-24px)` : '';
-        div.style.position    = 'absolute';
-        div.style.bottom      = '0';
-        div.style.left        = '50%';
-        // 依目前卡牌渲染寬度動態計算中心偏移
-        const cardW = sw <= 380 ? 52 : sw <= 600 ? 58 : 66;
-        div.style.marginLeft  = `-${Math.floor(cardW/2)}px`;
-        div.style.transform   = baseTransform + selectedExtra;
-        div.style.zIndex      = i;
-        div.style.transition  = 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease';
+        // ── 置中策略：left:50% + translateX(-50%) 先置中卡片本身，
+        //    再疊加扇形 xOff，完全不依賴 marginLeft 猜測
+        let baseTransform = `translateX(calc(-50% + ${xOff}px)) translateY(${yLift}px) rotate(${rot}deg)`;
+        let selectedShift = selected.includes(i) ? ' translateY(-24px)' : '';
+
+        div.style.cssText = `
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: ${baseTransform}${selectedShift};
+            z-index: ${i};
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+        `;
         div.dataset.baseTransform = baseTransform;
 
-        if(isDealing) { div.classList.add("deal-anim"); div.style.animationDelay = `${i * 0.04}s`; }
+        if (isDealing) {
+            div.classList.add("deal-anim");
+            div.style.animationDelay = `${i * 0.04}s`;
+        }
         div.innerHTML = buildCardHTML(c);
         div.onclick    = () => toggleFan(i, div);
         div.ondblclick = () => smartSelect(i);
 
-        // hover效果
         div.addEventListener('mouseenter', () => {
             if (!selected.includes(i))
                 div.style.transform = baseTransform + ' translateY(-18px)';
@@ -1072,6 +1081,7 @@ function toggleFan(i, div) {
     } else {
         selected.push(i);
         div.classList.add("selected");
+        // 在 base 的基礎上額外上移，不改變水平位置
         div.style.transform = base + ' translateY(-24px)';
     }
 }
@@ -1390,6 +1400,15 @@ function init(){
     }, 500);
 }
 init();
+
+// 監聽容器尺寸變化（螢幕旋轉、鍵盤彈出等），自動重繪手牌
+if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => {
+        if (players[0] && players[0].length > 0) renderPlayer();
+    });
+    ro.observe(document.getElementById("player"));
+}
+
 </script>
 </body>
 </html>
