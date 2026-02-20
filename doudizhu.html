@@ -308,8 +308,11 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 15px;
+    /* 允許 overflow-y 顯示，避免大牌被截 */
+    overflow: visible;
+    padding: 15px 10px;
     flex-wrap: wrap;
+    gap: 0;
     border: 1px solid rgba(240,192,64,0.15);
     box-shadow: inset 0 0 30px rgba(0,0,0,0.4), 0 0 0 4px rgba(0,0,0,0.3);
     position: relative;
@@ -362,7 +365,9 @@ body {
     width: 92%;
     max-width: 640px;
     margin: 0 auto;
-    overflow: hidden;
+    /* 不用 overflow:hidden，改用 overflow-x:hidden 避免截掉選牌上移 */
+    overflow-x: hidden;
+    overflow-y: visible;
     background: linear-gradient(to bottom, rgba(0,0,0,0.35), rgba(0,0,0,0.2));
     border-radius: 0 0 14px 14px;
     border: 1px solid rgba(240,192,64,0.2);
@@ -373,7 +378,8 @@ body {
     display: flex;
     justify-content: flex-start;
     overflow-x: auto;
-    padding: 16px 16px 20px 16px;
+    /* padding-top 留空間給選牌上移（selected translateY-24px） */
+    padding: 30px 16px 16px 16px;
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
@@ -793,18 +799,69 @@ button:active { transform: scale(0.95) !important; }
 /* 版權 */
 .copyright { font-size: 10px; color: rgba(240,192,64,0.2); text-align: center; padding: 8px 0 4px; letter-spacing: 1px; }
 
+/* ── 平板（768px 以下）──────────────────────────── */
+@media (max-width: 768px) {
+    .stats-panel { border-radius: 0 0 12px 12px; }
+    .game-title { font-size: 14px; }
+    #table { min-height: 110px; }
+    .type-burst-text { font-size: 44px; }
+    .type-burst-text.bomb { font-size: 52px; }
+}
+
+/* ── 手機（600px 以下）──────────────────────────── */
 @media (max-width: 600px) {
-    .card { width: 46px; height: 70px; margin: 0 -12px; }
-    .joker-text { font-size: 14px; } .joker-icon { font-size: 16px; }
-    button { padding: 9px 14px; font-size: 13px; }
-    .btn-play { padding: 9px 24px; }
-    .game-title { font-size: 13px; }
-    .opp-count { font-size: 20px; }
-    .player-info-bar { width: 92%; }
-    .hand-wrapper { width: 92%; max-width: 640px; }
-    .landlord-announce-text { font-size: 30px; }
-    .type-burst-text { font-size: 38px; letter-spacing: 4px; }
-    .type-burst-text.bomb { font-size: 44px; }
+    body { padding-bottom: 80px; }
+
+    /* 牌面縮小 */
+    .card { width: 46px; height: 70px; margin: 0 -11px; }
+    .card:hover { transform: translateY(-10px) rotate(-1deg); }
+    .card.selected { transform: translateY(-20px) scale(1.04); }
+
+    /* 王牌文字縮小 */
+    .joker-text { font-size: 13px; } .joker-icon { font-size: 15px; }
+
+    /* 按鈕 */
+    button { padding: 8px 12px; font-size: 12px; }
+    .btn-play { padding: 8px 22px; font-size: 13px; }
+
+    /* 標題 */
+    .game-title { font-size: 13px; gap: 8px; }
+
+    /* 對手牌數 */
+    .opp-count { font-size: 18px; }
+    .opp-avatar { font-size: 22px; }
+    .opp-name { font-size: 10px; }
+
+    /* 玩家資訊列 */
+    .player-info-bar { width: 92%; padding: 5px 10px; }
+    .player-label { font-size: 12px; }
+    .player-card-count { font-size: 11px; }
+    .player-role-badge { font-size: 10px; padding: 2px 8px; }
+
+    /* 手牌區 */
+    .hand-wrapper { width: 92%; }
+    .hand { padding: 26px 12px 14px 12px; }
+
+    /* 桌面 */
+    #table { min-height: 95px; padding: 10px 8px; border-radius: 14px; }
+
+    /* 底牌 */
+    .hole-cards { height: 60px; gap: 6px; }
+    .hole-card { width: 38px; height: 56px; }
+
+    /* 牌型公告 */
+    .type-burst-text { font-size: 36px; letter-spacing: 3px; }
+    .type-burst-text.bomb { font-size: 42px; }
+    .type-burst-who { font-size: 13px; }
+
+    /* 地主宣告 */
+    .landlord-announce-text { font-size: 28px; letter-spacing: 2px; }
+
+    /* 統計面板 */
+    .score-item { padding: 3px 6px; }
+    .score-value { font-size: 12px; }
+    .score-label { font-size: 9px; }
+    .daily-quest-banner { font-size: 11px; }
 }
 </style>
 </head>
@@ -1028,22 +1085,18 @@ function renderOpponents() {
 // top = 正面 pip，bot = 倒置（rotate 180deg）pip
 // 座標 [x%, y%]，0,0 = 左上；100,100 = 右下
 // 可用區已扣除角落：左右各留 20%，上下各留 16%
-const pipDefs = {
-    "A":  { top:[[50,50]],                                             bot:[] },
-    "2":  { top:[[50,12]],                                             bot:[[50,88]] },
-    "3":  { top:[[50,12],[50,50]],                                     bot:[[50,88]] },
-    "4":  { top:[[20,12],[80,12]],                                     bot:[[20,88],[80,88]] },
-    "5":  { top:[[20,12],[80,12],[50,50]],                             bot:[[20,88],[80,88]] },
-    "6":  { top:[[20,12],[80,12],[20,50],[80,50]],                     bot:[[20,88],[80,88]] },
-    "7":  { top:[[20,12],[80,12],[50,30],[20,50],[80,50]],             bot:[[20,88],[80,88]] },
-    "8":  { top:[[20,12],[80,12],[20,37],[80,37],[20,63],[80,63]],     bot:[[20,88],[80,88]] },
-    "9":  { top:[[20,12],[80,12],[20,42],[80,42],[50,50]],             bot:[[20,88],[80,88],[20,58],[80,58]] },
-    "10": { top:[[20,12],[80,12],[50,27],[20,42],[80,42]],             bot:[[20,88],[80,88],[50,73],[20,58],[80,58]] },
-    "J":null,"Q":null,"K":null
-};
-const faceIcons = { "J":"🫅","Q":"👸","K":"🤴" };
+// ════════════════════════════════════════════════════════════════
+//  buildCardHTML — 對齊圖片設計
+//
+//  角落：點數 + 花色 水平同行（如圖片 "5♠"），左上正常，右下旋轉180°
+//  中央：超大花色符號，幾乎填滿牌面
+//  臉牌 J/Q/K：中央顯示字母，角落同上
+//  大王/小王：專屬漸層樣式
+//  顏色：全部 inline style，不依賴 CSS 繼承
+// ════════════════════════════════════════════════════════════════
 
 function buildCardHTML(card, compact=false) {
+    // ── 大小王 ──
     if (card.isJoker) {
         const isRed = card.rank === "RJ";
         return `<div class="full-cover ${isRed?'joker-bg-red':'joker-bg-black'}">
@@ -1052,56 +1105,73 @@ function buildCardHTML(card, compact=false) {
         </div>`;
     }
 
-    // ── 顏色由花色決定，100% inline style，絕不依賴 CSS 繼承 ──
-    const isRed = card.suit==='♥' || card.suit==='♦';
-    const clr   = isRed ? '#cc1111' : '#111111';
-    const s = card.suit, r = card.rank;
+    // ── 顏色由花色決定，100% inline style ──
+    const isRed = card.suit === '♥' || card.suit === '♦';
+    const clr = isRed ? '#cc1111' : '#111111';
+    const s = card.suit;
+    const r = card.rank;
 
-    // 角落（左上正常 / 右下旋轉180°）
-    const cornerStyle = `font-size:13px;font-weight:900;line-height:1.1;text-align:center;z-index:5;color:${clr};`;
-    const suitStyle   = `font-size:10px;color:${clr};`;
-    const tlCorner = `<div style="position:absolute;top:4px;left:5px;${cornerStyle}">${r}<div style="${suitStyle}">${s}</div></div>`;
-    const brCorner = `<div style="position:absolute;bottom:4px;right:5px;transform:rotate(180deg);${cornerStyle}">${r}<div style="${suitStyle}">${s}</div></div>`;
+    // ── 尺寸：依牌面大小切換 ──
+    // 正常牌 60×88px；compact 牌 46×70px
+    const cornerRank = compact ? '11px' : '13px';  // 角落點數
+    const cornerSuit = compact ? '10px' : '12px';  // 角落花色（水平緊跟）
+    const centerSize = compact ? '28px' : '40px';  // 中央大花色
+    const aceSize    = compact ? '32px' : '46px';  // A 的超大花色
+    const faceSize   = compact ? '22px' : '28px';  // J/Q/K 字母
 
-    const def = pipDefs[r];
+    // ── 角落：水平排列「點數 花色」，左上 / 右下旋轉180° ──
+    // 使用 flexbox 水平對齊，gap 讓點數與花色緊鄰
+    const cornerInner = `<span style="font-size:${cornerRank};font-weight:900;color:${clr};font-family:'Noto Serif TC',serif;">${r}</span><span style="font-size:${cornerSuit};color:${clr};margin-left:1px;">${s}</span>`;
+
+    const tlCorner = `<div style="
+        position:absolute;top:4px;left:5px;
+        display:flex;align-items:center;gap:0;
+        z-index:5;line-height:1;user-select:none;
+        ">${cornerInner}</div>`;
+
+    const brCorner = `<div style="
+        position:absolute;bottom:4px;right:5px;
+        display:flex;align-items:center;gap:0;
+        z-index:5;line-height:1;user-select:none;
+        transform:rotate(180deg);
+        ">${cornerInner}</div>`;
 
     // ── 臉牌 J/Q/K ──
-    if (!def) {
-        const faceSize = compact ? '22px' : '28px';
+    if (r === 'J' || r === 'Q' || r === 'K') {
         return `${tlCorner}
-            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-54%);font-size:${faceSize};z-index:2;line-height:1;">${faceIcons[r]}</div>
-            <div style="position:absolute;bottom:18px;left:50%;transform:translateX(-50%);font-size:11px;z-index:2;opacity:0.4;color:${clr};">${s}</div>
+            <div style="
+                position:absolute;top:50%;left:50%;
+                transform:translate(-50%,-50%);
+                font-family:'Noto Serif TC',serif;
+                font-size:${faceSize};font-weight:900;
+                line-height:1;color:${clr};z-index:2;
+                user-select:none;">${r}</div>
             ${brCorner}`;
     }
 
-    // compact 模式（手機手牌）：只顯示角落，中央顯示大花色符號取代密集pip
-    if (compact) {
+    // ── A：超大花色填滿中央 ──
+    if (r === 'A') {
         return `${tlCorner}
-            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-                font-size:22px;line-height:1;color:${clr};z-index:2;opacity:0.8;">${s}</div>
+            <div style="
+                position:absolute;top:50%;left:50%;
+                transform:translate(-50%,-50%);
+                font-size:${aceSize};line-height:1;
+                color:${clr};z-index:2;user-select:none;">${s}</div>
             ${brCorner}`;
     }
 
-    // ── 數字牌 pip（正常模式）──
-    // 牌面可用區（排除角落佔用空間）
-    // 牌寬60px: 左邊界~14px, 右邊界~46px => 寬32px
-    // 牌高88px: 上邊界~20px, 下邊界~68px => 高48px
-    const xMin=14, xW=32, yMin=20, yH=48;
-
-    const mkPip = (xp, yp, flip) => {
-        const x = (xMin + xp/100*xW).toFixed(1);
-        const y = (yMin + yp/100*yH).toFixed(1);
-        const rot = flip ? 'rotate(180deg)' : '';
-        return `<span style="position:absolute;left:${x}px;top:${y}px;transform:translate(-50%,-50%) ${rot};font-size:12px;line-height:1;color:${clr};z-index:2;">${s}</span>`;
-    };
-
-    const topPips = def.top.map(([xp,yp]) => mkPip(xp,yp,false)).join('');
-    const botPips = def.bot.map(([xp,yp]) => mkPip(xp,yp,true)).join('');
-    return `${tlCorner}${topPips}${botPips}${brCorner}`;
+    // ── 數字牌 2～10：中央單一大花色 ──
+    return `${tlCorner}
+        <div style="
+            position:absolute;top:50%;left:50%;
+            transform:translate(-50%,-50%);
+            font-size:${centerSize};line-height:1;
+            color:${clr};z-index:2;user-select:none;">${s}</div>
+        ${brCorner}`;
 }
 
 function renderPlayer() {
-    const isCompact = window.innerWidth <= 600;
+    const isCompact = window.innerWidth <= 768;
     let area = document.getElementById("player");
     area.innerHTML = "";
     players[0].forEach((c, i) => {
@@ -1163,7 +1233,7 @@ function toggle(i) {
 }
 
 function renderPlayerNoAnim() {
-    const isCompact = window.innerWidth <= 600;
+    const isCompact = window.innerWidth <= 768;
     let area = document.getElementById("player");
     area.innerHTML = "";
     players[0].forEach((c, i) => {
@@ -1541,6 +1611,16 @@ function initGame() {
 }
 
 initGame();
+
+// 螢幕旋轉或視窗縮放時重繪手牌（確保 compact 模式正確切換）
+let resizeTimer;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { renderPlayerNoAnim(); }, 150);
+});
+window.addEventListener('orientationchange', () => {
+    setTimeout(() => { renderPlayerNoAnim(); }, 300);
+});
 </script>
 </body>
 </html>
