@@ -723,21 +723,60 @@ button:active { transform: scale(0.95) !important; }
 }
 @keyframes win-glow-anim { 0% { opacity: 1; } 100% { opacity: 0; } }
 
-/* ===== 出牌區牌型標籤 ===== */
-.played-type-label {
-    position: absolute;
-    top: 6px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 11px;
-    font-weight: 900;
-    color: rgba(240,192,64,0.75);
-    letter-spacing: 1.5px;
-    white-space: nowrap;
+/* ===== 牌型公告爆炸特效 ===== */
+.type-burst-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     pointer-events: none;
-    z-index: 10;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
-    animation: fadeIn 0.3s ease;
+    z-index: 800;
+    animation: type-burst-fade 1.4s ease-out forwards;
+}
+@keyframes type-burst-fade {
+    0%   { opacity: 0; }
+    12%  { opacity: 1; }
+    65%  { opacity: 1; }
+    100% { opacity: 0; }
+}
+.type-burst-text {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 52px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 6px;
+    text-shadow:
+        0 0 20px rgba(240,192,64,1),
+        0 0 60px rgba(240,192,64,0.6),
+        3px 3px 0 rgba(0,0,0,0.8);
+    animation: type-burst-scale 0.45s cubic-bezier(0.34,1.6,0.64,1) both;
+    white-space: nowrap;
+}
+.type-burst-text.bomb {
+    color: var(--gold);
+    font-size: 58px;
+    text-shadow:
+        0 0 30px rgba(220,38,38,1),
+        0 0 80px rgba(220,38,38,0.7),
+        3px 3px 0 rgba(0,0,0,0.9);
+}
+@keyframes type-burst-scale {
+    from { transform: scale(0.2) rotate(-6deg); opacity:0; }
+    to   { transform: scale(1)   rotate(0deg);  opacity:1; }
+}
+.type-burst-who {
+    font-size: 15px;
+    color: rgba(255,255,255,0.75);
+    letter-spacing: 3px;
+    margin-top: 8px;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+}
+.type-burst-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.45) 0%, transparent 65%);
 }
 
 /* ===== 對手牌數危急高亮 ===== */
@@ -756,7 +795,6 @@ button:active { transform: scale(0.95) !important; }
 
 @media (max-width: 600px) {
     .card { width: 46px; height: 70px; margin: 0 -12px; }
-    .corner { font-size: 11px; }
     .joker-text { font-size: 14px; } .joker-icon { font-size: 16px; }
     button { padding: 9px 14px; font-size: 13px; }
     .btn-play { padding: 9px 24px; }
@@ -765,6 +803,8 @@ button:active { transform: scale(0.95) !important; }
     .player-info-bar { width: 92%; }
     .hand-wrapper { width: 92%; max-width: 640px; }
     .landlord-announce-text { font-size: 30px; }
+    .type-burst-text { font-size: 38px; letter-spacing: 4px; }
+    .type-burst-text.bomb { font-size: 44px; }
 }
 </style>
 </head>
@@ -984,26 +1024,26 @@ function renderOpponents() {
     checkTension();
 }
 
-// ─── pip 座標定義 ─────────────────────────────────────────────────────────────
-// 牌面可繪區：x 6~54px, y 16~72px（已排除上下角落）
-// top = 正面方向 pip，bot = 倒置（rotate 180deg）pip
-// 座標用百分比 [x%, y%]，makePip() 再換算成實際 px
+// ─── pip 座標定義（百分比，相對於牌面可用區）────────────────────────────────
+// top = 正面 pip，bot = 倒置（rotate 180deg）pip
+// 座標 [x%, y%]，0,0 = 左上；100,100 = 右下
+// 可用區已扣除角落：左右各留 20%，上下各留 16%
 const pipDefs = {
-    "A":  { top:[[50,50]],                                              bot:[] },
-    "2":  { top:[[50,15]],                                              bot:[[50,85]] },
-    "3":  { top:[[50,15],[50,50]],                                      bot:[[50,85]] },
-    "4":  { top:[[25,15],[75,15]],                                      bot:[[25,85],[75,85]] },
-    "5":  { top:[[25,15],[75,15],[50,50]],                              bot:[[25,85],[75,85]] },
-    "6":  { top:[[25,15],[75,15],[25,50],[75,50]],                      bot:[[25,85],[75,85]] },
-    "7":  { top:[[25,15],[75,15],[50,33],[25,50],[75,50]],              bot:[[25,85],[75,85]] },
-    "8":  { top:[[25,15],[75,15],[25,38],[75,38],[25,62],[75,62]],      bot:[[25,85],[75,85]] },
-    "9":  { top:[[25,15],[75,15],[25,42],[75,42],[50,50]],              bot:[[25,85],[75,85],[25,58],[75,58]] },
-    "10": { top:[[25,15],[75,15],[50,28],[25,42],[75,42]],              bot:[[25,85],[75,85],[50,72],[25,58],[75,58]] },
+    "A":  { top:[[50,50]],                                             bot:[] },
+    "2":  { top:[[50,12]],                                             bot:[[50,88]] },
+    "3":  { top:[[50,12],[50,50]],                                     bot:[[50,88]] },
+    "4":  { top:[[20,12],[80,12]],                                     bot:[[20,88],[80,88]] },
+    "5":  { top:[[20,12],[80,12],[50,50]],                             bot:[[20,88],[80,88]] },
+    "6":  { top:[[20,12],[80,12],[20,50],[80,50]],                     bot:[[20,88],[80,88]] },
+    "7":  { top:[[20,12],[80,12],[50,30],[20,50],[80,50]],             bot:[[20,88],[80,88]] },
+    "8":  { top:[[20,12],[80,12],[20,37],[80,37],[20,63],[80,63]],     bot:[[20,88],[80,88]] },
+    "9":  { top:[[20,12],[80,12],[20,42],[80,42],[50,50]],             bot:[[20,88],[80,88],[20,58],[80,58]] },
+    "10": { top:[[20,12],[80,12],[50,27],[20,42],[80,42]],             bot:[[20,88],[80,88],[50,73],[20,58],[80,58]] },
     "J":null,"Q":null,"K":null
 };
 const faceIcons = { "J":"🫅","Q":"👸","K":"🤴" };
 
-function buildCardHTML(card) {
+function buildCardHTML(card, compact=false) {
     if (card.isJoker) {
         const isRed = card.rank === "RJ";
         return `<div class="full-cover ${isRed?'joker-bg-red':'joker-bg-black'}">
@@ -1012,60 +1052,56 @@ function buildCardHTML(card) {
         </div>`;
     }
 
-    // ── 顏色由花色決定，100% inline style，不依賴任何 CSS 繼承 ──
+    // ── 顏色由花色決定，100% inline style，絕不依賴 CSS 繼承 ──
     const isRed = card.suit==='♥' || card.suit==='♦';
     const clr   = isRed ? '#cc1111' : '#111111';
     const s = card.suit, r = card.rank;
 
-    // 角落 helper
-    const mkCorner = (topPx, leftPx, rotate) => {
-        const rs = rotate ? 'transform:rotate(180deg);' : '';
-        return `<div style="position:absolute;top:${topPx}px;left:${leftPx}px;${rs}
-                    font-size:13px;font-weight:900;line-height:1.1;text-align:center;
-                    z-index:5;color:${clr};">
-                    ${r}<div style="font-size:10px;color:${clr};">${s}</div>
-                </div>`;
-    };
-    // 左上正常、右下需反轉（絕對定位用 right/bottom）
-    const tlCorner = mkCorner(4,  5, false);
-    const brCorner = `<div style="position:absolute;bottom:4px;right:5px;transform:rotate(180deg);
-                        font-size:13px;font-weight:900;line-height:1.1;text-align:center;
-                        z-index:5;color:${clr};">
-                        ${r}<div style="font-size:10px;color:${clr};">${s}</div>
-                    </div>`;
+    // 角落（左上正常 / 右下旋轉180°）
+    const cornerStyle = `font-size:13px;font-weight:900;line-height:1.1;text-align:center;z-index:5;color:${clr};`;
+    const suitStyle   = `font-size:10px;color:${clr};`;
+    const tlCorner = `<div style="position:absolute;top:4px;left:5px;${cornerStyle}">${r}<div style="${suitStyle}">${s}</div></div>`;
+    const brCorner = `<div style="position:absolute;bottom:4px;right:5px;transform:rotate(180deg);${cornerStyle}">${r}<div style="${suitStyle}">${s}</div></div>`;
 
     const def = pipDefs[r];
 
     // ── 臉牌 J/Q/K ──
     if (!def) {
+        const faceSize = compact ? '22px' : '28px';
         return `${tlCorner}
-            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-54%);
-                font-size:28px;z-index:2;line-height:1;">${faceIcons[r]}</div>
-            <div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
-                font-size:12px;z-index:2;opacity:0.45;color:${clr};">${s}</div>
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-54%);font-size:${faceSize};z-index:2;line-height:1;">${faceIcons[r]}</div>
+            <div style="position:absolute;bottom:18px;left:50%;transform:translateX(-50%);font-size:11px;z-index:2;opacity:0.4;color:${clr};">${s}</div>
             ${brCorner}`;
     }
 
-    // ── 數字牌 pip ──
-    // 可用區 x: 6~54px(寬48), y: 16~72px(高56)
-    const xMin=6, xW=48, yMin=16, yH=56;
+    // compact 模式（手機手牌）：只顯示角落，中央顯示大花色符號取代密集pip
+    if (compact) {
+        return `${tlCorner}
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+                font-size:22px;line-height:1;color:${clr};z-index:2;opacity:0.8;">${s}</div>
+            ${brCorner}`;
+    }
+
+    // ── 數字牌 pip（正常模式）──
+    // 牌面可用區（排除角落佔用空間）
+    // 牌寬60px: 左邊界~14px, 右邊界~46px => 寬32px
+    // 牌高88px: 上邊界~20px, 下邊界~68px => 高48px
+    const xMin=14, xW=32, yMin=20, yH=48;
+
     const mkPip = (xp, yp, flip) => {
         const x = (xMin + xp/100*xW).toFixed(1);
         const y = (yMin + yp/100*yH).toFixed(1);
         const rot = flip ? 'rotate(180deg)' : '';
-        return `<span style="position:absolute;left:${x}px;top:${y}px;
-                    transform:translate(-50%,-50%) ${rot};
-                    font-size:13px;line-height:1;color:${clr};z-index:2;
-                    display:block;">${s}</span>`;
+        return `<span style="position:absolute;left:${x}px;top:${y}px;transform:translate(-50%,-50%) ${rot};font-size:12px;line-height:1;color:${clr};z-index:2;">${s}</span>`;
     };
 
-    const topPips = def.top.map(([xp,yp]) => mkPip(xp, yp, false)).join('');
-    const botPips = def.bot.map(([xp,yp]) => mkPip(xp, yp, true)).join('');
-
+    const topPips = def.top.map(([xp,yp]) => mkPip(xp,yp,false)).join('');
+    const botPips = def.bot.map(([xp,yp]) => mkPip(xp,yp,true)).join('');
     return `${tlCorner}${topPips}${botPips}${brCorner}`;
 }
 
 function renderPlayer() {
+    const isCompact = window.innerWidth <= 600;
     let area = document.getElementById("player");
     area.innerHTML = "";
     players[0].forEach((c, i) => {
@@ -1073,7 +1109,7 @@ function renderPlayer() {
         div.className = "card card-deal-anim";
         div.style.animationDelay = (i * 0.03) + 's';
         if (selected.includes(i)) div.classList.add("selected");
-        div.innerHTML = buildCardHTML(c);
+        div.innerHTML = buildCardHTML(c, isCompact);
         div.onclick = () => toggle(i);
         area.appendChild(div);
     });
@@ -1081,7 +1117,22 @@ function renderPlayer() {
     if (cc) cc.textContent = players[0].length;
 }
 
-function renderTable(cards, typeName) {
+function showTypeBurst(typeName, whoName) {
+    // 只在有牌型名稱時顯示
+    if (!typeName) return;
+    const isBomb = typeName.includes('炸彈') || typeName.includes('火箭');
+    let overlay = document.createElement('div');
+    overlay.className = 'type-burst-overlay';
+    overlay.innerHTML = `
+        <div class="type-burst-bg"></div>
+        <div class="type-burst-text${isBomb?' bomb':''}">${typeName}</div>
+        <div class="type-burst-who">${whoName}</div>
+    `;
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.remove(), 1450);
+}
+
+function renderTable(cards, typeName, whoName) {
     let t = document.getElementById("table");
     t.innerHTML = "";
     if (cards.length === 0) {
@@ -1093,18 +1144,13 @@ function renderTable(cards, typeName) {
         else h.textContent = '出牌區';
         t.appendChild(h);
     } else {
-        // 牌型標籤
-        if (typeName) {
-            let lbl = document.createElement('div');
-            lbl.className = 'played-type-label';
-            lbl.textContent = typeName;
-            t.appendChild(lbl);
-        }
+        // 牌型震撼公告
+        showTypeBurst(typeName, whoName || '');
         cards.forEach((c, idx) => {
             let div = document.createElement("div");
             div.className = "card card-deal-anim";
             div.style.animationDelay = (idx * 0.04) + 's';
-            div.innerHTML = buildCardHTML(c);
+            div.innerHTML = buildCardHTML(c, false);
             t.appendChild(div);
         });
     }
@@ -1117,13 +1163,14 @@ function toggle(i) {
 }
 
 function renderPlayerNoAnim() {
+    const isCompact = window.innerWidth <= 600;
     let area = document.getElementById("player");
     area.innerHTML = "";
     players[0].forEach((c, i) => {
         let div = document.createElement("div");
         div.className = "card";
         if (selected.includes(i)) div.classList.add("selected");
-        div.innerHTML = buildCardHTML(c);
+        div.innerHTML = buildCardHTML(c, isCompact);
         div.onclick = () => toggle(i);
         area.appendChild(div);
     });
@@ -1246,7 +1293,8 @@ function executePlay(cards, r) {
     if (current === landlord) landlordPlayCount++; else farmerPlayCount++;
     players[current] = players[current].filter(c => !cards.includes(c));
     last = r; lastPlayer = current; consecutivePasses = 0;
-    renderTable(cards, r ? r.name : ''); renderOpponents();
+    const whoName = current===0 ? '你出牌' : `${aiNames[current].avatar} ${aiNames[current].name}`;
+    renderTable(cards, r ? r.name : '', whoName); renderOpponents();
     if (current === 0) { selected = []; renderPlayerNoAnim(); }
     if (players[current].length === 0) { setTimeout(() => endGame(current), 800); return; }
     current = (current + 1) % 3; renderOpponents();
@@ -1257,7 +1305,7 @@ function executePass() {
     consecutivePasses++;
     if (consecutivePasses >= 2) {
         last = null; current = lastPlayer; consecutivePasses = 0;
-        renderTable([], ''); renderOpponents();
+        renderTable([], '', ''); renderOpponents();
         if (current === 0) { checkPlayerHasPlay(); } else setTimeout(aiPlay, 1200);
     } else {
         let who = current === 0 ? "你" : aiNames[current].name;
@@ -1487,7 +1535,7 @@ function initGame() {
     holeCards=deck.slice(0,3); players=[[],[],[]];
     for(let i=3;i<54;i++) players[(i-3)%3].push(deck[i]);
     players.forEach(p=>p.sort((a,b)=>power[b.rank]-power[a.rank]));
-    renderHoleCards(false); renderPlayer(); renderOpponents(); renderTable([], '');
+    renderHoleCards(false); renderPlayer(); renderOpponents(); renderTable([], '', '');
     updateInfo("🎲 發牌完成，準備叫地主");
     setTimeout(startBidding,800);
 }
