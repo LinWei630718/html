@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>鬥地主 巔峰競技大師版</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&family=Cinzel+Decorative:wght@700&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
 
 <style>
 :root {
@@ -19,6 +19,7 @@
     --black-card: #1a1a2e;
     --white-card: #fdfaf5;
     --table-bg: #16391f;
+    --card-font: 'IM Fell English', 'Noto Serif TC', serif;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -236,7 +237,8 @@ body {
     padding: 10px 12px;
     flex: 1;
     position: relative;
-    transition: all 0.3s;
+    /* 【優化】加入 transition 讓頭像跳動也能平滑過渡 */
+    transition: all 0.3s, transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
     overflow: hidden;
 }
 
@@ -252,6 +254,8 @@ body {
 .opp-box.active {
     border-color: var(--gold);
     box-shadow: 0 0 20px rgba(240,192,64,0.3);
+    /* 【優化】對手輪到時輕微跳動，強化「思考中」視覺反饋 */
+    transform: translateY(-4px);
 }
 .opp-box.active::before {
     background: linear-gradient(to right, transparent, var(--gold), transparent);
@@ -308,7 +312,6 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    /* 允許 overflow-y 顯示，避免大牌被截 */
     overflow: visible;
     padding: 15px 10px;
     flex-wrap: wrap;
@@ -365,7 +368,6 @@ body {
     width: 92%;
     max-width: 640px;
     margin: 0 auto;
-    /* 不用 overflow:hidden，改用 overflow-x:hidden 避免截掉選牌上移 */
     overflow-x: hidden;
     overflow-y: visible;
     background: linear-gradient(to bottom, rgba(0,0,0,0.35), rgba(0,0,0,0.2));
@@ -378,7 +380,6 @@ body {
     display: flex;
     justify-content: flex-start;
     overflow-x: auto;
-    /* padding-top 留空間給選牌上移（selected translateY-24px） */
     padding: 30px 16px 16px 16px;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -411,7 +412,7 @@ body {
     z-index: 100 !important;
 }
 
-/* 牌面花紋背景 */
+/* 牌面光澤 */
 .card::after {
     content: '';
     position: absolute;
@@ -421,11 +422,51 @@ body {
     border-radius: 9px;
 }
 
-.corner { position: absolute; font-size: 13px; font-weight: 900; z-index: 2; line-height: 1.1; text-align: center; }
+/* ===== 【優化】牌背紋路 - SVG 菱格紋 ===== */
+.card-back-pattern {
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    background-color: #1a3a7a;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14'%3E%3Cpath d='M7 0L14 7L7 14L0 7Z' fill='none' stroke='rgba(255,255,255,0.1)' stroke-width='0.8'/%3E%3C/svg%3E");
+    background-size: 14px 14px;
+    border: 2px solid rgba(255,255,255,0.18);
+    overflow: hidden;
+}
+/* 牌背中央印章 */
+.card-back-pattern::before {
+    content: '♠';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 28px;
+    color: rgba(255,255,255,0.12);
+    line-height: 1;
+}
+/* 牌背內框 */
+.card-back-pattern::after {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 5px;
+}
+
+/* ===== 【優化】角落使用 IM Fell English 字體 ===== */
+.corner {
+    position: absolute;
+    font-family: var(--card-font);
+    font-size: 13px;
+    font-weight: 900;
+    z-index: 5;
+    line-height: 1.1;
+    text-align: center;
+    font-style: italic;
+}
 .corner-suit { font-size: 10px; }
 .top-left { top: 4px; left: 5px; }
 .bottom-right { bottom: 4px; right: 5px; transform: rotate(180deg); }
-/* 小王大王 */
+
 .suit-heart, .suit-diamond { color: #cc1111; }
 .suit-spade, .suit-club { color: #111; }
 
@@ -449,11 +490,6 @@ body {
     opacity: 0.5;
 }
 
-/* 角落標籤永遠在最上層 */
-.corner { position: absolute; font-size: 13px; font-weight: 900; z-index: 5; line-height: 1.1; text-align: center; }
-.corner-suit { font-size: 10px; }
-.top-left { top: 4px; left: 5px; }
-.bottom-right { bottom: 4px; right: 5px; transform: rotate(180deg); }
 .full-cover { position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; box-sizing: border-box; }
 .joker-bg-red {
     background: linear-gradient(145deg, #dc2626, #7f1d1d);
@@ -481,20 +517,11 @@ body {
     animation: flip-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 .hole-card.hidden {
-    background-color: #1a3a7a;
-    background-image:
-        repeating-linear-gradient(45deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 2px, transparent 2px, transparent 10px),
-        repeating-linear-gradient(-45deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 2px, transparent 2px, transparent 10px);
-    border: 2px solid rgba(255,255,255,0.15);
-    color: transparent;
+    background-color: transparent;
+    border: none;
 }
-.hole-card.hidden::after {
-    content: '🂠';
-    position: absolute;
-    font-size: 28px;
-    opacity: 0.15;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
+.hole-card.hidden .card-back-pattern {
+    border-radius: 7px;
 }
 
 @keyframes flip-in {
@@ -531,6 +558,9 @@ button {
     transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
     font-family: 'Noto Serif TC', serif;
     letter-spacing: 0.5px;
+    /* 【優化】確保按鈕不因換行造成版型混亂 */
+    white-space: nowrap;
+    min-width: 68px;
 }
 button:active { transform: scale(0.95) !important; }
 
@@ -811,53 +841,30 @@ button:active { transform: scale(0.95) !important; }
 /* ── 手機（600px 以下）──────────────────────────── */
 @media (max-width: 600px) {
     body { padding-bottom: 80px; }
-
-    /* 牌面縮小 */
-    .card { width: 46px; height: 70px; margin: 0 -11px; }
+    /* 【優化】觸控裝置增加間距避免誤觸 */
+    .card { width: 46px; height: 70px; margin: 0 -8px; }
     .card:hover { transform: translateY(-10px) rotate(-1deg); }
     .card.selected { transform: translateY(-20px) scale(1.04); }
-
-    /* 王牌文字縮小 */
     .joker-text { font-size: 13px; } .joker-icon { font-size: 15px; }
-
-    /* 按鈕 */
     button { padding: 8px 12px; font-size: 12px; }
     .btn-play { padding: 8px 22px; font-size: 13px; }
-
-    /* 標題 */
     .game-title { font-size: 13px; gap: 8px; }
-
-    /* 對手牌數 */
     .opp-count { font-size: 18px; }
     .opp-avatar { font-size: 22px; }
     .opp-name { font-size: 10px; }
-
-    /* 玩家資訊列 */
     .player-info-bar { width: 92%; padding: 5px 10px; }
     .player-label { font-size: 12px; }
     .player-card-count { font-size: 11px; }
     .player-role-badge { font-size: 10px; padding: 2px 8px; }
-
-    /* 手牌區 */
     .hand-wrapper { width: 92%; }
     .hand { padding: 26px 12px 14px 12px; }
-
-    /* 桌面 */
     #table { min-height: 95px; padding: 10px 8px; border-radius: 14px; }
-
-    /* 底牌 */
     .hole-cards { height: 60px; gap: 6px; }
     .hole-card { width: 38px; height: 56px; }
-
-    /* 牌型公告 */
     .type-burst-text { font-size: 36px; letter-spacing: 3px; }
     .type-burst-text.bomb { font-size: 42px; }
     .type-burst-who { font-size: 13px; }
-
-    /* 地主宣告 */
     .landlord-announce-text { font-size: 28px; letter-spacing: 2px; }
-
-    /* 統計面板 */
     .score-item { padding: 3px 6px; }
     .score-value { font-size: 12px; }
     .score-label { font-size: 9px; }
@@ -908,7 +915,7 @@ button:active { transform: scale(0.95) !important; }
     <div id="player" class="hand"></div>
 </div>
 
-<div class="copyright">&copy; 2026 LinWei's Doudizhu · Enhanced Edition</div>
+<div class="copyright">&copy; 2026 LinWei's Doudizhu · Enhanced Edition v2</div>
 
 <div class="controls" id="controlPanel">
     <button class="btn-bid" onclick="playerBid(1)" id="btnBid1" style="display:none;">叫 1 分</button>
@@ -936,10 +943,10 @@ button:active { transform: scale(0.95) !important; }
     <div class="modal-content">
         <div class="modal-title-win" style="font-size:20px;">📜 遊戲規則</div>
         <div class="rules-text">
-            <div class="rules-section"><b>💡 智能提示：</b>點擊提示按鈕，系統自動挑選最佳牌型。若無牌可壓，顯示「要不起」。</div>
+            <div class="rules-section"><b>💡 智能提示：</b>點擊提示按鈕，系統依牌型強度排序後挑選最佳牌組。若無牌可壓，顯示「要不起」。</div>
             <div class="rules-section"><b>🎯 每日任務：</b>每天指定一種牌型（如飛機）。打出並獲勝，勝分額外<b>翻倍</b>！</div>
             <div class="rules-section"><b>🎖️ 職稱系統：</b>累積積分晉升階級。連勝3場以上，勝分加成20%。</div>
-            <div class="rules-section"><b>🤖 地獄AI：</b>電腦具備頂牌、防守與保送隊友的極限思維，地主瀕危時紅光警報亮起。</div>
+            <div class="rules-section"><b>🤖 協作AI：</b>農民具備配合隊友、讓牌與防守邏輯；地主瀕危時紅光警報亮起。</div>
             <div class="rules-section"><b>💥 翻倍機制：</b>炸彈/火箭、春天/反春天，倍數均乘以2。</div>
         </div>
         <button class="btn-restart" onclick="document.getElementById('rulesModal').style.display='none'">準備迎戰 ！</button>
@@ -969,13 +976,23 @@ let currentBid = 0, bidQueue = [], bidIndex = 0;
 let landlordPlayCount = 0, farmerPlayCount = 0;
 
 /* ===== 統計與任務 ===== */
-let stats = JSON.parse(localStorage.getItem("doudizhu_stats")) || { totalScores:[0,0,0], currentWinStreak:0, maxWinStreak:0 };
+/* 【Bug修復】localStorage 讀取加上 try-catch 防止舊版資料格式錯誤造成崩潰 */
+let stats;
+try {
+    stats = JSON.parse(localStorage.getItem("doudizhu_stats")) || { totalScores:[0,0,0], currentWinStreak:0, maxWinStreak:0 };
+    if (!Array.isArray(stats.totalScores) || stats.totalScores.length !== 3) throw new Error("bad format");
+} catch(e) {
+    stats = { totalScores:[0,0,0], currentWinStreak:0, maxWinStreak:0 };
+    localStorage.removeItem("doudizhu_stats");
+}
+
 let dailyQuestTarget = "", questAchievedThisRound = false;
 const questPool = ["順子","連對","三帶一單","三帶一對","純飛機","飛機帶單牌","飛機帶對子","四帶二單","四帶二對"];
 
 function initDailyQuest() {
     let today = new Date().toDateString();
-    let saved = JSON.parse(localStorage.getItem("doudizhu_daily_quest"));
+    let saved;
+    try { saved = JSON.parse(localStorage.getItem("doudizhu_daily_quest")); } catch(e) { saved = null; }
     if (saved && saved.date === today) dailyQuestTarget = saved.target;
     else { dailyQuestTarget = questPool[Math.floor(Math.random() * questPool.length)]; localStorage.setItem("doudizhu_daily_quest", JSON.stringify({date: today, target: dailyQuestTarget})); }
     document.getElementById("dailyQuestBanner").innerHTML = `🎯 今日任務：打出【${dailyQuestTarget}】勝分 x2`;
@@ -1037,7 +1054,8 @@ function checkTension() {
 function renderHoleCards(reveal = false) {
     let html = "";
     if (!reveal) {
-        for (let i = 0; i < 3; i++) html += `<div class="hole-card hidden"></div>`;
+        /* 【優化】使用新的 SVG 菱格紋牌背 */
+        for (let i = 0; i < 3; i++) html += `<div class="hole-card hidden"><div class="card-back-pattern"></div></div>`;
     } else {
         holeCards.forEach(c => {
             if (c.isJoker) {
@@ -1050,7 +1068,7 @@ function renderHoleCards(reveal = false) {
                 let suitClass = (c.suit==='♥'||c.suit==='♦') ? 'suit-heart' : 'suit-spade';
                 html += `<div class="hole-card">
                     <div style="display:flex;flex-direction:column;align-items:center;">
-                        <span class="${suitClass}" style="font-weight:900;font-size:13px;">${c.rank}</span>
+                        <span class="${suitClass}" style="font-family:var(--card-font);font-weight:900;font-size:13px;">${c.rank}</span>
                         <span class="${suitClass}" style="font-size:14px;">${c.suit}</span>
                     </div>
                 </div>`;
@@ -1081,20 +1099,7 @@ function renderOpponents() {
     checkTension();
 }
 
-// ─── pip 座標定義（百分比，相對於牌面可用區）────────────────────────────────
-// top = 正面 pip，bot = 倒置（rotate 180deg）pip
-// 座標 [x%, y%]，0,0 = 左上；100,100 = 右下
-// 可用區已扣除角落：左右各留 20%，上下各留 16%
-// ════════════════════════════════════════════════════════════════
-//  buildCardHTML — 對齊圖片設計
-//
-//  角落：點數 + 花色 水平同行（如圖片 "5♠"），左上正常，右下旋轉180°
-//  中央：超大花色符號，幾乎填滿牌面
-//  臉牌 J/Q/K：中央顯示字母，角落同上
-//  大王/小王：專屬漸層樣式
-//  顏色：全部 inline style，不依賴 CSS 繼承
-// ════════════════════════════════════════════════════════════════
-
+/* ===== 【優化】buildCardHTML 使用 IM Fell English 字體 ===== */
 function buildCardHTML(card, compact=false) {
     // ── 大小王 ──
     if (card.isJoker) {
@@ -1105,23 +1110,20 @@ function buildCardHTML(card, compact=false) {
         </div>`;
     }
 
-    // ── 顏色由花色決定，100% inline style ──
     const isRed = card.suit === '♥' || card.suit === '♦';
     const clr = isRed ? '#cc1111' : '#111111';
     const s = card.suit;
     const r = card.rank;
 
-    // ── 尺寸：依牌面大小切換 ──
-    // 正常牌 60×88px；compact 牌 46×70px
-    const cornerRank = compact ? '11px' : '13px';  // 角落點數
-    const cornerSuit = compact ? '10px' : '12px';  // 角落花色（水平緊跟）
-    const centerSize = compact ? '28px' : '40px';  // 中央大花色
-    const aceSize    = compact ? '32px' : '46px';  // A 的超大花色
-    const faceSize   = compact ? '22px' : '28px';  // J/Q/K 字母
+    const cornerRank = compact ? '11px' : '13px';
+    const cornerSuit = compact ? '10px' : '12px';
+    const centerSize = compact ? '28px' : '40px';
+    const aceSize    = compact ? '32px' : '46px';
+    /* 【優化】臉牌使用 IM Fell English 斜體，更有古典撲克感 */
+    const faceSize   = compact ? '24px' : '30px';
 
-    // ── 角落：水平排列「點數 花色」，左上 / 右下旋轉180° ──
-    // 使用 flexbox 水平對齊，gap 讓點數與花色緊鄰
-    const cornerInner = `<span style="font-size:${cornerRank};font-weight:900;color:${clr};font-family:'Noto Serif TC',serif;">${r}</span><span style="font-size:${cornerSuit};color:${clr};margin-left:1px;">${s}</span>`;
+    /* 角落：IM Fell English 字體 */
+    const cornerInner = `<span style="font-size:${cornerRank};font-weight:900;color:${clr};font-family:'IM Fell English','Noto Serif TC',serif;font-style:italic;">${r}</span><span style="font-size:${cornerSuit};color:${clr};margin-left:1px;">${s}</span>`;
 
     const tlCorner = `<div style="
         position:absolute;top:4px;left:5px;
@@ -1136,14 +1138,14 @@ function buildCardHTML(card, compact=false) {
         transform:rotate(180deg);
         ">${cornerInner}</div>`;
 
-    // ── 臉牌 J/Q/K ──
+    // ── 臉牌 J/Q/K：斜體古典字母 ──
     if (r === 'J' || r === 'Q' || r === 'K') {
         return `${tlCorner}
             <div style="
                 position:absolute;top:50%;left:50%;
                 transform:translate(-50%,-50%);
-                font-family:'Noto Serif TC',serif;
-                font-size:${faceSize};font-weight:900;
+                font-family:'IM Fell English','Noto Serif TC',serif;
+                font-size:${faceSize};font-weight:900;font-style:italic;
                 line-height:1;color:${clr};z-index:2;
                 user-select:none;">${r}</div>
             ${brCorner}`;
@@ -1188,7 +1190,6 @@ function renderPlayer() {
 }
 
 function showTypeBurst(typeName, whoName) {
-    // 只在有牌型名稱時顯示
     if (!typeName) return;
     const isBomb = typeName.includes('炸彈') || typeName.includes('火箭');
     let overlay = document.createElement('div');
@@ -1214,7 +1215,6 @@ function renderTable(cards, typeName, whoName) {
         else h.textContent = '出牌區';
         t.appendChild(h);
     } else {
-        // 牌型震撼公告
         showTypeBurst(typeName, whoName || '');
         cards.forEach((c, idx) => {
             let div = document.createElement("div");
@@ -1250,13 +1250,13 @@ function renderPlayerNoAnim() {
 
 function updateInfo(msg) {
     let el = document.getElementById("info");
-    el.innerHTML = msg;
+    el.textContent = msg;
     el.style.animation = 'none';
     el.offsetHeight;
     el.style.animation = 'fadeIn 0.3s ease';
 }
 
-/* ===== 牌型解析（完整保留原版邏輯） ===== */
+/* ===== 牌型解析 ===== */
 function evaluate(cards) {
     if (!cards || cards.length === 0) return null;
     let sorted = [...cards].sort((a,b) => power[a.rank] - power[b.rank]);
@@ -1297,7 +1297,7 @@ function evaluate(cards) {
     return null;
 }
 
-/* ===== 提示與要不起 ===== */
+/* ===== 【優化】提示功能：依牌型強度排序，優先選最佳牌 ===== */
 function findBestPlay(playerIdx, checkOnly=false) {
     let hand=players[playerIdx];if(!hand||hand.length===0)return null;
     let counts={},cardsByRank={};
@@ -1305,7 +1305,41 @@ function findBestPlay(playerIdx, checkOnly=false) {
     let getRanksByMinCount=(min)=>Object.keys(counts).filter(k=>counts[k]>=min).sort((a,b)=>power[a]-power[b]);
     let singles=getRanksByMinCount(1),pairs=getRanksByMinCount(2),triples=getRanksByMinCount(3),bombs=getRanksByMinCount(4),hasRocket=counts["BJ"]&&counts["RJ"];
     let buildPlay=(rankList,countPerRank,extraCards=[])=>{let res=[];rankList.forEach(r=>res.push(...cardsByRank[r].slice(0,countPerRank)));return res.concat(extraCards);};
-    if(!last){if(triples.length>0){let r=triples[0],pairKicker=pairs.find(p=>p!==r);if(pairKicker)return buildPlay([r],3,buildPlay([pairKicker],2));let kicker=singles.find(k=>k!==r);if(kicker)return buildPlay([r],3,buildPlay([kicker],1));return buildPlay([r],3);}if(pairs.length>0)return buildPlay([pairs[0]],2);return buildPlay([singles[0]],1);}
+
+    // 自由出牌時：優先出較有威脅的牌型（炸彈 > 飛機 > 連對 > 三帶 > 對子 > 單牌）
+    if(!last){
+        if(triples.length>=2){
+            // 嘗試飛機
+            for(let i=0;i<triples.length-1;i++){
+                if(power[triples[i+1]]===power[triples[i]]+1){
+                    let seq=[triples[i],triples[i+1]];
+                    let kickers=singles.filter(k=>!seq.includes(k)).slice(0,seq.length);
+                    if(kickers.length===seq.length) return buildPlay(seq,3,buildPlay(kickers,1));
+                }
+            }
+        }
+        if(triples.length>0){
+            let r=triples[0],pairKicker=pairs.find(p=>p!==r);
+            if(pairKicker) return buildPlay([r],3,buildPlay([pairKicker],2));
+            let kicker=singles.find(k=>k!==r);
+            if(kicker) return buildPlay([r],3,buildPlay([kicker],1));
+            return buildPlay([r],3);
+        }
+        if(pairs.length>=3){
+            // 嘗試連對（從最小開始）
+            for(let i=0;i<=pairs.length-3;i++){
+                let seq=[pairs[i]],valid=true;
+                for(let j=1;j<3;j++){
+                    if(power[pairs[i+j]]===power[seq[j-1]]+1&&power[pairs[i+j]]<15) seq.push(pairs[i+j]);
+                    else{valid=false;break;}
+                }
+                if(valid) return buildPlay(seq,2);
+            }
+        }
+        if(pairs.length>0) return buildPlay([pairs[0]],2);
+        return buildPlay([singles[0]],1);
+    }
+
     let t=last.type,v=last.value,l=last.len,playCards=null;
     if(t===1){let valid=singles.find(r=>power[r]>v);if(valid)playCards=buildPlay([valid],1);}
     else if(t===2){let valid=pairs.find(r=>power[r]>v);if(valid)playCards=buildPlay([valid],2);}
@@ -1406,20 +1440,49 @@ function pass() {
     selected = []; renderPlayerNoAnim(); executePass();
 }
 
-/* ===== AI ===== */
+/* ===== 【優化】AI 邏輯 - 農民具備配合隊友策略 ===== */
 function aiPlay() {
     let playCards = findBestPlay(current);
-    let isLandlord = (current === landlord), isTeammateLast = (!isLandlord && lastPlayer !== landlord && lastPlayer !== -1);
-    let isEmergency = (!isLandlord && players[landlord].length <= 3) || (isLandlord && players.some((p,i) => i!==landlord && p.length<=3));
-    let isBlockingLandlord = (!isLandlord && (current+1)%3 === landlord);
-    if (last && isTeammateLast && (last.value >= 13 || players[lastPlayer].length <= 2)) playCards = null;
-    else if (last && isEmergency && last.type !== 10 && last.type !== 99) {
-        let counts={}; players[current].forEach(c=>counts[c.rank]=(counts[c.rank]||0)+1);
-        let bombs=Object.keys(counts).filter(k=>counts[k]===4);
-        if (bombs.length>0) playCards=players[current].filter(c=>c.rank===bombs[0]);
+    const isLandlord = (current === landlord);
+    const isTeammate = !isLandlord;
+    // 判斷上一出牌者是否為隊友（農民互為隊友）
+    const isTeammateLast = (isTeammate && lastPlayer !== landlord && lastPlayer !== -1 && lastPlayer !== current);
+    // 緊急狀態：有人牌快打完
+    const isEmergency = (!isLandlord && players[landlord].length <= 3) || (isLandlord && players.some((p,i) => i!==landlord && p.length<=3));
+    // 我快打完（只剩 1-2 張）
+    const iAlmostDone = players[current].length <= 2;
+
+    // 【農民策略1】隊友的牌已經能壓制（壓很大或剩牌少），讓牌
+    if (isTeammateLast && last) {
+        const teammateLow = players[lastPlayer].length <= 2;
+        const lastIsStrong = last.value >= 13 || last.type === 10 || last.type === 99;
+        if (teammateLow || lastIsStrong) {
+            playCards = null; // 讓隊友繼續
+        }
     }
-    if (playCards) { let ev=evaluate(playCards); if(ev) executePlay(playCards,ev); else executePass(); }
-    else executePass();
+
+    // 【農民策略2】緊急時找炸彈壓制地主
+    if (isTeammate && isEmergency && last && last.type !== 10 && last.type !== 99) {
+        let counts={};
+        players[current].forEach(c=>counts[c.rank]=(counts[c.rank]||0)+1);
+        let bombs=Object.keys(counts).filter(k=>counts[k]===4);
+        if (bombs.length > 0) {
+            playCards = players[current].filter(c => c.rank === bombs[0]);
+        }
+    }
+
+    // 【地主策略】自己快贏時直接出最佳牌，不讓
+    if (isLandlord && iAlmostDone) {
+        playCards = findBestPlay(current); // 一定要出
+    }
+
+    if (playCards) {
+        let ev = evaluate(playCards);
+        if(ev) executePlay(playCards, ev);
+        else executePass();
+    } else {
+        executePass();
+    }
 }
 
 /* ===== 叫牌 ===== */
@@ -1436,7 +1499,6 @@ function processBidding() {
     }
     let p=bidQueue[bidIndex];
     if (p===0) {
-        // 先加 bid-label
         let panel = document.getElementById("controlPanel");
         let oldLabel = panel.querySelector('.bid-label');
         if (!oldLabel) {
@@ -1457,11 +1519,33 @@ function processBidding() {
         updateInfo("🎯 你的回合，請叫分...");
     } else {
         let ai=aiNames[p], aiChoice=0;
-        if(currentBid<3 && Math.random()>0.4) aiChoice=currentBid+1;
+        // 【優化】AI 叫分依手牌強度判斷（炸彈或對子多則積極叫分）
+        let handStrength = assessHandStrength(p);
+        let bidProb = handStrength > 0.6 ? 0.75 : handStrength > 0.4 ? 0.5 : 0.25;
+        if(currentBid<3 && Math.random()<bidProb) aiChoice=currentBid+1;
         if(aiChoice>0){currentBid=aiChoice;landlord=p;updateInfo(`${ai.avatar} ${ai.name} 叫了 ${currentBid} 分`);if(currentBid===3){setTimeout(()=>setLandlord(landlord,3),1200);return;}}
         else{updateInfo(`${ai.avatar} ${ai.name} 不叫`);}
         bidIndex++; setTimeout(processBidding, 1200);
     }
+}
+
+/* 【新增】評估手牌強度（0~1），用於 AI 叫牌決策 */
+function assessHandStrength(playerIdx) {
+    const hand = players[playerIdx];
+    let score = 0;
+    let counts = {};
+    hand.forEach(c => counts[c.rank] = (counts[c.rank]||0)+1);
+    const hasBomb = Object.values(counts).some(v => v >= 4);
+    const hasRocket = counts["BJ"] && counts["RJ"];
+    const has2 = counts["2"] > 0;
+    const hasA = counts["A"] > 0;
+    const pairCount = Object.values(counts).filter(v => v >= 2).length;
+    if (hasBomb) score += 0.4;
+    if (hasRocket) score += 0.35;
+    if (has2) score += 0.15;
+    if (hasA) score += 0.1;
+    score += pairCount * 0.05;
+    return Math.min(score, 1);
 }
 
 function playerBid(score) {
@@ -1503,17 +1587,10 @@ function setLandlord(idx, score) {
     renderHoleCards(true); renderPlayer(); renderOpponents();
     let name = idx===0 ? "你" : `${aiNames[idx].avatar} ${aiNames[idx].name}`;
     updateInfo(`👑 ${name} 擔任地主（底分 ${score}）`);
-
-    // 地主宣告動畫
     showLandlordAnnounce(name, idx===0);
-
-    // 玩家身份徽章
     updatePlayerRoleBadge();
-
-    // 清除叫牌 label
     let lbl = document.getElementById("controlPanel").querySelector('.bid-label');
     if (lbl) lbl.remove();
-
     document.getElementById("btnPlay").style.display="inline-block";
     document.getElementById("btnPass").style.display="inline-block";
     document.getElementById("btnHint").style.display="inline-block";
@@ -1538,7 +1615,6 @@ function shootConfetti() {
         conf.style.borderRadius=Math.random()>0.5?'50%':'3px';
         container.appendChild(conf);
     }
-    // 勝利光效
     let glow=document.createElement('div');
     glow.className='win-glow';
     document.body.appendChild(glow);
@@ -1585,9 +1661,19 @@ function endGame(winner) {
             <span class="result-change" style="color:${change>=0?'#4ade80':'#f87171'}">${change>=0?'+'+change:change}</span>
         </div>`;
     }
-    localStorage.setItem("doudizhu_stats", JSON.stringify(stats));
+    /* 【Bug修復】localStorage 寫入加上 try-catch */
+    try { localStorage.setItem("doudizhu_stats", JSON.stringify(stats)); } catch(e) {}
     document.getElementById("modalScores").innerHTML=html;
     modal.style.display="flex";
+}
+
+/* ===== 【Bug修復】Fisher-Yates 洗牌演算法，確保每局公平 ===== */
+function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
 }
 
 /* ===== 初始化 ===== */
@@ -1595,13 +1681,13 @@ function initGame() {
     initDailyQuest(); updateStatsUI();
     document.querySelectorAll('.btn-bid, #btnNoBid, #btnPass, #btnPlay, #btnHint').forEach(b=>b.style.display='none');
     document.getElementById("multiplierBadge").style.display="none";
-    // 重設身份徽章
     let badge = document.getElementById("playerRoleBadge");
     if (badge) { badge.textContent=""; badge.className="player-role-badge"; }
     deck=[];
     for(let r of ranks) for(let s of suits) deck.push({rank:r,suit:s,isJoker:false});
     deck.push({rank:"BJ",isJoker:true}); deck.push({rank:"RJ",isJoker:true});
-    deck.sort(()=>Math.random()-0.5);
+    /* 【Bug修復】使用 Fisher-Yates 取代 sort(random) */
+    shuffleArray(deck);
     holeCards=deck.slice(0,3); players=[[],[],[]];
     for(let i=3;i<54;i++) players[(i-3)%3].push(deck[i]);
     players.forEach(p=>p.sort((a,b)=>power[b.rank]-power[a.rank]));
@@ -1612,7 +1698,6 @@ function initGame() {
 
 initGame();
 
-// 螢幕旋轉或視窗縮放時重繪手牌（確保 compact 模式正確切換）
 let resizeTimer;
 window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
