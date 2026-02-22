@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>暗棋</title>
+<title>暗棋 · 宮廷版</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700;900&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
 <style>
 /* ============================================
@@ -112,9 +112,10 @@ body::before {
    統計欄
    ============================================ */
 .stats-bar {
-  width:100%;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;
+  width:100%;display:grid;grid-template-columns:repeat(6,1fr);gap:8px;
 }
-@media(max-width:480px){.stats-bar{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:600px){.stats-bar{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:360px){.stats-bar{grid-template-columns:repeat(2,1fr);}}
 
 .stat-card {
   background:linear-gradient(135deg,rgba(20,10,0,0.9),rgba(12,5,0,0.95));
@@ -310,8 +311,13 @@ select option{background:#1a0a00;color:var(--gold-light);}
 
 @keyframes dot-pulse{0%,100%{opacity:.55;transform:scale(.88);}50%{opacity:1;transform:scale(1.12);}}
 @keyframes capture-ring{0%,100%{opacity:.45;transform:scale(1);}50%{opacity:1;transform:scale(1.08);box-shadow:0 0 10px rgba(255,68,68,0.5);}}
-@keyframes piece-flip{0%{transform:scaleX(0) translateY(-4px);}60%{transform:scaleX(1.1) translateY(-6px);}100%{transform:scaleX(1) translateY(-3px);}}
-.flipping{animation:piece-flip 0.3s ease-out;}
+@keyframes piece-flip{
+  0%  {transform:scaleY(1);filter:brightness(1);}
+  30% {transform:scaleY(0) scaleX(0.7);filter:brightness(0.3);}
+  60% {transform:scaleY(1.1) scaleX(1.05);filter:brightness(1.4);}
+  100%{transform:scaleY(1) scaleX(1);filter:brightness(1);}
+}
+.flipping{animation:piece-flip 0.35s cubic-bezier(.4,0,.2,1);}
 
 .coord-row{
   display:flex;justify-content:space-around;
@@ -410,7 +416,7 @@ select option{background:#1a0a00;color:var(--gold-light);}
 .ach-toast-label{font-size:10px;letter-spacing:2px;color:var(--gold);margin-bottom:3px;}
 .ach-toast-name{font-size:14px;font-weight:700;color:var(--paper);}
 .ach-toast-desc{font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px;}
-@keyframes toast-in{from{opacity:0;transform:translateX(100%+20px);}to{opacity:1;transform:translateX(0);}}
+@keyframes toast-in{from{opacity:0;transform:translateX(calc(100% + 40px));}to{opacity:1;transform:translateX(0);}}
 @keyframes toast-out{from{opacity:1;transform:translateX(0);}to{opacity:0;transform:translateX(100%);}}
 
 /* ============================================
@@ -590,7 +596,16 @@ select option{background:#1a0a00;color:var(--gold-light);}
   color:var(--gold);text-shadow:0 0 25px rgba(201,168,76,0.7);
   letter-spacing:6px;margin-bottom:8px;
 }
-.win-sub{font-size:14px;color:rgba(255,255,255,0.5);letter-spacing:2px;margin-bottom:24px;}
+.win-sub{font-size:14px;color:rgba(255,255,255,0.5);letter-spacing:2px;margin-bottom:16px;}
+.win-stats{
+  display:flex;gap:16px;justify-content:center;flex-wrap:wrap;
+  margin-bottom:24px;padding:12px 16px;
+  background:rgba(0,0,0,0.3);border-radius:10px;
+  border:1px solid rgba(201,168,76,0.15);
+}
+.win-stat-item{text-align:center;}
+.win-stat-val{font-family:'Ma Shan Zheng',serif;font-size:22px;color:var(--gold-light);line-height:1;}
+.win-stat-lbl{font-size:10px;letter-spacing:1px;color:rgba(255,255,255,0.35);margin-top:3px;}
 .win-btn{
   padding:12px 32px;border-radius:10px;border:none;
   font-family:'Noto Serif TC',serif;font-size:15px;font-weight:700;
@@ -731,7 +746,11 @@ select option{background:#1a0a00;color:var(--gold-light);}
     <div class="win-icon" id="win-icon">🏆</div>
     <div class="win-title" id="win-title">獲勝！</div>
     <div class="win-sub" id="win-sub">本局對戰結束</div>
-    <button class="win-btn" onclick="closeWin();initGame();">再戰一局</button>
+    <div class="win-stats" id="win-stats"></div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <button class="win-btn" onclick="closeWin();initGame();">再戰一局</button>
+      <button class="win-btn" style="background:linear-gradient(135deg,rgba(201,168,76,0.2),rgba(100,60,10,0.4));color:var(--gold);border:1px solid rgba(201,168,76,0.4);" onclick="closeWin();openModal('ach-modal');renderAchGrid();">查看成就</button>
+    </div>
   </div>
 </div>
 
@@ -747,6 +766,7 @@ select option{background:#1a0a00;color:var(--gold-light);}
     <div class="nav-actions">
       <button class="nav-btn" onclick="openModal('rules-modal')"><span class="icon">📖</span>規則</button>
       <button class="nav-btn" onclick="openModal('ach-modal');renderAchGrid()"><span class="icon">🏅</span>成就</button>
+      <button class="nav-btn" onclick="confirmResetStats()" style="border-color:rgba(244,67,54,0.3);color:rgba(244,67,54,0.7);" title="重置所有戰績與成就"><span class="icon">🗑</span></button>
     </div>
   </nav>
 
@@ -756,6 +776,7 @@ select option{background:#1a0a00;color:var(--gold-light);}
     <div class="stat-card"><div class="stat-num draw" id="s-draw">0</div><div class="stat-label">平局</div></div>
     <div class="stat-card"><div class="stat-num total" id="s-total">0</div><div class="stat-label">總場次</div></div>
     <div class="stat-card"><div class="stat-num ach" id="s-ach">0</div><div class="stat-label">成就</div></div>
+    <div class="stat-card" id="s-winrate-card" style="display:none"><div class="stat-num" id="s-winrate" style="color:#ffd54f">-%</div><div class="stat-label">勝率</div></div>
   </div>
 
   <div class="control-panel">
@@ -771,8 +792,8 @@ select option{background:#1a0a00;color:var(--gold-light);}
           <option value="hard">♟ 高手 AI（深謀）</option>
         </select>
       </div>
-      <button class="game-btn" id="undo-btn" onclick="undoMove()">⏪ 悔棋（<span id="undo-count">3</span>）</button>
-      <button class="game-btn" id="restart-btn" onclick="initGame()">🔄 重新開始</button>
+      <button class="game-btn" id="undo-btn" onclick="undoMove()" title="快捷鍵：U 或 Ctrl+Z">⏪ 悔棋（<span id="undo-count">3</span>）</button>
+      <button class="game-btn" id="restart-btn" onclick="initGame()" title="快捷鍵：R">🔄 重新開始</button>
     </div>
     <div id="info-box">請翻開第一顆棋子決定陣營</div>
   </div>
@@ -902,23 +923,12 @@ function saveStorage(data) {
 }
 
 let playerStats = { wins:0, losses:0, draws:0, totalGames:0 };
-let sessionStats = {
-  turnsThisGame: 0,
-  piecesEaten: 0,
-  cannonKills: 0,
-  soldierKillsKing: 0,
-  flipsThisGame: 0,
-  winStreak: 0,
-  loseStreak: 0,
-  fastWinTurns: 999,
-  undosUsed: 0,
-  easyWin: false,
-  normalWin: false,
-  hardWin: false,
-  pvpWin: false,
+// 跨局累積統計（需持久化）
+let cumulativeStats = {
   totalCannonKills: 0,
   totalSoldierKillKing: 0,
-  cleanWin: false, // 沒有悔棋贏
+  winStreak: 0,
+  loseStreak: 0,
 };
 
 // ==============================================
@@ -973,8 +983,7 @@ function loadAchievements() {
   if (d) {
     unlockedAchievements = d.achievements || {};
     playerStats = { ...playerStats, ...(d.stats||{}) };
-    sessionStats.winStreak = d.winStreak || 0;
-    sessionStats.loseStreak = d.loseStreak || 0;
+    cumulativeStats = { ...cumulativeStats, ...(d.cumulativeStats||{}) };
   }
 }
 
@@ -982,8 +991,7 @@ function saveAchievements() {
   const d = loadStorage() || {};
   d.achievements = unlockedAchievements;
   d.stats = playerStats;
-  d.winStreak = sessionStats.winStreak;
-  d.loseStreak = sessionStats.loseStreak;
+  d.cumulativeStats = cumulativeStats;
   saveStorage(d);
 }
 
@@ -1003,8 +1011,10 @@ function unlockAchievement(id) {
 }
 
 function showAchToast(ach) {
-  playMelody([[523,0.08,'sine'],[659,0.08,'sine'],[784,0.15,'sine']], );
-  playSound(523,0.08,'sine');setTimeout(()=>playSound(659,0.08,'sine'),80);setTimeout(()=>playSound(784,0.15,'sine'),160);
+  // 成就解鎖音效：Do-Mi-Sol 上行音階
+  playSound(523,0.08,'sine',0.12);
+  setTimeout(()=>playSound(659,0.1,'sine',0.12), 100);
+  setTimeout(()=>playSound(784,0.18,'sine',0.14), 220);
   const container = document.getElementById('ach-toast');
   const el = document.createElement('div');
   el.className = 'ach-toast-item';
@@ -1133,6 +1143,19 @@ function updateStatsUI() {
   document.getElementById('s-draw').textContent  = playerStats.draws;
   document.getElementById('s-total').textContent = playerStats.totalGames;
   document.getElementById('s-ach').textContent   = Object.keys(unlockedAchievements).length;
+
+  // 勝率（只有打過 PvE 局才顯示）
+  const pveGames = playerStats.wins + playerStats.losses;
+  const wrCard = document.getElementById('s-winrate-card');
+  if (pveGames > 0) {
+    const wr = Math.round(playerStats.wins / pveGames * 100);
+    document.getElementById('s-winrate').textContent = wr + '%';
+    document.getElementById('s-winrate').style.color =
+      wr >= 60 ? '#66bb6a' : wr >= 40 ? '#ffd54f' : '#ef5350';
+    wrCard.style.display = '';
+  } else {
+    wrCard.style.display = 'none';
+  }
 }
 
 function toggleDifficulty() {
@@ -1151,7 +1174,12 @@ function updateInfo() {
   if (isGameOver) return;
   const isAI = (gameMode==='PvE' && turn===aiColor);
   const label = turn==='red' ? '🔴 紅方' : '⚫ 黑方';
-  const who = isAI ? '🤖 AI 思考中…' : '👤 你的回合';
+  let who;
+  if (gameMode==='PvE') {
+    who = isAI ? '🤖 AI 思考中…' : '👤 你的回合';
+  } else {
+    who = turn==='red' ? '👤 紅方玩家' : '👤 黑方玩家';
+  }
   setInfo(`${label} · ${who}`, turn==='red'?'#ef9a9a':'#90a4ae');
 }
 
@@ -1271,14 +1299,16 @@ function doFlip(idx, isAI=false) {
     }
   }
 
-  // 翻牌動畫
-  const cells = document.getElementById('board').children;
-  if (cells[idx]) {
-    cells[idx].classList.add('flipping');
-    setTimeout(()=>cells[idx].classList.remove('flipping'), 350);
-  }
-
+  // 先渲染新狀態，再觸發動畫（確保 DOM 已更新）
   renderBoard();
+  requestAnimationFrame(()=>{
+    const cells = document.getElementById('board').children;
+    if (cells[idx]) {
+      cells[idx].classList.add('flipping');
+      setTimeout(()=>{ if(cells[idx]) cells[idx].classList.remove('flipping'); }, 350);
+    }
+  });
+
   switchTurn();
 }
 
@@ -1295,17 +1325,17 @@ function executeMove(f, t) {
     // 炮吃子統計
     if (board[f].piece.rank===2) {
       gs.cannonKills++;
-      sessionStats.totalCannonKills++;
+      cumulativeStats.totalCannonKills++;
       unlockAchievement('first_cannon');
       if (gs.cannonKills>=3) unlockAchievement('cannon_master');
-      if (sessionStats.totalCannonKills>=5) unlockAchievement('cannon5');
+      if (cumulativeStats.totalCannonKills>=5) unlockAchievement('cannon5');
     }
     // 兵吃帥
     if (board[f].piece.rank===1 && victim.rank===7) {
       gs.soldierKillKing++;
-      sessionStats.totalSoldierKillKing++;
+      cumulativeStats.totalSoldierKillKing++;
       unlockAchievement('first_soldier_king');
-      if (sessionStats.totalSoldierKillKing>=3) unlockAchievement('soldier_king3');
+      if (cumulativeStats.totalSoldierKillKing>=3) unlockAchievement('soldier_king3');
     }
 
     if (gs.eaten>=7) unlockAchievement('eat_7');
@@ -1397,27 +1427,25 @@ function endGame(winner, reason) {
   isGameOver=true; updateUndoUI();
   playerStats.totalGames++;
 
-  // 判斷玩家顏色
-  const playerColor = gameMode==='PvE' ? (aiColor==='red'?'red':'black') : null;
-  // PvP 情況 winner 即誰贏，PvE 看 playerColor
-  const playerWon = gameMode==='PvE' ? winner===playerColor : false; // PvP 暫定紅方為 P1
-  const playerWonPvP = gameMode==='PvP' && winner==='red'; // PvP 紅方算 P1 贏
+  // 判斷玩家顏色（PvE 模式下，玩家顏色 = 非 AI 顏色）
+  const playerColor = gameMode==='PvE' ? (aiColor==='red' ? 'black' : 'red') : null;
+  const playerWon   = gameMode==='PvE' ? (winner === playerColor) : false;
 
   if (gameMode==='PvE') {
     if (playerWon) {
       playerStats.wins++;
-      sessionStats.winStreak = (sessionStats.winStreak||0)+1;
-      sessionStats.loseStreak = 0;
+      cumulativeStats.winStreak = (cumulativeStats.winStreak||0)+1;
+      cumulativeStats.loseStreak = 0;
     } else {
       playerStats.losses++;
-      sessionStats.loseStreak = (sessionStats.loseStreak||0)+1;
-      sessionStats.winStreak = 0;
+      cumulativeStats.loseStreak = (cumulativeStats.loseStreak||0)+1;
+      cumulativeStats.winStreak = 0;
     }
   } else {
-    // PvP
-    playerStats.wins += (winner==='red'?1:0);
-    if (winner==='red') { sessionStats.winStreak++; sessionStats.loseStreak=0; }
-    else { sessionStats.loseStreak++; sessionStats.winStreak=0; }
+    // PvP：雙方都算局數，紅方贏算紅方勝，黑方贏也計勝場（同機對戰用同一勝場）
+    playerStats.wins++;  // PvP 有人贏就累加
+    if (winner==='red') { cumulativeStats.winStreak++; cumulativeStats.loseStreak=0; }
+    else { cumulativeStats.loseStreak++; cumulativeStats.winStreak=0; }
   }
 
   saveAchievements(); updateStatsUI();
@@ -1425,23 +1453,23 @@ function endGame(winner, reason) {
   // 成就解鎖
   if (gameMode==='PvE' && playerWon) {
     unlockAchievement('first_win');
-    if (aiDifficulty==='easy') unlockAchievement('beat_easy');
+    if (aiDifficulty==='easy')   unlockAchievement('beat_easy');
     if (aiDifficulty==='normal') unlockAchievement('beat_normal');
-    if (aiDifficulty==='hard') unlockAchievement('beat_hard');
-    if (gs.turns<=15) unlockAchievement('fast_win');
-    if (gs.undosUsed===0) unlockAchievement('clean_win');
-    if (gs.undosUsed>=3) unlockAchievement('comeback');
-    if (gs.flips>15) unlockAchievement('flip_master');
+    if (aiDifficulty==='hard')   unlockAchievement('beat_hard');
+    if (gs.turns<=15)            unlockAchievement('fast_win');
+    if (gs.undosUsed===0)        unlockAchievement('clean_win');
+    if (gs.undosUsed>=3)         unlockAchievement('comeback');
+    if (gs.flips>15)             unlockAchievement('flip_master');
   }
   if (gameMode==='PvP' && winner) unlockAchievement('beat_pvp');
-  if (playerStats.wins>=5) unlockAchievement('win5');
+  if (playerStats.wins>=5)  unlockAchievement('win5');
   if (playerStats.wins>=10) unlockAchievement('win10');
   if (playerStats.wins>=25) unlockAchievement('win25');
   if (playerStats.wins>=50) unlockAchievement('win50');
-  if (sessionStats.winStreak>=5) unlockAchievement('no_loss');
-  if (playerStats.totalGames>=100) unlockAchievement('legend');
-  // all_diff：三種難度+PvP都解鎖
-  if (unlockedAchievements['beat_easy']&&unlockedAchievements['beat_normal']&&unlockedAchievements['beat_hard']&&unlockedAchievements['beat_pvp'])
+  if (cumulativeStats.winStreak>=5) unlockAchievement('no_loss');
+  if (playerStats.totalGames>=100)  unlockAchievement('legend');
+  if (unlockedAchievements['beat_easy']&&unlockedAchievements['beat_normal']&&
+      unlockedAchievements['beat_hard']&&unlockedAchievements['beat_pvp'])
     unlockAchievement('all_diff');
 
   // UI
@@ -1449,14 +1477,30 @@ function endGame(winner, reason) {
   const winLabel = winColor ? '🔴 紅方' : '⚫ 黑方';
   setInfo(`🏆 ${winLabel}獲勝！（${reason}）`, winColor?'#ef9a9a':'#90a4ae');
 
-  // 音效
-  playMelody([[500,0.1],[0,0],[650,0.1],[0,0],[800,0.4]].map((v,i)=>[v[0],v[1],'sine',i*130]));
+  // 勝利音效
+  playSound(500,0.1,'sine',0.12);
+  setTimeout(()=>playSound(650,0.1,'sine',0.12), 140);
+  setTimeout(()=>playSound(800,0.35,'sine',0.14), 300);
 
   // 顯示勝利覆蓋
   setTimeout(()=>{
     document.getElementById('win-icon').textContent = winColor?'🔴':'⚫';
     document.getElementById('win-title').textContent = `${winLabel} 獲勝！`;
-    document.getElementById('win-sub').textContent = reason + (gameMode==='PvE'?` · ${aiDifficulty==='easy'?'肉腳':aiDifficulty==='normal'?'普通':'高手'} AI`:'');
+    document.getElementById('win-sub').textContent = reason + (gameMode==='PvE'?` · ${aiDifficulty==='easy'?'肉腳':aiDifficulty==='normal'?'普通':'高手'} AI`:'·雙人對戰');
+
+    // 本局統計摘要
+    const pveWinRate = (playerStats.wins + playerStats.losses) > 0
+      ? Math.round(playerStats.wins / (playerStats.wins + playerStats.losses) * 100) + '%'
+      : '-';
+    document.getElementById('win-stats').innerHTML = `
+      <div class="win-stat-item"><div class="win-stat-val">${gs.turns}</div><div class="win-stat-lbl">回合數</div></div>
+      <div class="win-stat-item"><div class="win-stat-val">${gs.eaten}</div><div class="win-stat-lbl">吃子數</div></div>
+      <div class="win-stat-item"><div class="win-stat-val">${gs.flips}</div><div class="win-stat-lbl">翻牌數</div></div>
+      <div class="win-stat-item"><div class="win-stat-val">${gs.cannonKills}</div><div class="win-stat-lbl">炮擊</div></div>
+      <div class="win-stat-item"><div class="win-stat-val">${playerStats.wins}</div><div class="win-stat-lbl">總勝場</div></div>
+      <div class="win-stat-item"><div class="win-stat-val">${pveWinRate}</div><div class="win-stat-lbl">勝率</div></div>
+    `;
+
     document.getElementById('win-overlay').classList.add('show');
     fireConfetti();
   }, 800);
@@ -1588,8 +1632,34 @@ updateStatsUI();
 toggleDifficulty();
 initGame();
 
+function confirmResetStats() {
+  if (confirm('確定要重置所有戰績與成就嗎？此操作無法復原。')) {
+    localStorage.removeItem(STORAGE_KEY);
+    playerStats = { wins:0, losses:0, draws:0, totalGames:0 };
+    cumulativeStats = { totalCannonKills:0, totalSoldierKillKing:0, winStreak:0, loseStreak:0 };
+    unlockedAchievements = {};
+    updateStatsUI();
+    playSound(220, 0.2, 'triangle', 0.08);
+  }
+}
+
 window.addEventListener('resize',()=>{
   if (confAnimId) { confCanvas.width=window.innerWidth; confCanvas.height=window.innerHeight; }
+});
+
+// 鍵盤快捷鍵
+document.addEventListener('keydown', e => {
+  // Escape 關閉所有模態框
+  if (e.key==='Escape') {
+    document.querySelectorAll('.modal-overlay.show').forEach(m=>m.classList.remove('show'));
+    closeWin();
+    return;
+  }
+  // 若模態框開著，不處理遊戲快捷鍵
+  if (document.querySelector('.modal-overlay.show')) return;
+  if (e.key==='r'||e.key==='R') { if (!e.ctrlKey&&!e.metaKey) { initGame(); } }
+  if (e.key==='z'||e.key==='Z') { if (e.ctrlKey||e.metaKey) { e.preventDefault(); undoMove(); } }
+  if (e.key==='u'||e.key==='U') { undoMove(); }
 });
 </script>
 </body>
