@@ -727,6 +727,11 @@ function update(dt) {
     b.y += b.vy * dt;
     if (b.gravity) b.vy += b.gravity * dt;
 
+    // Rotate axe emoji based on spin property
+    if (b.type === 'axe' && b.spin) {
+      b._angle = (b._angle || 0) + b.spin * dt;
+    }
+
     // Check collision with enemies
     if (b.type === 'melee') {
       // Rect collision
@@ -952,16 +957,54 @@ function render() {
   bullets.each(b => {
     if (!onScreen(b.x, b.y)) return;
     const s = toScreen(b.x, b.y);
+
     if (b.type === 'melee') {
       CTX.fillStyle = b.color;
       const ms = toScreen(b.mx + b.mw / 2, b.my + b.mh / 2);
       CTX.fillRect(ms.x - b.mw / 2, ms.y - b.mh / 2, b.mw, b.mh);
+
+    } else if (b.type === 'axe') {
+      // 🪓 rotating axe emoji
+      const size = Math.max(16, b.r * 2.2);
+      CTX.save();
+      CTX.translate(s.x, s.y);
+      CTX.rotate(b._angle || 0);
+      CTX.font = size + 'px serif';
+      CTX.textAlign = 'center';
+      CTX.textBaseline = 'middle';
+      CTX.fillText('\uD83E\uDE93', 0, 0);
+      CTX.restore();
+
+    } else if (b.type === 'bible') {
+      // 📖 orbiting bible emoji
+      const size = Math.max(16, b.r * 2.2);
+      CTX.save();
+      CTX.translate(s.x, s.y);
+      CTX.font = size + 'px serif';
+      CTX.textAlign = 'center';
+      CTX.textBaseline = 'middle';
+      CTX.fillText('\uD83D\uDCD6', 0, 0);
+      CTX.restore();
+
+    } else if (b.type === 'fireball') {
+      // 🔥 fireball emoji with glow
+      const size = Math.max(16, b.r * 2.5);
+      CTX.save();
+      CTX.shadowColor = '#ff6600';
+      CTX.shadowBlur = 18;
+      CTX.translate(s.x, s.y);
+      CTX.font = size + 'px serif';
+      CTX.textAlign = 'center';
+      CTX.textBaseline = 'middle';
+      CTX.fillText('\uD83D\uDD25', 0, 0);
+      CTX.restore();
+
     } else {
+      // Default bullet (wand etc.) — glowing circle
       CTX.beginPath();
       CTX.arc(s.x, s.y, b.r, 0, PI2);
       CTX.fillStyle = b.color;
       CTX.fill();
-      // Glow
       CTX.beginPath();
       CTX.arc(s.x, s.y, b.r + 3, 0, PI2);
       CTX.fillStyle = b.color + '44';
