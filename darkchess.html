@@ -1,623 +1,738 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>暗棋 · 宮廷版</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700;900&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
 <style>
-/* ============================================
-   CSS 變數 & 重置
-   ============================================ */
-:root {
-  --ink:        #0d0500;
-  --ink-mid:    #1a0a00;
-  --paper:      #f5e6c8;
-  --paper-dim:  #d4c4a0;
-  --gold:       #c9a84c;
-  --gold-light: #f0d080;
-  --gold-dim:   rgba(201,168,76,0.35);
-  --red:        #cc2200;
-  --red-dim:    #8b1a1a;
-  --red-glow:   rgba(204,34,0,0.5);
-  --black-p:    #1a1a2e;
-  --wood-dark:  #3d1f0a;
-  --wood-mid:   #6b3a1f;
-  --wood-light: #a0642a;
-  --panel-bg:   rgba(18,8,0,0.94);
-  --border-g:   1px solid rgba(201,168,76,0.3);
-  --shadow-xl:  0 20px 60px rgba(0,0,0,0.8);
-  --radius:     14px;
-  --transition: all 0.2s ease;
+/* ================================================
+   主題系統（CSS 變數切換）
+   ================================================ */
+
+/* 主題一：暗夜玄金（原版深色） */
+[data-theme="dark"] {
+  --bg-base:       #0a0300;
+  --bg-mid:        #160800;
+  --bg-panel:      rgba(18,8,0,0.94);
+  --bg-card:       rgba(20,10,0,0.90);
+  --bg-card-hover: rgba(30,15,0,0.95);
+  --bg-input:      rgba(15,6,0,0.85);
+  --bg-inset:      rgba(0,0,0,0.30);
+  --text-main:     #f5e6c8;
+  --text-dim:      rgba(245,230,200,0.55);
+  --text-mute:     rgba(245,230,200,0.30);
+  --border:        rgba(201,168,76,0.28);
+  --border-hover:  rgba(201,168,76,0.55);
+  --accent:        #c9a84c;
+  --accent-light:  #f0d080;
+  --accent-glow:   rgba(201,168,76,0.25);
+  --shadow-color:  rgba(0,0,0,0.75);
+  --modal-bg:      #120800;
+  --modal-sticky:  #120800;
+  --info-bg:       rgba(15,6,0,0.92);
+  --body-grid:     rgba(201,168,76,0.03);
+  --board-bg:      radial-gradient(ellipse at 30% 20%,#8a5025,#6b3a1f 40%,#4a2508 70%,#3d1f0a);
+  --board-border:  #2a1008;
+  --board-outline: rgba(10,4,0,0.9);
+  --scroll-thumb:  rgba(201,168,76,0.25);
+  --ach-bg:        linear-gradient(135deg,rgba(15,8,0,0.9),rgba(8,4,0,0.95));
+  --ach-bg-unlock: linear-gradient(135deg,rgba(30,16,0,0.95),rgba(15,8,0,0.98));
+  --win-bg:        linear-gradient(160deg,#1a0a00,#0a0400);
+  --rank-card-bg:  rgba(0,0,0,0.30);
+  --special-rule-bg: rgba(201,168,76,0.06);
+  --btn-accent-end: #7a4a00;
 }
 
-*{box-sizing:border-box;margin:0;padding:0;}
+/* 主題二：宣紙古卷（暖色米白） */
+[data-theme="paper"] {
+  --btn-accent-end: #5a3c00;
+  --bg-base:       #f0e8d0;
+  --bg-mid:        #e8dcc0;
+  --bg-panel:      rgba(240,232,208,0.96);
+  --bg-card:       rgba(235,225,200,0.92);
+  --bg-card-hover: rgba(228,218,190,0.97);
+  --bg-input:      rgba(220,210,185,0.90);
+  --bg-inset:      rgba(160,130,80,0.10);
+  --text-main:     #2a1800;
+  --text-dim:      rgba(42,24,0,0.60);
+  --text-mute:     rgba(42,24,0,0.35);
+  --border:        rgba(140,100,40,0.30);
+  --border-hover:  rgba(140,100,40,0.60);
+  --accent:        #8b5e0a;
+  --accent-light:  #b8820e;
+  --accent-glow:   rgba(139,94,10,0.20);
+  --shadow-color:  rgba(100,60,0,0.25);
+  --modal-bg:      #f4ecda;
+  --modal-sticky:  #f4ecda;
+  --info-bg:       rgba(235,225,200,0.95);
+  --body-grid:     rgba(140,100,40,0.05);
+  --board-bg:      radial-gradient(ellipse at 30% 20%,#c8904a,#a06830 40%,#7a4c18 70%,#5a3408);
+  --board-border:  #4a2c0a;
+  --board-outline: rgba(80,50,10,0.6);
+  --scroll-thumb:  rgba(139,94,10,0.30);
+  --ach-bg:        linear-gradient(135deg,rgba(235,220,190,0.9),rgba(225,210,175,0.95));
+  --ach-bg-unlock: linear-gradient(135deg,rgba(240,228,200,0.95),rgba(230,218,185,0.98));
+  --win-bg:        linear-gradient(160deg,#f4ecda,#e8dcc0);
+  --rank-card-bg:  rgba(180,150,90,0.15);
+  --special-rule-bg: rgba(139,94,10,0.07);
+}
 
-html{scroll-behavior:smooth;}
+/* 主題三：青花瓷藍（藍白瓷器） */
+[data-theme="blue"] {
+  --btn-accent-end: #1a3a6a;
+  --bg-base:       #0c1628;
+  --bg-mid:        #132040;
+  --bg-panel:      rgba(15,25,55,0.95);
+  --bg-card:       rgba(18,30,65,0.92);
+  --bg-card-hover: rgba(25,40,80,0.97);
+  --bg-input:      rgba(12,20,50,0.88);
+  --bg-inset:      rgba(0,20,60,0.25);
+  --text-main:     #dce8f8;
+  --text-dim:      rgba(220,232,248,0.55);
+  --text-mute:     rgba(220,232,248,0.30);
+  --border:        rgba(100,160,240,0.28);
+  --border-hover:  rgba(100,160,240,0.55);
+  --accent:        #5b9bd5;
+  --accent-light:  #90c4f0;
+  --accent-glow:   rgba(91,155,213,0.35);
+  --shadow-color:  rgba(0,10,40,0.75);
+  --modal-bg:      #0e1e45;
+  --modal-sticky:  #0e1e45;
+  --info-bg:       rgba(15,25,55,0.95);
+  --body-grid:     rgba(100,160,240,0.03);
+  --board-bg:      radial-gradient(ellipse at 30% 20%,#2a5090,#1a3870 40%,#0e2258 70%,#081540);
+  --board-border:  #081540;
+  --board-outline: rgba(5,10,30,0.9);
+  --scroll-thumb:  rgba(91,155,213,0.30);
+  --ach-bg:        linear-gradient(135deg,rgba(15,25,60,0.92),rgba(10,18,50,0.96));
+  --ach-bg-unlock: linear-gradient(135deg,rgba(20,35,80,0.95),rgba(15,28,70,0.98));
+  --win-bg:        linear-gradient(160deg,#0e1e45,#081530);
+  --rank-card-bg:  rgba(30,60,120,0.25);
+  --special-rule-bg: rgba(91,155,213,0.07);
+}
+
+/* 主題四：翡翠春意（清爽綠色） */
+[data-theme="jade"] {
+  --btn-accent-end: #1b4a1c;
+  --bg-base:       #f2f8f2;
+  --bg-mid:        #e4f0e4;
+  --bg-panel:      rgba(242,248,242,0.97);
+  --bg-card:       rgba(235,245,235,0.93);
+  --bg-card-hover: rgba(225,240,225,0.97);
+  --bg-input:      rgba(220,238,220,0.90);
+  --bg-inset:      rgba(80,160,80,0.08);
+  --text-main:     #1a2e1a;
+  --text-dim:      rgba(26,46,26,0.58);
+  --text-mute:     rgba(26,46,26,0.32);
+  --border:        rgba(60,140,60,0.28);
+  --border-hover:  rgba(60,140,60,0.58);
+  --accent:        #2e7d32;
+  --accent-light:  #4caf50;
+  --accent-glow:   rgba(46,125,50,0.22);
+  --shadow-color:  rgba(20,60,20,0.22);
+  --modal-bg:      #f5faf5;
+  --modal-sticky:  #f5faf5;
+  --info-bg:       rgba(235,248,235,0.96);
+  --body-grid:     rgba(60,140,60,0.05);
+  --board-bg:      radial-gradient(ellipse at 30% 20%,#5a9a50,#3d7035 40%,#2a5025 70%,#1a3818);
+  --board-border:  #1a3818;
+  --board-outline: rgba(15,40,15,0.7);
+  --scroll-thumb:  rgba(46,125,50,0.30);
+  --ach-bg:        linear-gradient(135deg,rgba(230,248,230,0.92),rgba(220,242,220,0.96));
+  --ach-bg-unlock: linear-gradient(135deg,rgba(238,252,238,0.96),rgba(228,248,228,0.98));
+  --win-bg:        linear-gradient(160deg,#f5faf5,#e4f0e4);
+  --rank-card-bg:  rgba(80,180,80,0.12);
+  --special-rule-bg: rgba(46,125,50,0.07);
+}
+
+/* ================================================
+   重置 & 基礎
+   ================================================ */
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior:smooth; }
 
 body {
   min-height:100vh;
   background:
-    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(100,50,0,0.25) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 80% at 85% 90%, rgba(60,20,0,0.3) 0%, transparent 60%),
-    linear-gradient(160deg, #0a0300 0%, #160800 50%, #0a0300 100%);
+    radial-gradient(ellipse 80% 60% at 20% 10%, var(--accent-glow) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 85% 90%, var(--accent-glow) 0%, transparent 60%),
+    linear-gradient(160deg, var(--bg-base) 0%, var(--bg-mid) 50%, var(--bg-base) 100%);
   font-family:'Noto Serif TC',serif;
-  color:var(--paper);
+  color:var(--text-main);
   overflow-x:hidden;
+  transition:background 0.5s ease, color 0.3s ease;
 }
-
-/* 背景紋理 */
+/* 所有主要區塊跟隨主題過渡 */
+.top-nav, .stats-bar .stat-card, .control-panel, #side-panel,
+.modal-box, .ach-card, .win-box, #info-box, select, .nav-btn, .theme-picker {
+  transition:background 0.4s ease, border-color 0.4s ease, color 0.3s ease, box-shadow 0.4s ease;
+}
 body::before {
   content:'';
-  position:fixed;inset:0;
+  position:fixed; inset:0;
   background-image:
-    repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(201,168,76,0.03) 40px),
-    repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(201,168,76,0.03) 40px);
-  pointer-events:none;z-index:0;
+    repeating-linear-gradient(0deg,transparent,transparent 39px,var(--body-grid) 40px),
+    repeating-linear-gradient(90deg,transparent,transparent 39px,var(--body-grid) 40px);
+  pointer-events:none; z-index:0;
 }
 
-/* ============================================
+/* ================================================
    頁面結構
-   ============================================ */
+   ================================================ */
 #app {
-  position:relative;z-index:1;
-  max-width:1200px;margin:0 auto;
-  padding:12px 16px 40px;
-  display:flex;flex-direction:column;align-items:center;gap:14px;
+  position:relative; z-index:1;
+  max-width:1200px; margin:0 auto;
+  padding:12px 16px 48px;
+  display:flex; flex-direction:column; align-items:center; gap:14px;
 }
 
-/* ============================================
+/* ================================================
    頂部導航欄
-   ============================================ */
+   ================================================ */
 .top-nav {
-  width:100%;display:flex;align-items:center;justify-content:space-between;
+  width:100%; display:flex; align-items:center; justify-content:space-between;
   padding:10px 16px;
-  background:linear-gradient(135deg,rgba(20,10,0,0.9),rgba(10,4,0,0.95));
-  border:var(--border-g);border-radius:var(--radius);
-  box-shadow:0 4px 20px rgba(0,0,0,0.5),inset 0 1px 0 rgba(201,168,76,0.15);
-  backdrop-filter:blur(10px);
+  background:var(--bg-panel);
+  border:1px solid var(--border); border-radius:14px;
+  box-shadow:0 4px 20px var(--shadow-color), inset 0 1px 0 var(--accent-glow);
+  backdrop-filter:blur(12px);
 }
-
-.nav-brand {
-  display:flex;align-items:center;gap:10px;
-}
+.nav-brand { display:flex; align-items:center; gap:10px; }
 .nav-brand h1 {
   font-family:'Ma Shan Zheng',serif;
   font-size:clamp(20px,4vw,30px);
-  color:var(--gold);
-  text-shadow:0 0 20px rgba(201,168,76,0.6),2px 2px 0 rgba(0,0,0,0.8);
-  letter-spacing:4px;line-height:1;
+  color:var(--accent);
+  text-shadow:0 0 18px var(--accent-glow), 1px 1px 0 var(--shadow-color);
+  letter-spacing:4px; line-height:1;
 }
-.nav-brand .subtitle{
-  font-size:10px;letter-spacing:4px;
-  color:rgba(201,168,76,0.4);
+.nav-brand .subtitle {
+  font-size:10px; letter-spacing:4px;
+  color:var(--text-mute);
   display:none;
 }
-@media(min-width:600px){.nav-brand .subtitle{display:block;}}
+@media(min-width:600px){ .nav-brand .subtitle { display:block; } }
+.nav-actions { display:flex; gap:6px; align-items:center; }
 
-.nav-actions{display:flex;gap:8px;}
+/* ================================================
+   主題切換器
+   ================================================ */
+.theme-picker {
+  display:flex; gap:5px; align-items:center;
+  padding:4px 8px;
+  background:var(--bg-inset);
+  border-radius:20px;
+  border:1px solid var(--border);
+}
+.theme-dot {
+  width:18px; height:18px; border-radius:50%;
+  cursor:pointer; border:2px solid transparent;
+  transition:all 0.2s; flex-shrink:0;
+}
+.theme-dot:hover { transform:scale(1.2); }
+.theme-dot.active { border-color:var(--accent); transform:scale(1.15); box-shadow:0 0 6px var(--accent-glow); }
+.theme-dot[data-t="dark"]  { background:linear-gradient(135deg,#2a1008,#c9a84c); }
+.theme-dot[data-t="paper"] { background:linear-gradient(135deg,#e8dcc0,#8b5e0a); }
+.theme-dot[data-t="blue"]  { background:linear-gradient(135deg,#0c1628,#5b9bd5); }
+.theme-dot[data-t="jade"]  { background:linear-gradient(135deg,#1a3818,#4caf50); }
 
 .nav-btn {
-  display:flex;align-items:center;gap:6px;
-  padding:7px 14px;border-radius:8px;border:none;
-  font-family:'Noto Serif TC',serif;font-size:13px;font-weight:600;
-  cursor:pointer;letter-spacing:1px;transition:var(--transition);
-  background:rgba(201,168,76,0.1);color:var(--gold);
-  border:1px solid rgba(201,168,76,0.25);
+  display:flex; align-items:center; gap:5px;
+  padding:7px 13px; border-radius:8px;
+  font-family:'Noto Serif TC',serif; font-size:13px; font-weight:600;
+  cursor:pointer; letter-spacing:1px; transition:all 0.2s;
+  background:var(--accent-glow); color:var(--accent);
+  border:1px solid var(--border);
 }
-.nav-btn:hover{background:rgba(201,168,76,0.2);border-color:rgba(201,168,76,0.5);}
-.nav-btn .icon{font-size:16px;}
+.nav-btn:hover { background:var(--accent-glow); filter:brightness(1.4); border-color:var(--border-hover); }
+.nav-btn.danger { color:#e57373; border-color:rgba(229,115,115,0.25); background:rgba(229,115,115,0.08); }
+.nav-btn.danger:hover { background:rgba(229,115,115,0.18); }
 
-/* ============================================
+/* ================================================
    統計欄
-   ============================================ */
+   ================================================ */
 .stats-bar {
-  width:100%;display:grid;grid-template-columns:repeat(6,1fr);gap:8px;
+  width:100%; display:grid;
+  grid-template-columns:repeat(6,1fr); gap:8px;
 }
-@media(max-width:600px){.stats-bar{grid-template-columns:repeat(3,1fr);}}
-@media(max-width:360px){.stats-bar{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:600px){ .stats-bar { grid-template-columns:repeat(3,1fr); } }
+@media(max-width:360px){ .stats-bar { grid-template-columns:repeat(2,1fr); } }
 
 .stat-card {
-  background:linear-gradient(135deg,rgba(20,10,0,0.9),rgba(12,5,0,0.95));
-  border:var(--border-g);border-radius:10px;
-  padding:10px 8px;text-align:center;
-  box-shadow:0 4px 12px rgba(0,0,0,0.4);
-  transition:var(--transition);
+  background:var(--bg-card);
+  border:1px solid var(--border); border-radius:10px;
+  padding:10px 8px; text-align:center;
+  box-shadow:0 4px 12px var(--shadow-color);
+  transition:all 0.2s;
 }
-.stat-card:hover{border-color:rgba(201,168,76,0.6);transform:translateY(-1px);}
+.stat-card:hover { border-color:var(--border-hover); transform:translateY(-1px); }
 .stat-num {
   font-family:'Ma Shan Zheng',serif;
-  font-size:clamp(18px,4vw,28px);
-  font-weight:900;line-height:1;
+  font-size:clamp(18px,4vw,28px); font-weight:900; line-height:1;
 }
-.stat-num.win{color:#4caf50;text-shadow:0 0 10px rgba(76,175,80,0.5);}
-.stat-num.lose{color:#f44336;text-shadow:0 0 10px rgba(244,67,54,0.5);}
-.stat-num.draw{color:#90a4ae;}
-.stat-num.total{color:var(--gold);text-shadow:0 0 10px rgba(201,168,76,0.4);}
-.stat-num.ach{color:#ce93d8;text-shadow:0 0 10px rgba(206,147,216,0.5);}
-.stat-label{font-size:10px;letter-spacing:2px;color:rgba(255,255,255,0.35);margin-top:4px;}
+.stat-num.win   { color:#4caf50; }
+.stat-num.lose  { color:#ef5350; }
+.stat-num.draw  { color:var(--text-dim); }
+.stat-num.total { color:var(--accent); }
+.stat-num.ach   { color:#ba68c8; }
+.stat-label { font-size:10px; letter-spacing:2px; color:var(--text-mute); margin-top:4px; }
 
-/* ============================================
+/* ================================================
    控制面板
-   ============================================ */
+   ================================================ */
 .control-panel {
   width:100%;
-  background:linear-gradient(135deg,rgba(20,10,0,0.92),rgba(10,4,0,0.96));
-  border:var(--border-g);border-radius:var(--radius);
+  background:var(--bg-panel);
+  border:1px solid var(--border); border-radius:14px;
   padding:14px 18px;
-  box-shadow:0 8px 32px rgba(0,0,0,0.5),inset 0 1px 0 rgba(201,168,76,0.12);
-  display:flex;flex-direction:column;align-items:center;gap:10px;
+  box-shadow:0 6px 24px var(--shadow-color);
+  display:flex; flex-direction:column; align-items:center; gap:10px;
 }
+.controls { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; align-items:center; }
 
-.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center;}
+select {
+  padding:8px 32px 8px 12px; border-radius:8px;
+  border:1px solid var(--border);
+  background:var(--bg-input);
+  color:var(--text-main);
+  font-family:'Noto Serif TC',serif; font-size:13px;
+  cursor:pointer; appearance:none; -webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 10px center;
+  transition:all 0.2s;
+}
+select:focus { outline:none; border-color:var(--accent); }
+select option { background:var(--bg-input); color:var(--text-main); }
 
-select{
-  padding:8px 32px 8px 12px;border-radius:8px;
-  border:1px solid rgba(201,168,76,0.35);
-  background:rgba(15,6,0,0.8);
-  color:var(--gold-light);
-  font-family:'Noto Serif TC',serif;font-size:13px;
-  cursor:pointer;appearance:none;-webkit-appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a84c' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 10px center;
-  transition:var(--transition);
-}
-select:focus{outline:none;border-color:var(--gold);}
-select option{background:#1a0a00;color:var(--gold-light);}
+#difficulty-container { transition:opacity 0.3s; }
 
-#difficulty-container{transition:opacity 0.3s;}
-
-.game-btn{
-  padding:8px 16px;border-radius:8px;border:none;
-  font-family:'Noto Serif TC',serif;font-weight:700;font-size:13px;
-  cursor:pointer;transition:var(--transition);letter-spacing:1px;
+.game-btn {
+  padding:8px 16px; border-radius:8px;
+  font-family:'Noto Serif TC',serif; font-weight:700; font-size:13px;
+  cursor:pointer; transition:all 0.2s; letter-spacing:1px;
 }
-#restart-btn{
-  background:linear-gradient(135deg,#2e7d32,#1b5e20);color:#a5d6a7;
-  border:1px solid #4caf50;box-shadow:0 2px 8px rgba(76,175,80,0.25);
+#restart-btn {
+  background:linear-gradient(135deg,#2e7d32,#1b5e20); color:#c8e6c9;
+  border:1px solid #4caf50; box-shadow:0 2px 8px rgba(76,175,80,0.25);
 }
-#restart-btn:hover{box-shadow:0 4px 16px rgba(76,175,80,0.4);transform:translateY(-1px);}
-#undo-btn{
-  background:linear-gradient(135deg,rgba(180,100,0,0.8),rgba(120,60,0,0.8));
-  color:#ffe0b2;border:1px solid rgba(180,100,0,0.5);
-  box-shadow:0 2px 8px rgba(180,100,0,0.2);
+#restart-btn:hover { transform:translateY(-1px); box-shadow:0 4px 16px rgba(76,175,80,0.40); }
+#undo-btn {
+  background:linear-gradient(135deg,#e65100,#bf360c); color:#ffe0b2;
+  border:1px solid #ff6d00; box-shadow:0 2px 8px rgba(230,81,0,0.20);
 }
-#undo-btn:hover:not(:disabled){box-shadow:0 4px 16px rgba(180,100,0,0.35);transform:translateY(-1px);}
-#undo-btn:disabled{background:rgba(40,40,40,0.5);color:#444;cursor:not-allowed;border-color:#333;box-shadow:none;transform:none;}
-.game-btn:active:not(:disabled){transform:translateY(2px)!important;}
+#undo-btn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 4px 16px rgba(230,81,0,0.35); }
+#undo-btn:disabled { background:var(--bg-inset); color:var(--text-mute); cursor:not-allowed; border-color:transparent; box-shadow:none; transform:none; }
+.game-btn:active:not(:disabled) { transform:translateY(2px)!important; }
 
 #info-box {
-  font-size:clamp(14px,3vw,17px);font-weight:700;
-  padding:9px 24px;border-radius:30px;letter-spacing:2px;
-  background:rgba(15,6,0,0.9);
-  border:1px solid rgba(201,168,76,0.3);
-  transition:color 0.3s,border-color 0.3s;
-  text-shadow:0 0 12px currentColor;
+  font-size:clamp(14px,3vw,17px); font-weight:700;
+  padding:9px 28px; border-radius:30px; letter-spacing:2px;
+  background:var(--info-bg);
+  border:1px solid var(--border);
+  transition:color 0.3s, border-color 0.3s, background 0.4s;
+  text-shadow:0 0 10px currentColor;
 }
 
-/* ============================================
+/* ================================================
    遊戲主布局
-   ============================================ */
-#game-layout{
-  display:flex;flex-direction:row;gap:16px;
-  width:100%;align-items:flex-start;justify-content:center;
+   ================================================ */
+#game-layout {
+  display:flex; flex-direction:row; gap:16px;
+  width:100%; align-items:flex-start; justify-content:center;
 }
-@media(max-width:950px){#game-layout{flex-direction:column;align-items:center;}}
+@media(max-width:950px){ #game-layout { flex-direction:column; align-items:center; } }
 
-/* ============================================
+/* ================================================
    棋盤
-   ============================================ */
-.board-wrap{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px;}
-.board-label{
-  font-size:11px;letter-spacing:4px;
-  color:rgba(201,168,76,0.4);text-align:center;
-}
+   ================================================ */
+.board-wrap { flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px; }
+.board-label { font-size:11px; letter-spacing:4px; color:var(--text-mute); text-align:center; }
 
 #board {
   width:min(580px,96vw);
-  display:grid;grid-template-columns:repeat(8,1fr);gap:5px;
-  padding:13px;border-radius:14px;
-  background:
-    radial-gradient(ellipse at 30% 20%,#8a5025,#6b3a1f 40%,#4a2508 70%,#3d1f0a);
-  border:3px solid #2a1008;
-  outline:7px solid rgba(10,4,0,0.9);outline-offset:3px;
+  display:grid; grid-template-columns:repeat(8,1fr); gap:5px;
+  padding:13px; border-radius:14px;
+  background:var(--board-bg);
+  border:3px solid var(--board-border);
+  outline:7px solid var(--board-outline); outline-offset:3px;
   box-shadow:
-    0 0 0 1px rgba(201,168,76,0.1),
-    0 15px 50px rgba(0,0,0,0.9),
-    0 40px 100px rgba(0,0,0,0.5),
-    inset 0 0 50px rgba(0,0,0,0.4),
-    inset 0 2px 0 rgba(180,130,60,0.25);
+    0 0 0 1px var(--accent-glow),
+    0 15px 50px var(--shadow-color),
+    inset 0 0 40px rgba(0,0,0,0.3),
+    inset 0 2px 0 rgba(255,255,255,0.1);
   position:relative;
 }
-
-/* 棋盤格線紋理 */
-#board::before{
-  content:'';position:absolute;inset:13px;border-radius:4px;
+#board::before {
+  content:''; position:absolute; inset:13px; border-radius:4px;
   background:
-    repeating-linear-gradient(90deg,transparent,transparent calc(12.5% - 0.5px),rgba(0,0,0,0.12) calc(12.5% - 0.5px),rgba(0,0,0,0.12) 12.5%),
-    repeating-linear-gradient(0deg,transparent,transparent calc(25% - 0.5px),rgba(0,0,0,0.12) calc(25% - 0.5px),rgba(0,0,0,0.12) 25%);
-  pointer-events:none;z-index:0;
+    repeating-linear-gradient(90deg,transparent,transparent calc(12.5% - 0.5px),rgba(0,0,0,0.1) calc(12.5% - 0.5px),rgba(0,0,0,0.1) 12.5%),
+    repeating-linear-gradient(0deg,transparent,transparent calc(25% - 0.5px),rgba(0,0,0,0.1) calc(25% - 0.5px),rgba(0,0,0,0.1) 25%);
+  pointer-events:none; z-index:0;
 }
 
-/* ============================================
+/* ================================================
    棋子
-   ============================================ */
+   ================================================ */
 .cell {
-  width:100%;aspect-ratio:1/1;cursor:pointer;border-radius:50%;
-  display:flex;justify-content:center;align-items:center;
+  width:100%; aspect-ratio:1/1; cursor:pointer; border-radius:50%;
+  display:flex; justify-content:center; align-items:center;
   font-size:clamp(15px,4.2vw,30px);
-  font-family:'Ma Shan Zheng','Noto Serif TC',serif;font-weight:900;
-  position:relative;z-index:1;
-  transition:transform 0.12s ease,box-shadow 0.12s ease;
+  font-family:'Ma Shan Zheng','Noto Serif TC',serif; font-weight:900;
+  position:relative; z-index:1;
+  transition:transform 0.12s ease, box-shadow 0.12s ease;
   background:radial-gradient(circle at 33% 25%,#f2deb0,#caa568 45%,#9a7038);
-  box-shadow:0 5px 0 #6b4a18,0 7px 14px rgba(0,0,0,0.7),inset 0 1px 3px rgba(255,245,200,0.5),inset 0 -1px 2px rgba(0,0,0,0.2);
+  box-shadow:0 5px 0 #6b4a18, 0 7px 14px rgba(0,0,0,0.55),
+             inset 0 1px 3px rgba(255,245,200,0.5), inset 0 -1px 2px rgba(0,0,0,0.2);
   border:1px solid rgba(190,150,70,0.3);
   user-select:none;
 }
 .cell:hover:not(.empty) {
   transform:translateY(-3px);
-  box-shadow:0 8px 0 #6b4a18,0 12px 20px rgba(0,0,0,0.8),inset 0 1px 3px rgba(255,245,200,0.5);
+  box-shadow:0 8px 0 #6b4a18, 0 12px 20px rgba(0,0,0,0.7),
+             inset 0 1px 3px rgba(255,245,200,0.5);
 }
-.cell:active:not(.empty){
+.cell:active:not(.empty) {
   transform:translateY(4px)!important;
-  box-shadow:0 1px 0 #6b4a18,0 2px 6px rgba(0,0,0,0.5)!important;
+  box-shadow:0 1px 0 #6b4a18, 0 2px 6px rgba(0,0,0,0.5)!important;
 }
 
-.hidden{
+.hidden {
   background:radial-gradient(circle at 38% 28%,#5c3520,#2e1308);
-  box-shadow:0 5px 0 #1e0900,0 7px 14px rgba(0,0,0,0.8),inset 0 1px 2px rgba(200,120,40,0.08);
+  box-shadow:0 5px 0 #1e0900, 0 7px 14px rgba(0,0,0,0.7),
+             inset 0 1px 2px rgba(200,120,40,0.08);
   border-color:rgba(100,50,15,0.4);
 }
-.hidden::after{content:"？";color:rgba(201,168,76,0.12);font-size:80%;}
-.hidden:hover{
+.hidden::after { content:"？"; color:rgba(201,168,76,0.15); font-size:80%; }
+.hidden:hover {
   background:radial-gradient(circle at 38% 28%,#6e4030,#3a1a10);
   transform:translateY(-3px);
 }
 
-.red-p{color:var(--red);text-shadow:0 0 10px rgba(200,40,0,0.6),1px 1px 0 rgba(255,200,180,0.2);}
-.black-p{color:#1a1a2e;text-shadow:0 0 6px rgba(20,20,50,0.4),1px 1px 0 rgba(200,200,220,0.15);}
+.red-p  { color:#cc2200; text-shadow:0 0 10px rgba(200,40,0,0.5), 1px 1px 0 rgba(255,180,150,0.2); }
+.black-p{ color:#1a1a2e; text-shadow:0 0 6px rgba(20,20,50,0.3),  1px 1px 0 rgba(200,200,220,0.15); }
 
-.selected{
+.selected {
   transform:translateY(-7px)!important;
   background:radial-gradient(circle at 33% 25%,#fff8d0,#e8c858 45%,#b89030)!important;
-  box-shadow:0 13px 0 #b09020,0 18px 35px rgba(201,168,76,0.55),inset 0 1px 3px rgba(255,255,200,0.6)!important;
-  border:2px solid var(--gold)!important;
+  box-shadow:0 13px 0 #b09020, 0 18px 35px rgba(201,168,76,0.50),
+             inset 0 1px 3px rgba(255,255,200,0.6)!important;
+  border:2px solid #c9a84c!important;
 }
 
-.empty{
-  background:linear-gradient(135deg,rgba(0,0,0,0.28),rgba(0,0,0,0.15));
-  box-shadow:inset 0 2px 8px rgba(0,0,0,0.55);
-  border:1px solid rgba(0,0,0,0.12);
-  border-radius:8px;cursor:default;
+.empty {
+  background:var(--bg-inset);
+  box-shadow:inset 0 2px 8px rgba(0,0,0,0.30);
+  border:1px solid rgba(0,0,0,0.08);
+  border-radius:8px; cursor:default;
 }
-.empty:hover,.empty:active{transform:none!important;box-shadow:inset 0 2px 8px rgba(0,0,0,0.55)!important;}
+.empty:hover, .empty:active { transform:none!important; box-shadow:inset 0 2px 8px rgba(0,0,0,0.30)!important; }
 
-.valid-move::before{
-  content:'';position:absolute;width:34%;height:34%;border-radius:50%;
+.valid-move::before {
+  content:''; position:absolute; width:34%; height:34%; border-radius:50%;
   background:radial-gradient(circle,rgba(80,220,80,0.95),rgba(40,160,40,0.7));
-  box-shadow:0 0 14px rgba(80,220,80,0.9);
+  box-shadow:0 0 14px rgba(80,220,80,0.85);
   animation:dot-pulse 1.1s ease-in-out infinite;
 }
-.valid-capture{
-  box-shadow:0 5px 0 #8b1a1a,0 7px 14px rgba(0,0,0,0.7),0 0 0 3px rgba(200,40,0,0.85),inset 0 1px 3px rgba(255,200,180,0.3)!important;
+.valid-capture {
+  box-shadow:0 5px 0 #8b1a1a, 0 7px 14px rgba(0,0,0,0.6),
+             0 0 0 3px rgba(200,40,0,0.8),
+             inset 0 1px 3px rgba(255,200,180,0.3)!important;
 }
-.valid-capture::after{
-  content:'';position:absolute;inset:-4px;border:2px solid #ff4444;border-radius:50%;
-  animation:capture-ring 0.85s ease-in-out infinite;
+.valid-capture::after {
+  content:''; position:absolute; inset:-4px; border:2px solid #ff4444;
+  border-radius:50%; animation:capture-ring 0.85s ease-in-out infinite;
 }
-.last-moved{
-  box-shadow:0 5px 0 #6b4a18,0 7px 14px rgba(0,0,0,0.7),0 0 0 2px rgba(80,160,255,0.6),inset 0 1px 3px rgba(200,230,255,0.3)!important;
-}
-
-@keyframes dot-pulse{0%,100%{opacity:.55;transform:scale(.88);}50%{opacity:1;transform:scale(1.12);}}
-@keyframes capture-ring{0%,100%{opacity:.45;transform:scale(1);}50%{opacity:1;transform:scale(1.08);box-shadow:0 0 10px rgba(255,68,68,0.5);}}
-@keyframes piece-flip{
-  0%  {transform:scaleY(1);filter:brightness(1);}
-  30% {transform:scaleY(0) scaleX(0.7);filter:brightness(0.3);}
-  60% {transform:scaleY(1.1) scaleX(1.05);filter:brightness(1.4);}
-  100%{transform:scaleY(1) scaleX(1);filter:brightness(1);}
-}
-.flipping{animation:piece-flip 0.35s cubic-bezier(.4,0,.2,1);}
-
-.coord-row{
-  display:flex;justify-content:space-around;
-  width:min(580px,96vw);padding:0 13px;
-}
-.coord-row span{
-  width:calc(100%/8);text-align:center;
-  font-size:9px;color:rgba(201,168,76,0.3);letter-spacing:0;
+.last-moved {
+  box-shadow:0 5px 0 #6b4a18, 0 7px 14px rgba(0,0,0,0.55),
+             0 0 0 2px rgba(80,160,255,0.55),
+             inset 0 1px 3px rgba(200,220,255,0.3)!important;
 }
 
-/* ============================================
+@keyframes dot-pulse { 0%,100%{opacity:.55;transform:scale(.88);}  50%{opacity:1;transform:scale(1.12);} }
+@keyframes capture-ring {
+  0%,100%{opacity:.45;transform:scale(1);}
+  50%{opacity:1;transform:scale(1.08);box-shadow:0 0 10px rgba(255,68,68,0.4);}
+}
+@keyframes piece-flip {
+  0%  { transform:scaleY(1);       filter:brightness(1); }
+  30% { transform:scaleY(0) scaleX(0.7); filter:brightness(0.3); }
+  65% { transform:scaleY(1.08) scaleX(1.04); filter:brightness(1.35); }
+  100%{ transform:scaleY(1) scaleX(1); filter:brightness(1); }
+}
+.flipping { animation:piece-flip 0.36s cubic-bezier(.4,0,.2,1); }
+
+.coord-row {
+  display:flex; justify-content:space-around;
+  width:min(580px,96vw); padding:0 13px;
+}
+.coord-row span { width:calc(100%/8); text-align:center; font-size:9px; color:var(--text-mute); }
+
+/* ================================================
    側邊欄
-   ============================================ */
-#side-panel{
-  background:var(--panel-bg);border:var(--border-g);
-  border-radius:var(--radius);padding:16px;
-  width:100%;max-width:260px;
-  box-shadow:0 8px 32px rgba(0,0,0,0.5),inset 0 1px 0 rgba(201,168,76,0.08);
-  display:flex;flex-direction:column;gap:14px;flex-shrink:0;
+   ================================================ */
+#side-panel {
+  background:var(--bg-panel); border:1px solid var(--border);
+  border-radius:14px; padding:16px;
+  width:100%; max-width:260px;
+  box-shadow:0 6px 24px var(--shadow-color);
+  display:flex; flex-direction:column; gap:14px; flex-shrink:0;
 }
-@media(max-width:950px){#side-panel{max-width:min(580px,96vw);}}
+@media(max-width:950px){ #side-panel { max-width:min(580px,96vw); } }
 
-.panel-section{display:flex;flex-direction:column;gap:6px;}
-.section-title{
-  font-size:10px;letter-spacing:3px;font-weight:600;
-  padding-bottom:6px;border-bottom:1px solid rgba(201,168,76,0.18);
-  display:flex;align-items:center;gap:6px;
+.panel-section { display:flex; flex-direction:column; gap:6px; }
+.section-title {
+  font-size:10px; letter-spacing:3px; font-weight:600;
+  padding-bottom:6px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:6px;
+  color:var(--text-dim);
 }
-.section-title.red-t{color:#ef9a9a;}
-.section-title.blk-t{color:#90a4ae;}
-.section-title.log-t{color:#81d4fa;}
-.section-title.rule-t{color:rgba(201,168,76,0.7);}
+.section-title.red-t  { color:#ef9a9a; }
+.section-title.blk-t  { color:#90a4ae; }
+.section-title.log-t  { color:#81d4fa; }
+.section-title.rule-t { color:var(--accent); opacity:0.8; }
 
-.captured-container{
-  display:flex;flex-wrap:wrap;gap:4px;
-  background:rgba(0,0,0,0.3);padding:7px;border-radius:8px;min-height:40px;
-  border:1px solid rgba(255,255,255,0.04);
+.captured-container {
+  display:flex; flex-wrap:wrap; gap:4px;
+  background:var(--bg-inset); padding:7px; border-radius:8px; min-height:40px;
+  border:1px solid var(--border);
 }
-.captured-piece{
-  width:27px;height:27px;border-radius:50%;
-  display:flex;justify-content:center;align-items:center;
-  font-size:12px;font-family:'Ma Shan Zheng',serif;font-weight:bold;
+.captured-piece {
+  width:27px; height:27px; border-radius:50%;
+  display:flex; justify-content:center; align-items:center;
+  font-size:12px; font-family:'Ma Shan Zheng',serif;
   background:radial-gradient(circle at 33% 28%,#f0dab0,#c8a068 45%,#9a7030);
-  box-shadow:0 2px 4px rgba(0,0,0,0.6),0 3px 0 #6b4a18;
+  box-shadow:0 2px 4px rgba(0,0,0,0.4), 0 3px 0 #6b4a18;
   border:1px solid rgba(190,150,70,0.3);
 }
-.captured-piece.cp-red{color:#b71c1c;}
-.captured-piece.cp-blk{color:#1a1a2e;}
+.captured-piece.cp-red { color:#b71c1c; }
+.captured-piece.cp-blk { color:#1a1a2e; }
 
-#history-list{
-  list-style:none;max-height:180px;overflow-y:auto;
-  font-size:11px;color:#90a4ae;
-  scrollbar-width:thin;scrollbar-color:rgba(201,168,76,0.25) transparent;
+#history-list {
+  list-style:none; max-height:180px; overflow-y:auto;
+  font-size:11px; color:var(--text-dim);
+  scrollbar-width:thin; scrollbar-color:var(--scroll-thumb) transparent;
 }
-#history-list li{
-  padding:5px 6px;border-bottom:1px solid rgba(255,255,255,0.04);
-  border-radius:3px;transition:background 0.1s;
+#history-list li {
+  padding:5px 6px; border-bottom:1px solid var(--border);
+  border-radius:3px; transition:background 0.1s;
 }
-#history-list li:hover{background:rgba(255,255,255,0.04);}
-#history-list li:last-child{color:var(--gold-light);font-weight:bold;}
+#history-list li:hover { background:var(--bg-inset); }
+#history-list li:last-child { color:var(--accent-light); font-weight:bold; }
 
-/* 快速規則 */
-.rank-table{width:100%;}
-.rank-row{
-  display:flex;align-items:center;gap:5px;
-  font-size:11px;color:rgba(255,255,255,0.45);
-  padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.03);
+.rank-table { width:100%; }
+.rank-row {
+  display:flex; align-items:center; gap:5px;
+  font-size:11px; color:var(--text-dim);
+  padding:3px 0; border-bottom:1px solid var(--border);
 }
-.rank-pieces{color:var(--gold-light);font-family:'Ma Shan Zheng',serif;letter-spacing:1px;min-width:80px;}
-.rank-desc{font-size:10px;color:rgba(201,168,76,0.5);}
+.rank-pieces { color:var(--accent-light); font-family:'Ma Shan Zheng',serif; letter-spacing:1px; min-width:80px; }
+.rank-desc { font-size:10px; color:var(--text-mute); }
 
-/* ============================================
+/* ================================================
    撒花
-   ============================================ */
-#confetti-canvas{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:9999;}
+   ================================================ */
+#confetti-canvas { position:fixed; inset:0; width:100vw; height:100vh; pointer-events:none; z-index:9999; }
 
-/* ============================================
-   成就彈出通知
-   ============================================ */
-#ach-toast{
-  position:fixed;bottom:30px;right:20px;
-  display:flex;flex-direction:column;gap:10px;
-  z-index:10000;pointer-events:none;
+/* ================================================
+   成就通知
+   ================================================ */
+#ach-toast {
+  position:fixed; bottom:28px; right:20px;
+  display:flex; flex-direction:column; gap:10px;
+  z-index:10000; pointer-events:none;
 }
-.ach-toast-item{
-  display:flex;align-items:center;gap:12px;
-  background:linear-gradient(135deg,rgba(15,8,0,0.97),rgba(25,12,0,0.98));
-  border:1px solid var(--gold);border-radius:12px;
-  padding:12px 16px;min-width:260px;max-width:320px;
-  box-shadow:0 8px 32px rgba(0,0,0,0.7),0 0 20px rgba(201,168,76,0.2);
+.ach-toast-item {
+  display:flex; align-items:center; gap:12px;
+  background:var(--bg-panel);
+  border:1px solid var(--accent); border-radius:12px;
+  padding:12px 16px; min-width:260px; max-width:320px;
+  box-shadow:0 8px 32px var(--shadow-color), 0 0 18px var(--accent-glow);
   animation:toast-in 0.4s cubic-bezier(.34,1.56,.64,1) forwards;
 }
-.ach-toast-item.out{animation:toast-out 0.3s ease-in forwards;}
-.ach-toast-icon{font-size:28px;flex-shrink:0;}
-.ach-toast-text{flex:1;}
-.ach-toast-label{font-size:10px;letter-spacing:2px;color:var(--gold);margin-bottom:3px;}
-.ach-toast-name{font-size:14px;font-weight:700;color:var(--paper);}
-.ach-toast-desc{font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px;}
-@keyframes toast-in{from{opacity:0;transform:translateX(calc(100% + 40px));}to{opacity:1;transform:translateX(0);}}
-@keyframes toast-out{from{opacity:1;transform:translateX(0);}to{opacity:0;transform:translateX(100%);}}
+.ach-toast-item.out { animation:toast-out 0.3s ease-in forwards; }
+.ach-toast-icon { font-size:28px; flex-shrink:0; }
+.ach-toast-text { flex:1; }
+.ach-toast-label { font-size:10px; letter-spacing:2px; color:var(--accent); margin-bottom:3px; }
+.ach-toast-name  { font-size:14px; font-weight:700; color:var(--text-main); }
+.ach-toast-desc  { font-size:11px; color:var(--text-dim); margin-top:2px; }
+@keyframes toast-in  { from{opacity:0;transform:translateX(calc(100% + 40px));}  to{opacity:1;transform:translateX(0);} }
+@keyframes toast-out { from{opacity:1;transform:translateX(0);} to{opacity:0;transform:translateX(calc(100% + 40px));} }
 
-/* ============================================
-   模態框共用
-   ============================================ */
-.modal-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,0.85);
-  display:flex;align-items:center;justify-content:center;
-  z-index:5000;opacity:0;pointer-events:none;transition:opacity 0.3s;
+/* ================================================
+   模態框
+   ================================================ */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.7);
+  display:flex; align-items:center; justify-content:center;
+  z-index:5000; opacity:0; pointer-events:none; transition:opacity 0.3s;
   padding:16px;
 }
-.modal-overlay.show{opacity:1;pointer-events:auto;}
-.modal-box{
-  background:linear-gradient(160deg,#120800,#0a0400);
-  border:1px solid rgba(201,168,76,0.4);border-radius:18px;
-  width:100%;max-width:720px;max-height:90vh;overflow-y:auto;
-  box-shadow:0 30px 80px rgba(0,0,0,0.9),0 0 60px rgba(201,168,76,0.1);
-  transform:scale(0.92) translateY(20px);transition:transform 0.3s;
-  scrollbar-width:thin;scrollbar-color:rgba(201,168,76,0.25) transparent;
+.modal-overlay.show { opacity:1; pointer-events:auto; }
+.modal-box {
+  background:var(--modal-bg);
+  border:1px solid var(--border); border-radius:18px;
+  width:100%; max-width:740px; max-height:90vh; overflow-y:auto;
+  box-shadow:0 30px 80px var(--shadow-color), 0 0 50px var(--accent-glow);
+  transform:scale(0.92) translateY(20px); transition:transform 0.3s;
+  scrollbar-width:thin; scrollbar-color:var(--scroll-thumb) transparent;
 }
-.modal-overlay.show .modal-box{transform:scale(1) translateY(0);}
-.modal-header{
-  display:flex;align-items:center;justify-content:space-between;
+.modal-overlay.show .modal-box { transform:scale(1) translateY(0); }
+.modal-header {
+  display:flex; align-items:center; justify-content:space-between;
   padding:20px 24px 14px;
-  border-bottom:1px solid rgba(201,168,76,0.2);
-  position:sticky;top:0;background:#120800;z-index:1;
+  border-bottom:1px solid var(--border);
+  position:sticky; top:0; background:var(--modal-sticky); z-index:1;
 }
-.modal-header h2{
-  font-family:'Ma Shan Zheng',serif;font-size:24px;
-  color:var(--gold);text-shadow:0 0 15px rgba(201,168,76,0.5);
-  letter-spacing:4px;
+.modal-header h2 {
+  font-family:'Ma Shan Zheng',serif; font-size:24px;
+  color:var(--accent); letter-spacing:4px;
 }
-.modal-close{
-  background:none;border:1px solid rgba(201,168,76,0.3);
-  color:rgba(201,168,76,0.7);font-size:18px;cursor:pointer;
-  width:34px;height:34px;border-radius:50%;transition:var(--transition);
-  display:flex;align-items:center;justify-content:center;
+.modal-close {
+  background:none; border:1px solid var(--border);
+  color:var(--text-dim); font-size:18px; cursor:pointer;
+  width:34px; height:34px; border-radius:50%; transition:all 0.2s;
+  display:flex; align-items:center; justify-content:center;
 }
-.modal-close:hover{background:rgba(201,168,76,0.15);color:var(--gold);border-color:var(--gold);}
-.modal-body{padding:20px 24px 24px;}
+.modal-close:hover { background:var(--accent-glow); color:var(--accent); border-color:var(--accent); }
+.modal-body { padding:20px 24px 28px; }
 
-/* ============================================
-   規則模態框
-   ============================================ */
-.rule-section{margin-bottom:24px;}
-.rule-section h3{
-  font-family:'Ma Shan Zheng',serif;font-size:18px;color:var(--gold-light);
-  letter-spacing:3px;margin-bottom:10px;
-  padding-bottom:6px;border-bottom:1px solid rgba(201,168,76,0.15);
+/* 規則模態框 */
+.rule-section { margin-bottom:24px; }
+.rule-section h3 {
+  font-family:'Ma Shan Zheng',serif; font-size:18px;
+  color:var(--accent-light); letter-spacing:3px; margin-bottom:10px;
+  padding-bottom:6px; border-bottom:1px solid var(--border);
 }
-.rule-section p{
-  font-size:13px;line-height:1.9;color:rgba(255,255,255,0.65);margin-bottom:8px;
-}
-.rule-section p strong{color:var(--gold-light);}
+.rule-section p { font-size:13px; line-height:1.9; color:var(--text-dim); margin-bottom:8px; }
+.rule-section p strong { color:var(--accent-light); }
 
-.rank-grid{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:10px;
+.rank-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; margin-top:10px; }
+.rank-card {
+  background:var(--rank-card-bg); border:1px solid var(--border);
+  border-radius:8px; padding:10px; text-align:center;
 }
-.rank-card{
-  background:rgba(0,0,0,0.3);border:1px solid rgba(201,168,76,0.15);
-  border-radius:8px;padding:10px;text-align:center;
+.rank-card .piece-name { font-family:'Ma Shan Zheng',serif; font-size:22px; display:flex; gap:6px; justify-content:center; margin-bottom:5px; }
+.rn-r { color:#cc2200; }
+.rn-b { color:#3a5080; }
+.rank-card .piece-info { font-size:11px; color:var(--text-dim); line-height:1.6; }
+.rank-card .rank-badge {
+  display:inline-block; font-size:10px; letter-spacing:1px;
+  background:var(--accent-glow); color:var(--accent);
+  padding:2px 8px; border-radius:4px; margin-bottom:4px;
 }
-.rank-card .piece-name{
-  font-family:'Ma Shan Zheng',serif;font-size:22px;
-  display:flex;gap:6px;justify-content:center;margin-bottom:5px;
+.special-rule {
+  background:var(--special-rule-bg); border:1px solid var(--border);
+  border-radius:8px; padding:12px; margin-bottom:8px;
 }
-.rn-r{color:var(--red);}
-.rn-b{color:#4a6080;}
-.rank-card .piece-info{font-size:11px;color:rgba(255,255,255,0.45);line-height:1.6;}
-.rank-card .rank-badge{
-  display:inline-block;font-size:10px;letter-spacing:1px;
-  background:rgba(201,168,76,0.15);color:var(--gold);
-  padding:2px 8px;border-radius:4px;margin-bottom:4px;
-}
+.special-rule .sr-title { font-size:13px; font-weight:700; color:var(--accent-light); margin-bottom:4px; }
+.special-rule .sr-desc  { font-size:12px; color:var(--text-dim); line-height:1.7; }
 
-.special-rule{
-  background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);
-  border-radius:8px;padding:12px;margin-bottom:8px;
-}
-.special-rule .sr-title{
-  font-size:13px;font-weight:700;color:var(--gold-light);margin-bottom:4px;
-}
-.special-rule .sr-desc{font-size:12px;color:rgba(255,255,255,0.55);line-height:1.7;}
-
-/* ============================================
-   成就模態框
-   ============================================ */
-.ach-tabs{
-  display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;
-}
-.ach-tab{
-  padding:7px 16px;border-radius:8px;border:1px solid rgba(201,168,76,0.25);
-  background:transparent;color:rgba(255,255,255,0.45);font-size:12px;font-weight:600;
-  cursor:pointer;transition:var(--transition);letter-spacing:1px;
+/* 成就模態框 */
+.ach-tabs { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+.ach-tab {
+  padding:7px 16px; border-radius:8px; border:1px solid var(--border);
+  background:transparent; color:var(--text-dim); font-size:12px; font-weight:600;
+  cursor:pointer; transition:all 0.2s; letter-spacing:1px;
   font-family:'Noto Serif TC',serif;
 }
-.ach-tab.active,.ach-tab:hover{
-  background:rgba(201,168,76,0.15);color:var(--gold);border-color:rgba(201,168,76,0.5);
+.ach-tab.active, .ach-tab:hover {
+  background:var(--accent-glow); color:var(--accent); border-color:var(--border-hover);
 }
-
-.ach-progress-bar{
-  width:100%;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;margin-bottom:16px;overflow:hidden;
+.ach-progress-bar {
+  width:100%; height:6px; background:var(--bg-inset); border-radius:3px; margin-bottom:16px; overflow:hidden;
 }
-.ach-progress-fill{
-  height:100%;border-radius:3px;
-  background:linear-gradient(90deg,var(--gold),var(--gold-light));
+.ach-progress-fill {
+  height:100%; border-radius:3px;
+  background:linear-gradient(90deg,var(--accent),var(--accent-light));
   transition:width 0.6s ease;
 }
-
-.ach-grid{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;
+.ach-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
+.ach-card {
+  background:var(--ach-bg); border:1px solid var(--border); border-radius:10px;
+  padding:14px; display:flex; flex-direction:column; gap:8px;
+  transition:all 0.2s; position:relative; overflow:hidden;
 }
-.ach-card{
-  background:linear-gradient(135deg,rgba(15,8,0,0.9),rgba(8,4,0,0.95));
-  border:1px solid rgba(255,255,255,0.08);border-radius:10px;
-  padding:14px;display:flex;flex-direction:column;gap:8px;
-  transition:var(--transition);position:relative;overflow:hidden;
-}
-.ach-card:hover{transform:translateY(-2px);border-color:rgba(201,168,76,0.3);}
-.ach-card.unlocked{
-  border-color:rgba(201,168,76,0.45);
-  background:linear-gradient(135deg,rgba(30,16,0,0.95),rgba(15,8,0,0.98));
-}
-.ach-card.unlocked::before{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(135deg,rgba(201,168,76,0.06),transparent);
+.ach-card:hover { transform:translateY(-2px); border-color:var(--border-hover); }
+.ach-card.unlocked { border-color:var(--border-hover); background:var(--ach-bg-unlock); }
+.ach-card.unlocked::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg,var(--accent-glow),transparent);
   pointer-events:none;
 }
-.ach-card.secret:not(.unlocked){border-style:dashed;border-color:rgba(255,255,255,0.06);}
-
-.ach-icon{font-size:30px;line-height:1;}
-.ach-name{font-size:13px;font-weight:700;color:var(--paper);}
-.ach-card:not(.unlocked) .ach-name{color:rgba(255,255,255,0.3);}
-.ach-desc{font-size:11px;color:rgba(255,255,255,0.4);line-height:1.6;}
-.ach-card.unlocked .ach-desc{color:rgba(255,255,255,0.55);}
-.ach-unlock-date{font-size:10px;color:var(--gold);letter-spacing:1px;margin-top:auto;}
-.ach-lock-icon{
-  position:absolute;top:10px;right:10px;
-  font-size:14px;color:rgba(255,255,255,0.12);
+.ach-card.secret:not(.unlocked) { border-style:dashed; border-color:var(--border); }
+.ach-icon      { font-size:30px; line-height:1; }
+.ach-name      { font-size:13px; font-weight:700; color:var(--text-main); }
+.ach-card:not(.unlocked) .ach-name { color:var(--text-mute); }
+.ach-desc      { font-size:11px; color:var(--text-dim); line-height:1.6; }
+.ach-card.unlocked .ach-desc { color:var(--text-dim); }
+.ach-unlock-date { font-size:10px; color:var(--accent); letter-spacing:1px; margin-top:auto; }
+.ach-lock-icon { position:absolute; top:10px; right:10px; font-size:14px; color:var(--text-mute); }
+.ach-card.unlocked .ach-lock-icon { display:none; }
+.ach-rarity { font-size:9px; letter-spacing:2px; padding:2px 7px; border-radius:4px; display:inline-block; width:fit-content; }
+.rarity-common    { background:rgba(100,180,100,0.15); color:#80c880; }
+.rarity-rare      { background:rgba(100,150,220,0.15); color:#80a8e0; }
+.rarity-epic      { background:rgba(180,100,220,0.15); color:#c090d8; }
+.rarity-legendary { background:rgba(220,160,40,0.15);  color:#c9a84c; }
+.ach-shimmer {
+  position:absolute; inset:0;
+  background:linear-gradient(105deg,transparent 40%,var(--accent-glow) 50%,transparent 60%);
+  animation:shimmer 3s infinite; pointer-events:none;
 }
-.ach-card.unlocked .ach-lock-icon{display:none;}
-.ach-rarity{
-  font-size:9px;letter-spacing:2px;padding:2px 7px;border-radius:4px;
-  display:inline-block;width:fit-content;
-}
-.rarity-common{background:rgba(100,180,100,0.15);color:#80c880;}
-.rarity-rare{background:rgba(100,150,220,0.15);color:#80a8e0;}
-.rarity-epic{background:rgba(180,100,220,0.15);color:#c090d8;}
-.rarity-legendary{background:rgba(220,160,40,0.15);color:var(--gold);}
+@keyframes shimmer { 0%{transform:translateX(-100%);} 100%{transform:translateX(200%);} }
 
-.ach-shimmer{
-  position:absolute;inset:0;background:linear-gradient(105deg,transparent 40%,rgba(201,168,76,0.15) 50%,transparent 60%);
-  animation:shimmer 3s infinite;pointer-events:none;
-}
-@keyframes shimmer{0%{transform:translateX(-100%);}100%{transform:translateX(200%);}}
-
-/* ============================================
+/* ================================================
    勝利覆蓋
-   ============================================ */
-#win-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,0.6);
-  display:flex;align-items:center;justify-content:center;
-  z-index:4000;opacity:0;pointer-events:none;transition:opacity 0.5s;
+   ================================================ */
+#win-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.65);
+  display:flex; align-items:center; justify-content:center;
+  z-index:4000; opacity:0; pointer-events:none; transition:opacity 0.5s;
 }
-#win-overlay.show{opacity:1;pointer-events:auto;}
-.win-box{
-  background:linear-gradient(160deg,#1a0a00,#0a0400);
-  border:2px solid var(--gold);border-radius:20px;
-  padding:36px 48px;text-align:center;
-  box-shadow:0 0 60px rgba(201,168,76,0.3),0 30px 80px rgba(0,0,0,0.9);
-  transform:scale(0.85);transition:transform 0.4s cubic-bezier(.34,1.56,.64,1);
+#win-overlay.show { opacity:1; pointer-events:auto; }
+.win-box {
+  background:var(--win-bg);
+  border:2px solid var(--accent); border-radius:20px;
+  padding:32px 44px; text-align:center;
+  box-shadow:0 0 50px var(--accent-glow), 0 30px 80px var(--shadow-color);
+  transform:scale(0.85); transition:transform 0.4s cubic-bezier(.34,1.56,.64,1);
+  max-width:480px; width:calc(100% - 32px);
 }
-#win-overlay.show .win-box{transform:scale(1);}
-.win-icon{font-size:56px;line-height:1;margin-bottom:12px;}
-.win-title{
-  font-family:'Ma Shan Zheng',serif;font-size:36px;
-  color:var(--gold);text-shadow:0 0 25px rgba(201,168,76,0.7);
-  letter-spacing:6px;margin-bottom:8px;
+#win-overlay.show .win-box { transform:scale(1); }
+.win-icon  { font-size:52px; line-height:1; margin-bottom:12px; }
+.win-title {
+  font-family:'Ma Shan Zheng',serif; font-size:34px;
+  color:var(--accent); letter-spacing:6px; margin-bottom:8px;
+  text-shadow:0 0 20px var(--accent-glow);
 }
-.win-sub{font-size:14px;color:rgba(255,255,255,0.5);letter-spacing:2px;margin-bottom:16px;}
-.win-stats{
-  display:flex;gap:16px;justify-content:center;flex-wrap:wrap;
-  margin-bottom:24px;padding:12px 16px;
-  background:rgba(0,0,0,0.3);border-radius:10px;
-  border:1px solid rgba(201,168,76,0.15);
+.win-sub   { font-size:13px; color:var(--text-dim); letter-spacing:2px; margin-bottom:16px; }
+.win-stats {
+  display:flex; gap:14px; justify-content:center; flex-wrap:wrap;
+  margin-bottom:22px; padding:12px 14px;
+  background:var(--bg-inset); border-radius:10px;
+  border:1px solid var(--border);
 }
-.win-stat-item{text-align:center;}
-.win-stat-val{font-family:'Ma Shan Zheng',serif;font-size:22px;color:var(--gold-light);line-height:1;}
-.win-stat-lbl{font-size:10px;letter-spacing:1px;color:rgba(255,255,255,0.35);margin-top:3px;}
-.win-btn{
-  padding:12px 32px;border-radius:10px;border:none;
-  font-family:'Noto Serif TC',serif;font-size:15px;font-weight:700;
-  cursor:pointer;letter-spacing:2px;
-  background:linear-gradient(135deg,#c9a84c,#8b6914);color:#0a0400;
-  box-shadow:0 4px 20px rgba(201,168,76,0.4);transition:var(--transition);
+.win-stat-item { text-align:center; }
+.win-stat-val  { font-family:'Ma Shan Zheng',serif; font-size:22px; color:var(--accent-light); line-height:1; }
+.win-stat-lbl  { font-size:10px; letter-spacing:1px; color:var(--text-mute); margin-top:3px; }
+.win-actions   { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.win-btn {
+  padding:11px 28px; border-radius:10px; border:none;
+  font-family:'Noto Serif TC',serif; font-size:14px; font-weight:700;
+  cursor:pointer; letter-spacing:2px; transition:all 0.2s;
+  background:linear-gradient(135deg,var(--accent),var(--btn-accent-end));
+  color:var(--bg-base);
+  box-shadow:0 4px 18px var(--accent-glow);
 }
-.win-btn:hover{box-shadow:0 6px 28px rgba(201,168,76,0.6);transform:translateY(-2px);}
+.win-btn:hover { transform:translateY(-2px); box-shadow:0 6px 26px var(--accent-glow); filter:brightness(1.1); }
+.win-btn.secondary {
+  background:var(--accent-glow); color:var(--accent);
+  border:1px solid var(--border);
+  box-shadow:none;
+}
+.win-btn.secondary:hover { filter:brightness(1.3); }
 </style>
 </head>
 <body>
-
 <canvas id="confetti-canvas"></canvas>
 <div id="ach-toast"></div>
 
@@ -631,90 +746,50 @@ select option{background:#1a0a00;color:var(--gold-light);}
     <div class="modal-body">
       <div class="rule-section">
         <h3>遊戲概述</h3>
-        <p>暗棋（又稱「盲棋」）是一種改良自中國象棋的棋類遊戲，使用 <strong>4行×8列</strong> 共 <strong>32格</strong> 的棋盤，全部 32 顆棋子正面朝下隨機排列。玩家輪流翻開棋子、移動棋子或吃掉對方棋子，最終消滅對方所有棋子者獲勝。</p>
+        <p>暗棋使用 <strong>4行×8列</strong> 共 <strong>32格</strong> 的棋盤，所有 32 顆棋子正面朝下隨機排列。玩家輪流翻棋、移動或吃子，消滅對方所有棋子者獲勝。</p>
       </div>
-
       <div class="rule-section">
         <h3>決定陣營</h3>
-        <p>遊戲開始時，<strong>翻開第一顆棋子的顏色決定翻棋者的陣營</strong>（紅或黑）。翻開後，翻棋者先行走棋，對方後走。</p>
+        <p><strong>第一個翻開棋子的顏色即為翻棋者的陣營。</strong>首翻後，翻棋者繼續走棋（首翻算行動），對方接著輪到。</p>
       </div>
-
       <div class="rule-section">
         <h3>棋子階級與吃子規則</h3>
-        <p>一般棋子只能<strong>走一格（上下左右）</strong>，且只能吃掉<strong>階級相同或更低</strong>的對方棋子：</p>
+        <p>一般棋子只能走一格（上下左右），且只能吃掉階級相同或更低的對方棋子：</p>
         <div class="rank-grid">
-          <div class="rank-card">
-            <div class="piece-name"><span class="rn-r">帥</span><span class="rn-b">將</span></div>
-            <div class="rank-badge">階級 7・最高</div>
-            <div class="piece-info">最強棋子，可吃除兵/卒以外所有棋子</div>
-          </div>
-          <div class="rank-card">
-            <div class="piece-name"><span class="rn-r">仕</span><span class="rn-b">士</span></div>
-            <div class="rank-badge">階級 6</div>
-            <div class="piece-info">可吃象/相及以下</div>
-          </div>
-          <div class="rank-card">
-            <div class="piece-name"><span class="rn-r">相</span><span class="rn-b">象</span></div>
-            <div class="rank-badge">階級 5</div>
-            <div class="piece-info">可吃車/俥及以下</div>
-          </div>
-          <div class="rank-card">
-            <div class="piece-name"><span class="rn-r">俥</span><span class="rn-b">車</span></div>
-            <div class="rank-badge">階級 4</div>
-            <div class="piece-info">可吃馬/傌及以下</div>
-          </div>
-          <div class="rank-card">
-            <div class="piece-name"><span class="rn-r">傌</span><span class="rn-b">馬</span></div>
-            <div class="rank-badge">階級 3</div>
-            <div class="piece-info">可吃炮/包及以下</div>
-          </div>
-          <div class="rank-card">
-            <div class="piece-name"><span class="rn-r">炮</span><span class="rn-b">包</span></div>
-            <div class="rank-badge">階級 2・特殊</div>
-            <div class="piece-info">移動：沿直線任意格（不可翻越棋子）<br>吃子：必須隔一顆棋子（砲台）</div>
-          </div>
-          <div class="rank-card">
-            <div class="piece-name"><span class="rn-r">兵</span><span class="rn-b">卒</span></div>
-            <div class="rank-badge">階級 1・反制</div>
-            <div class="piece-info">最弱棋子，但可以吃掉帥/將（反制王牌）</div>
-          </div>
+          <div class="rank-card"><div class="piece-name"><span class="rn-r">帥</span><span class="rn-b">將</span></div><div class="rank-badge">階級 7・最高</div><div class="piece-info">最強，可吃除兵/卒外所有棋子</div></div>
+          <div class="rank-card"><div class="piece-name"><span class="rn-r">仕</span><span class="rn-b">士</span></div><div class="rank-badge">階級 6</div><div class="piece-info">可吃象/相及以下</div></div>
+          <div class="rank-card"><div class="piece-name"><span class="rn-r">相</span><span class="rn-b">象</span></div><div class="rank-badge">階級 5</div><div class="piece-info">可吃車/俥及以下</div></div>
+          <div class="rank-card"><div class="piece-name"><span class="rn-r">俥</span><span class="rn-b">車</span></div><div class="rank-badge">階級 4</div><div class="piece-info">可吃馬/傌及以下</div></div>
+          <div class="rank-card"><div class="piece-name"><span class="rn-r">傌</span><span class="rn-b">馬</span></div><div class="rank-badge">階級 3</div><div class="piece-info">可吃炮/包及以下</div></div>
+          <div class="rank-card"><div class="piece-name"><span class="rn-r">炮</span><span class="rn-b">包</span></div><div class="rank-badge">階級 2・特殊</div><div class="piece-info">移動：直線不越子<br>吃子：必須隔一砲台</div></div>
+          <div class="rank-card"><div class="piece-name"><span class="rn-r">兵</span><span class="rn-b">卒</span></div><div class="rank-badge">階級 1・反制</div><div class="piece-info">最弱，但可吃帥/將</div></div>
         </div>
       </div>
-
       <div class="rule-section">
         <h3>特殊規則</h3>
         <div class="special-rule">
           <div class="sr-title">🎯 炮（包）的移動與吃子</div>
-          <div class="sr-desc">
-            炮可沿<strong>直線（橫或縱）</strong>移動任意格數到空格。<br>
-            吃子時，炮與目標之間必須<strong>恰好隔一顆棋子</strong>作為「砲台」（砲台顏色不限），才可吃掉目標棋子（不限階級高低，可吃任何對方棋子）。
-          </div>
+          <div class="sr-desc">炮沿<strong>直線</strong>移動到空格（中間不能有任何棋子）。吃子時，炮與目標之間必須<strong>恰好隔一顆棋子</strong>（砲台），才可吃掉目標（不受階級限制）。</div>
         </div>
         <div class="special-rule">
           <div class="sr-title">⚡ 兵/卒 vs 帥/將</div>
-          <div class="sr-desc">
-            兵（卒）雖是最弱棋子，但可以吃掉帥（將）；反之，帥（將）無法吃兵（卒）。
-          </div>
+          <div class="sr-desc">兵（卒）可吃帥（將）；帥（將）無法吃兵（卒）。</div>
         </div>
         <div class="special-rule">
           <div class="sr-title">🃏 翻開暗棋</div>
-          <div class="sr-desc">
-            翻開一顆暗棋視為一次行動，翻開後算對方回合。翻開的棋子當回合不能立即移動。
-          </div>
+          <div class="sr-desc">翻棋視為一次行動，翻開後輪到對方。</div>
         </div>
         <div class="special-rule">
           <div class="sr-title">🏆 勝利條件</div>
-          <div class="sr-desc">
-            消滅對方<strong>所有棋子</strong>（含未翻開）即獲勝。若一方無棋可走（無暗棋可翻且所有己方棋子被困），則該方認負。
-          </div>
+          <div class="sr-desc">消滅對方<strong>所有棋子</strong>（含未翻）即獲勝；若一方無棋可走，則該方認負。</div>
         </div>
       </div>
-
       <div class="rule-section">
         <h3>操作說明</h3>
-        <p>• <strong>翻牌</strong>：點擊任意暗棋（背面朝上）即可翻開</p>
-        <p>• <strong>移動</strong>：先點選己方棋子（高亮顯示），再點選目標格（綠點＝可移動，紅框＝可吃子）</p>
-        <p>• <strong>悔棋</strong>：每局最多 3 次，單機模式會自動撤回 AI 的回合</p>
+        <p>• <strong>翻牌</strong>：點擊背面朝上的棋子即翻開</p>
+        <p>• <strong>移動</strong>：先點選己方棋子，再點選目標（綠點=可移動，紅框=可吃子）</p>
+        <p>• <strong>悔棋</strong>：每局最多 3 次，人機模式自動撤回 AI 那步</p>
+        <p>• <strong>快捷鍵</strong>：<strong>R</strong> 重開・<strong>U</strong> / <strong>Ctrl+Z</strong> 悔棋・<strong>Esc</strong> 關閉視窗</p>
       </div>
     </div>
   </div>
@@ -731,8 +806,9 @@ select option{background:#1a0a00;color:var(--gold-light);}
       <div class="ach-progress-bar">
         <div class="ach-progress-fill" id="ach-progress-fill"></div>
       </div>
-      <div style="text-align:center;font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:16px;">
-        已解鎖 <span id="ach-unlock-count" style="color:var(--gold);font-weight:700;">0</span> / <span id="ach-total-count">0</span> 項成就
+      <div style="text-align:center;font-size:12px;color:var(--text-mute);margin-bottom:16px;">
+        已解鎖 <span id="ach-unlock-count" style="color:var(--accent);font-weight:700;">0</span>
+        / <span id="ach-total-count">0</span> 項成就
       </div>
       <div class="ach-tabs" id="ach-tabs"></div>
       <div class="ach-grid" id="ach-grid"></div>
@@ -745,11 +821,11 @@ select option{background:#1a0a00;color:var(--gold-light);}
   <div class="win-box">
     <div class="win-icon" id="win-icon">🏆</div>
     <div class="win-title" id="win-title">獲勝！</div>
-    <div class="win-sub" id="win-sub">本局對戰結束</div>
+    <div class="win-sub"   id="win-sub">本局對戰結束</div>
     <div class="win-stats" id="win-stats"></div>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+    <div class="win-actions">
       <button class="win-btn" onclick="closeWin();initGame();">再戰一局</button>
-      <button class="win-btn" style="background:linear-gradient(135deg,rgba(201,168,76,0.2),rgba(100,60,10,0.4));color:var(--gold);border:1px solid rgba(201,168,76,0.4);" onclick="closeWin();openModal('ach-modal');renderAchGrid();">查看成就</button>
+      <button class="win-btn secondary" onclick="closeWin();openModal('ach-modal');renderAchGrid();">查看成就</button>
     </div>
   </div>
 </div>
@@ -764,19 +840,29 @@ select option{background:#1a0a00;color:var(--gold-light);}
       </div>
     </div>
     <div class="nav-actions">
-      <button class="nav-btn" onclick="openModal('rules-modal')"><span class="icon">📖</span>規則</button>
-      <button class="nav-btn" onclick="openModal('ach-modal');renderAchGrid()"><span class="icon">🏅</span>成就</button>
-      <button class="nav-btn" onclick="confirmResetStats()" style="border-color:rgba(244,67,54,0.3);color:rgba(244,67,54,0.7);" title="重置所有戰績與成就"><span class="icon">🗑</span></button>
+      <!-- 主題選擇器 -->
+      <div class="theme-picker" title="切換主題">
+        <div class="theme-dot active" data-t="dark"  onclick="setTheme('dark')"  title="暗夜玄金"></div>
+        <div class="theme-dot"       data-t="paper" onclick="setTheme('paper')" title="宣紙古卷"></div>
+        <div class="theme-dot"       data-t="blue"  onclick="setTheme('blue')"  title="青花瓷藍"></div>
+        <div class="theme-dot"       data-t="jade"  onclick="setTheme('jade')"  title="翡翠春意"></div>
+      </div>
+      <button class="nav-btn" onclick="openModal('rules-modal')">📖 規則</button>
+      <button class="nav-btn" onclick="openModal('ach-modal');renderAchGrid()">🏅 成就</button>
+      <button class="nav-btn danger" onclick="confirmResetStats()" title="重置所有戰績與成就">🗑</button>
     </div>
   </nav>
 
   <div class="stats-bar">
-    <div class="stat-card"><div class="stat-num win" id="s-win">0</div><div class="stat-label">勝利</div></div>
-    <div class="stat-card"><div class="stat-num lose" id="s-lose">0</div><div class="stat-label">敗北</div></div>
-    <div class="stat-card"><div class="stat-num draw" id="s-draw">0</div><div class="stat-label">平局</div></div>
-    <div class="stat-card"><div class="stat-num total" id="s-total">0</div><div class="stat-label">總場次</div></div>
-    <div class="stat-card"><div class="stat-num ach" id="s-ach">0</div><div class="stat-label">成就</div></div>
-    <div class="stat-card" id="s-winrate-card" style="display:none"><div class="stat-num" id="s-winrate" style="color:#ffd54f">-%</div><div class="stat-label">勝率</div></div>
+    <div class="stat-card"><div class="stat-num win"   id="s-win">0</div>   <div class="stat-label">勝利</div></div>
+    <div class="stat-card"><div class="stat-num lose"  id="s-lose">0</div>  <div class="stat-label">敗北</div></div>
+    <div class="stat-card"><div class="stat-num draw"  id="s-draw">0</div>  <div class="stat-label">平局</div></div>
+    <div class="stat-card"><div class="stat-num total" id="s-total">0</div> <div class="stat-label">總場次</div></div>
+    <div class="stat-card"><div class="stat-num ach"   id="s-ach">0</div>   <div class="stat-label">成就</div></div>
+    <div class="stat-card" id="s-winrate-card" style="display:none">
+      <div class="stat-num" id="s-winrate" style="color:#ffd54f">-%</div>
+      <div class="stat-label">勝率</div>
+    </div>
   </div>
 
   <div class="control-panel">
@@ -792,7 +878,7 @@ select option{background:#1a0a00;color:var(--gold-light);}
           <option value="hard">♟ 高手 AI（深謀）</option>
         </select>
       </div>
-      <button class="game-btn" id="undo-btn" onclick="undoMove()" title="快捷鍵：U 或 Ctrl+Z">⏪ 悔棋（<span id="undo-count">3</span>）</button>
+      <button class="game-btn" id="undo-btn" onclick="undoMove()" title="快捷鍵：U / Ctrl+Z">⏪ 悔棋（<span id="undo-count">3</span>）</button>
       <button class="game-btn" id="restart-btn" onclick="initGame()" title="快捷鍵：R">🔄 重新開始</button>
     </div>
     <div id="info-box">請翻開第一顆棋子決定陣營</div>
@@ -836,185 +922,208 @@ select option{background:#1a0a00;color:var(--gold-light);}
 </div>
 
 <script>
-// ==============================================
+'use strict';
+
+// ================================================
+// 主題系統
+// ================================================
+const THEMES = ['dark','paper','blue','jade'];
+let currentTheme = 'dark';
+
+function setTheme(t) {
+  if (!THEMES.includes(t)) return;
+  currentTheme = t;
+  document.documentElement.setAttribute('data-theme', t);
+  document.querySelectorAll('.theme-dot').forEach(d => {
+    d.classList.toggle('active', d.dataset.t === t);
+  });
+  try { localStorage.setItem('darkchess_theme', t); } catch(e){}
+}
+
+function loadTheme() {
+  try {
+    const saved = localStorage.getItem('darkchess_theme');
+    if (saved && THEMES.includes(saved)) setTheme(saved);
+  } catch(e) {}
+}
+
+// ================================================
 // 撒花特效
-// ==============================================
+// ================================================
 const confCanvas = document.getElementById('confetti-canvas');
-const confCtx = confCanvas.getContext('2d');
+const confCtx    = confCanvas.getContext('2d');
 let confParticles = [], confAnimId = null;
 
 function fireConfetti() {
-  confCanvas.width = window.innerWidth; confCanvas.height = window.innerHeight;
+  confCanvas.width  = window.innerWidth;
+  confCanvas.height = window.innerHeight;
   confParticles = [];
-  const colors = ['#fce18a','#ff726d','#b48def','#f4306d','#4caf50','#00bcd4','#ffd700','#ff9800','#e91e63'];
+  const colors = ['#fce18a','#ff726d','#b48def','#f4306d','#4caf50','#00bcd4','#ffd700','#ff9800'];
   for (let i = 0; i < 200; i++) {
     confParticles.push({
-      x: Math.random() * confCanvas.width, y: Math.random() * confCanvas.height - confCanvas.height,
-      r: Math.random() * 7 + 3, dx: Math.random() * 4 - 2, dy: Math.random() * 5 + 2,
+      x: Math.random() * confCanvas.width,
+      y: Math.random() * confCanvas.height - confCanvas.height,
+      r: Math.random() * 7 + 3,
+      dx: Math.random() * 4 - 2,
+      dy: Math.random() * 5 + 2,
       color: colors[Math.floor(Math.random() * colors.length)],
-      tiltAngleInc: (Math.random() * 0.07) + 0.04, tiltAngle: 0, tilt: Math.random() * 10
+      tiltAngleInc: Math.random() * 0.07 + 0.04,
+      tiltAngle: 0,
+      tilt: Math.random() * 10
     });
   }
   if (!confAnimId) animConf();
 }
+
 function animConf() {
-  if (!isGameOver) { confCtx.clearRect(0,0,confCanvas.width,confCanvas.height); confAnimId=null; return; }
+  if (!isGameOver) { confCtx.clearRect(0,0,confCanvas.width,confCanvas.height); confAnimId = null; return; }
   confAnimId = requestAnimationFrame(animConf);
-  confCtx.clearRect(0,0,confCanvas.width,confCanvas.height);
+  confCtx.clearRect(0, 0, confCanvas.width, confCanvas.height);
   confParticles.forEach(p => {
     p.tiltAngle += p.tiltAngleInc;
-    p.y += (Math.cos(p.tiltAngle) + p.dy + p.r/2)/2;
-    p.x += Math.sin(p.tiltAngle)*2 + p.dx;
+    p.y += (Math.cos(p.tiltAngle) + p.dy + p.r/2) / 2;
+    p.x += Math.sin(p.tiltAngle) * 2 + p.dx;
     if (p.y > confCanvas.height) { p.y = -10; p.x = Math.random() * confCanvas.width; }
-    confCtx.beginPath(); confCtx.lineWidth = p.r; confCtx.strokeStyle = p.color;
-    confCtx.moveTo(p.x+p.tilt+p.r, p.y); confCtx.lineTo(p.x+p.tilt, p.y+p.tilt+p.r);
+    confCtx.beginPath();
+    confCtx.lineWidth   = p.r;
+    confCtx.strokeStyle = p.color;
+    confCtx.moveTo(p.x + p.tilt + p.r, p.y);
+    confCtx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r);
     confCtx.stroke();
   });
 }
+
 function stopConfetti() {
   if (confAnimId) cancelAnimationFrame(confAnimId);
-  confAnimId = null; confCtx.clearRect(0,0,confCanvas.width,confCanvas.height);
+  confAnimId = null;
+  confCtx.clearRect(0, 0, confCanvas.width, confCanvas.height);
 }
 
-// ==============================================
-// 音效
-// ==============================================
+// ================================================
+// 音效系統
+// ================================================
 let audioCtx = null;
+
 function getAC() {
-  if (!audioCtx) { try { audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} }
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
+  }
   return audioCtx;
 }
-function playSound(f, d=0.1, type='square', vol=0.12) {
-  const ac = getAC(); if (!ac) return;
-  if (ac.state==='suspended') ac.resume();
+
+function playSound(freq, dur = 0.1, type = 'square', vol = 0.12) {
+  const ac = getAC();
+  if (!ac) return;
+  if (ac.state === 'suspended') ac.resume();
   try {
-    const o = ac.createOscillator(), g = ac.createGain();
-    o.type=type; o.frequency.value=f;
+    const o = ac.createOscillator();
+    const g = ac.createGain();
+    o.type = type;
+    o.frequency.value = freq;
     g.gain.setValueAtTime(vol, ac.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+d);
-    o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime+d);
-  } catch(e){}
-}
-function playMelody(notes) {
-  notes.forEach(([f,d,t,delay]) => setTimeout(()=>playSound(f,d,t||'square',0.1), delay||0));
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
+    o.connect(g);
+    g.connect(ac.destination);
+    o.start();
+    o.stop(ac.currentTime + dur);
+  } catch(e) {}
 }
 
-// ==============================================
+// ================================================
 // 模態框
-// ==============================================
-function openModal(id) { document.getElementById(id).classList.add('show'); }
+// ================================================
+function openModal(id)  { document.getElementById(id).classList.add('show'); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-document.querySelectorAll('.modal-overlay').forEach(el=>{
-  el.addEventListener('click',e=>{ if(e.target===el) el.classList.remove('show'); });
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('show'); });
 });
 
-// ==============================================
-// 持久化存儲（localStorage）
-// ==============================================
-const STORAGE_KEY = 'darkchess_v3';
+// ================================================
+// 持久化存儲
+// ================================================
+const STORAGE_KEY = 'darkchess_v4';
+
 function loadStorage() {
-  try {
-    const d = localStorage.getItem(STORAGE_KEY);
-    return d ? JSON.parse(d) : null;
-  } catch(e) { return null; }
+  try { const d = localStorage.getItem(STORAGE_KEY); return d ? JSON.parse(d) : null; }
+  catch(e) { return null; }
 }
 function saveStorage(data) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e){}
 }
 
-let playerStats = { wins:0, losses:0, draws:0, totalGames:0 };
-// 跨局累積統計（需持久化）
-let cumulativeStats = {
-  totalCannonKills: 0,
-  totalSoldierKillKing: 0,
-  winStreak: 0,
-  loseStreak: 0,
-};
+let playerStats     = { wins:0, losses:0, draws:0, totalGames:0 };
+let cumulativeStats = { totalCannonKills:0, totalSoldierKillKing:0, winStreak:0, loseStreak:0 };
+let unlockedAchievements = {};
 
-// ==============================================
+// ================================================
 // 成就定義（25種）
-// ==============================================
+// ================================================
 const ACHIEVEMENTS = [
-  // 新手
-  { id:'first_flip',    name:'初探暗棋',      icon:'🎴', desc:'翻開第一顆棋子',              rarity:'common',    cat:'新手', secret:false },
-  { id:'first_win',     name:'首勝',          icon:'🎉', desc:'贏得第一場對局',              rarity:'common',    cat:'新手', secret:false },
-  { id:'first_cannon',  name:'砲火初試',      icon:'💥', desc:'用炮/包成功吃掉一顆棋子',    rarity:'common',    cat:'新手', secret:false },
-  { id:'first_soldier_king', name:'以弱勝強', icon:'⚡', desc:'用兵/卒吃掉帥/將',           rarity:'common',    cat:'新手', secret:false },
-
-  // 勝場累積
-  { id:'win5',          name:'五連捷',        icon:'🌟', desc:'累積贏得 5 場對局',           rarity:'common',    cat:'勝場', secret:false },
-  { id:'win10',         name:'十勝',          icon:'🎖', desc:'累積贏得 10 場對局',          rarity:'rare',      cat:'勝場', secret:false },
-  { id:'win25',         name:'身經百戰',      icon:'🏅', desc:'累積贏得 25 場對局',          rarity:'rare',      cat:'勝場', secret:false },
-  { id:'win50',         name:'棋壇宗師',      icon:'👑', desc:'累積贏得 50 場對局',          rarity:'epic',      cat:'勝場', secret:false },
-
-  // AI 難度
-  { id:'beat_easy',     name:'熱身完畢',      icon:'😏', desc:'擊敗肉腳 AI',                 rarity:'common',    cat:'挑戰', secret:false },
-  { id:'beat_normal',   name:'略有小成',      icon:'🧠', desc:'擊敗普通 AI',                 rarity:'rare',      cat:'挑戰', secret:false },
-  { id:'beat_hard',     name:'高手過招',      icon:'♟',  desc:'擊敗高手 AI',                rarity:'epic',      cat:'挑戰', secret:false },
-  { id:'beat_pvp',      name:'宿敵',          icon:'👥', desc:'在雙人對戰中獲勝',            rarity:'rare',      cat:'挑戰', secret:false },
-
-  // 風格
-  { id:'fast_win',      name:'閃電戰',        icon:'⚡', desc:'在 15 回合內獲勝',            rarity:'rare',      cat:'風格', secret:false },
-  { id:'clean_win',     name:'光明正大',      icon:'✨', desc:'不使用任何悔棋贏得對局',      rarity:'rare',      cat:'風格', secret:false },
-  { id:'cannon_master', name:'炮兵大師',      icon:'💣', desc:'單局用炮/包吃掉 3 顆棋子',    rarity:'epic',      cat:'風格', secret:false },
-  { id:'eat_7',         name:'大胃王',        icon:'😋', desc:'單局吃掉 7 顆棋子',           rarity:'rare',      cat:'風格', secret:false },
-  { id:'flip_master',   name:'翻牌狂人',      icon:'🃏', desc:'單局翻開超過 15 顆暗棋',      rarity:'rare',      cat:'風格', secret:false },
-
-  // 稀有
-  { id:'cannon5',       name:'砲火連天',      icon:'🔥', desc:'累計用炮/包吃掉 5 顆棋子',    rarity:'epic',      cat:'稀有', secret:false },
-  { id:'soldier_king3', name:'以小博大',      icon:'🐉', desc:'累計用兵/卒吃掉帥/將 3 次',   rarity:'epic',      cat:'稀有', secret:false },
-  { id:'comeback',      name:'絕地反攻',      icon:'🔄', desc:'使用 3 次悔棋後仍然贏得比賽', rarity:'epic',      cat:'稀有', secret:true  },
-
-  // 傳說
-  { id:'no_loss',       name:'不敗金身',      icon:'🛡', desc:'連贏 5 場不敗',               rarity:'legendary', cat:'傳說', secret:false },
-  { id:'legend',        name:'暗棋傳說',      icon:'🌙', desc:'累計遊戲 100 場',             rarity:'legendary', cat:'傳說', secret:false },
-  { id:'all_diff',      name:'全能棋手',      icon:'🎭', desc:'擊敗所有難度 AI 且贏過雙人對戰', rarity:'legendary', cat:'傳說', secret:false },
-  { id:'secret_flip',   name:'命運翻轉',      icon:'🌀', desc:'首翻翻到對方的帥/將',         rarity:'legendary', cat:'傳說', secret:true  },
-  { id:'dominator',     name:'完全制霸',      icon:'⚜', desc:'解鎖所有其他成就',            rarity:'legendary', cat:'傳說', secret:false },
+  { id:'first_flip',      name:'初探暗棋',   icon:'🎴', desc:'翻開第一顆棋子',                  rarity:'common',    cat:'新手', secret:false },
+  { id:'first_win',       name:'首勝',       icon:'🎉', desc:'贏得第一場對局',                  rarity:'common',    cat:'新手', secret:false },
+  { id:'first_cannon',    name:'砲火初試',   icon:'💥', desc:'用炮/包成功吃掉一顆棋子',        rarity:'common',    cat:'新手', secret:false },
+  { id:'first_soldier_king', name:'以弱勝強',icon:'⚡', desc:'用兵/卒吃掉帥/將',               rarity:'common',    cat:'新手', secret:false },
+  { id:'win5',            name:'五連捷',     icon:'🌟', desc:'累積贏得 5 場對局',               rarity:'common',    cat:'勝場', secret:false },
+  { id:'win10',           name:'十勝',       icon:'🎖', desc:'累積贏得 10 場對局',              rarity:'rare',      cat:'勝場', secret:false },
+  { id:'win25',           name:'身經百戰',   icon:'🏅', desc:'累積贏得 25 場對局',              rarity:'rare',      cat:'勝場', secret:false },
+  { id:'win50',           name:'棋壇宗師',   icon:'👑', desc:'累積贏得 50 場對局',              rarity:'epic',      cat:'勝場', secret:false },
+  { id:'beat_easy',       name:'熱身完畢',   icon:'😏', desc:'擊敗肉腳 AI',                     rarity:'common',    cat:'挑戰', secret:false },
+  { id:'beat_normal',     name:'略有小成',   icon:'🧠', desc:'擊敗普通 AI',                     rarity:'rare',      cat:'挑戰', secret:false },
+  { id:'beat_hard',       name:'高手過招',   icon:'♟',  desc:'擊敗高手 AI',                    rarity:'epic',      cat:'挑戰', secret:false },
+  { id:'beat_pvp',        name:'宿敵',       icon:'👥', desc:'在雙人對戰中獲勝',                rarity:'rare',      cat:'挑戰', secret:false },
+  { id:'fast_win',        name:'閃電戰',     icon:'⚡', desc:'在 15 回合內獲勝',                rarity:'rare',      cat:'風格', secret:false },
+  { id:'clean_win',       name:'光明正大',   icon:'✨', desc:'不使用任何悔棋贏得對局',          rarity:'rare',      cat:'風格', secret:false },
+  { id:'cannon_master',   name:'炮兵大師',   icon:'💣', desc:'單局用炮/包吃掉 3 顆棋子',        rarity:'epic',      cat:'風格', secret:false },
+  { id:'eat_7',           name:'大胃王',     icon:'😋', desc:'單局吃掉 7 顆棋子',               rarity:'rare',      cat:'風格', secret:false },
+  { id:'flip_master',     name:'翻牌狂人',   icon:'🃏', desc:'單局翻開超過 15 顆暗棋',          rarity:'rare',      cat:'風格', secret:false },
+  { id:'cannon5',         name:'砲火連天',   icon:'🔥', desc:'累計用炮/包吃掉 5 顆棋子',        rarity:'epic',      cat:'稀有', secret:false },
+  { id:'soldier_king3',   name:'以小博大',   icon:'🐉', desc:'累計用兵/卒吃掉帥/將 3 次',       rarity:'epic',      cat:'稀有', secret:false },
+  { id:'comeback',        name:'絕地反攻',   icon:'🔄', desc:'使用 3 次悔棋後仍然贏得比賽',     rarity:'epic',      cat:'稀有', secret:true  },
+  { id:'no_loss',         name:'不敗金身',   icon:'🛡', desc:'連贏 5 場不敗',                   rarity:'legendary', cat:'傳說', secret:false },
+  { id:'legend',          name:'暗棋傳說',   icon:'🌙', desc:'累計遊戲 100 場',                 rarity:'legendary', cat:'傳說', secret:false },
+  { id:'all_diff',        name:'全能棋手',   icon:'🎭', desc:'擊敗所有難度 AI 且贏過雙人對戰',  rarity:'legendary', cat:'傳說', secret:false },
+  { id:'secret_flip',     name:'命運翻轉',   icon:'🌀', desc:'首翻翻到帥/將',                   rarity:'legendary', cat:'傳說', secret:true  },
+  { id:'dominator',       name:'完全制霸',   icon:'⚜', desc:'解鎖所有其他成就',               rarity:'legendary', cat:'傳說', secret:false },
 ];
-
 const CATEGORIES = ['全部','新手','勝場','挑戰','風格','稀有','傳說'];
 let currentAchTab = '全部';
-
-let unlockedAchievements = {}; // { id: timestamp }
 
 function loadAchievements() {
   const d = loadStorage();
   if (d) {
     unlockedAchievements = d.achievements || {};
-    playerStats = { ...playerStats, ...(d.stats||{}) };
-    cumulativeStats = { ...cumulativeStats, ...(d.cumulativeStats||{}) };
+    playerStats     = { ...playerStats,     ...(d.stats || {}) };
+    cumulativeStats = { ...cumulativeStats, ...(d.cumulativeStats || {}) };
   }
 }
 
 function saveAchievements() {
   const d = loadStorage() || {};
-  d.achievements = unlockedAchievements;
-  d.stats = playerStats;
+  d.achievements    = unlockedAchievements;
+  d.stats           = playerStats;
   d.cumulativeStats = cumulativeStats;
   saveStorage(d);
 }
 
 function unlockAchievement(id) {
   if (unlockedAchievements[id]) return;
-  const ach = ACHIEVEMENTS.find(a=>a.id===id);
+  const ach = ACHIEVEMENTS.find(a => a.id === id);
   if (!ach) return;
   unlockedAchievements[id] = Date.now();
   saveAchievements();
   showAchToast(ach);
   updateStatsUI();
-  // 檢查是否解鎖所有成就
-  const allExceptDominator = ACHIEVEMENTS.filter(a=>a.id!=='dominator');
-  if (allExceptDominator.every(a=>unlockedAchievements[a.id])) {
-    setTimeout(()=>unlockAchievement('dominator'), 800);
+  // 全成就解鎖後觸發 dominator
+  const others = ACHIEVEMENTS.filter(a => a.id !== 'dominator');
+  if (others.every(a => unlockedAchievements[a.id])) {
+    setTimeout(() => unlockAchievement('dominator'), 900);
   }
 }
 
 function showAchToast(ach) {
-  // 成就解鎖音效：Do-Mi-Sol 上行音階
-  playSound(523,0.08,'sine',0.12);
-  setTimeout(()=>playSound(659,0.1,'sine',0.12), 100);
-  setTimeout(()=>playSound(784,0.18,'sine',0.14), 220);
+  playSound(523, 0.08, 'sine', 0.12);
+  setTimeout(() => playSound(659, 0.10, 'sine', 0.12), 110);
+  setTimeout(() => playSound(784, 0.18, 'sine', 0.14), 230);
   const container = document.getElementById('ach-toast');
   const el = document.createElement('div');
   el.className = 'ach-toast-item';
@@ -1026,71 +1135,55 @@ function showAchToast(ach) {
       <div class="ach-toast-desc">${ach.desc}</div>
     </div>`;
   container.appendChild(el);
-  setTimeout(()=>{
+  setTimeout(() => {
     el.classList.add('out');
-    setTimeout(()=>el.remove(), 350);
-  }, 3500);
+    setTimeout(() => el.remove(), 360);
+  }, 3600);
 }
 
 function renderAchGrid() {
-  // 標籤
   const tabsEl = document.getElementById('ach-tabs');
   tabsEl.innerHTML = '';
-  CATEGORIES.forEach(cat=>{
+  CATEGORIES.forEach(cat => {
     const btn = document.createElement('button');
-    btn.className = 'ach-tab' + (currentAchTab===cat?' active':'');
-    const count = cat==='全部'
-      ? ACHIEVEMENTS.length
-      : ACHIEVEMENTS.filter(a=>a.cat===cat).length;
-    btn.textContent = `${cat} (${count})`;
-    btn.onclick = ()=>{ currentAchTab=cat; renderAchGrid(); };
+    btn.className = 'ach-tab' + (currentAchTab === cat ? ' active' : '');
+    const cnt = cat === '全部' ? ACHIEVEMENTS.length : ACHIEVEMENTS.filter(a => a.cat === cat).length;
+    btn.textContent = `${cat} (${cnt})`;
+    btn.onclick = () => { currentAchTab = cat; renderAchGrid(); };
     tabsEl.appendChild(btn);
   });
-
   const unlocked = Object.keys(unlockedAchievements).length;
-  const total = ACHIEVEMENTS.length;
+  const total    = ACHIEVEMENTS.length;
   document.getElementById('ach-unlock-count').textContent = unlocked;
-  document.getElementById('ach-total-count').textContent = total;
-  document.getElementById('ach-progress-fill').style.width = (unlocked/total*100)+'%';
-
-  const grid = document.getElementById('ach-grid');
+  document.getElementById('ach-total-count').textContent  = total;
+  document.getElementById('ach-progress-fill').style.width = (unlocked / total * 100) + '%';
+  const grid     = document.getElementById('ach-grid');
   grid.innerHTML = '';
-
-  const filtered = currentAchTab==='全部'
-    ? ACHIEVEMENTS
-    : ACHIEVEMENTS.filter(a=>a.cat===currentAchTab);
-
-  filtered.forEach(ach=>{
+  const filtered = currentAchTab === '全部' ? ACHIEVEMENTS : ACHIEVEMENTS.filter(a => a.cat === currentAchTab);
+  filtered.forEach(ach => {
     const isUnlocked = !!unlockedAchievements[ach.id];
     const card = document.createElement('div');
-    card.className = 'ach-card' + (isUnlocked?' unlocked':'') + (ach.secret&&!isUnlocked?' secret':'');
-
-    const rarityLabel = {common:'普通',rare:'稀有',epic:'史詩',legendary:'傳說'}[ach.rarity];
-    const rarityClass = 'rarity-'+ach.rarity;
-
-    const dateStr = isUnlocked
-      ? new Date(unlockedAchievements[ach.id]).toLocaleDateString('zh-TW')
-      : '';
-
-    const displayName = ach.secret && !isUnlocked ? '????' : ach.name;
-    const displayDesc = ach.secret && !isUnlocked ? '隱藏成就，繼續遊玩以解鎖' : ach.desc;
-    const displayIcon = ach.secret && !isUnlocked ? '🔒' : ach.icon;
-
+    card.className = 'ach-card' + (isUnlocked ? ' unlocked' : '') + (ach.secret && !isUnlocked ? ' secret' : '');
+    const rarityLabel = { common:'普通', rare:'稀有', epic:'史詩', legendary:'傳說' }[ach.rarity];
+    const dateStr     = isUnlocked ? new Date(unlockedAchievements[ach.id]).toLocaleDateString('zh-TW') : '';
+    const dName = ach.secret && !isUnlocked ? '????' : ach.name;
+    const dDesc = ach.secret && !isUnlocked ? '隱藏成就，繼續遊玩以解鎖' : ach.desc;
+    const dIcon = ach.secret && !isUnlocked ? '🔒' : ach.icon;
     card.innerHTML = `
-      ${isUnlocked?'<div class="ach-shimmer"></div>':''}
-      <div class="ach-icon">${displayIcon}</div>
-      <span class="ach-rarity ${rarityClass}">${rarityLabel}</span>
-      <div class="ach-name">${displayName}</div>
-      <div class="ach-desc">${displayDesc}</div>
-      ${isUnlocked?`<div class="ach-unlock-date">✓ ${dateStr} 解鎖</div>`:''}
+      ${isUnlocked ? '<div class="ach-shimmer"></div>' : ''}
+      <div class="ach-icon">${dIcon}</div>
+      <span class="ach-rarity rarity-${ach.rarity}">${rarityLabel}</span>
+      <div class="ach-name">${dName}</div>
+      <div class="ach-desc">${dDesc}</div>
+      ${isUnlocked ? `<div class="ach-unlock-date">✓ ${dateStr} 解鎖</div>` : ''}
       <div class="ach-lock-icon">🔒</div>`;
     grid.appendChild(card);
   });
 }
 
-// ==============================================
+// ================================================
 // 棋子定義
-// ==============================================
+// ================================================
 const pieceTypes = [
   {name:'帥',color:'red',rank:7},{name:'將',color:'black',rank:7},
   {name:'仕',color:'red',rank:6},{name:'仕',color:'red',rank:6},
@@ -1109,49 +1202,35 @@ const pieceTypes = [
   {name:'卒',color:'black',rank:1},{name:'卒',color:'black',rank:1}
 ];
 
-// ==============================================
+// ================================================
 // 遊戲狀態
-// ==============================================
+// ================================================
 let board=[], selectedIdx=-1, validMoves=[], turn='none', isGameOver=false;
 let capturedPieces={red:[],black:[]}, historyStack=[], logStack=[];
 let aiColor=null, aiTimeoutId=null, undoRemaining=3;
-let gameMode='PvE', aiDifficulty='normal';
-let lastMovedIdx=-1;
+let gameMode='PvE', aiDifficulty='normal', lastMovedIdx=-1;
+let gs = {};  // 本局統計
 
-// 本局統計
-let gs = {}; // game session stats
-
-function resetGameSession() {
-  gs = {
-    turns: 0,
-    eaten: 0,
-    cannonKills: 0,
-    soldierKillKing: 0,
-    flips: 0,
-    undosUsed: 0,
-    firstFlipDone: false,
-    firstFlipPiece: null,
-  };
+function resetGs() {
+  gs = { turns:0, eaten:0, cannonKills:0, soldierKillKing:0, flips:0, undosUsed:0, firstFlipDone:false };
 }
 
-// ==============================================
+// ================================================
 // UI 更新
-// ==============================================
+// ================================================
 function updateStatsUI() {
   document.getElementById('s-win').textContent   = playerStats.wins;
   document.getElementById('s-lose').textContent  = playerStats.losses;
   document.getElementById('s-draw').textContent  = playerStats.draws;
   document.getElementById('s-total').textContent = playerStats.totalGames;
   document.getElementById('s-ach').textContent   = Object.keys(unlockedAchievements).length;
-
-  // 勝率（只有打過 PvE 局才顯示）
   const pveGames = playerStats.wins + playerStats.losses;
-  const wrCard = document.getElementById('s-winrate-card');
+  const wrCard   = document.getElementById('s-winrate-card');
   if (pveGames > 0) {
     const wr = Math.round(playerStats.wins / pveGames * 100);
-    document.getElementById('s-winrate').textContent = wr + '%';
-    document.getElementById('s-winrate').style.color =
-      wr >= 60 ? '#66bb6a' : wr >= 40 ? '#ffd54f' : '#ef5350';
+    const el = document.getElementById('s-winrate');
+    el.textContent  = wr + '%';
+    el.style.color  = wr >= 60 ? '#66bb6a' : wr >= 40 ? '#ffd54f' : '#ef5350';
     wrCard.style.display = '';
   } else {
     wrCard.style.display = 'none';
@@ -1160,160 +1239,171 @@ function updateStatsUI() {
 
 function toggleDifficulty() {
   const mode = document.getElementById('mode-select').value;
-  const dc = document.getElementById('difficulty-container');
-  dc.style.opacity = mode==='PvE'?'1':'0.3';
-  dc.style.pointerEvents = mode==='PvE'?'auto':'none';
+  const dc   = document.getElementById('difficulty-container');
+  dc.style.opacity      = mode === 'PvE' ? '1' : '0.3';
+  dc.style.pointerEvents= mode === 'PvE' ? 'auto' : 'none';
 }
 
 function setInfo(text, color) {
   const el = document.getElementById('info-box');
-  el.textContent = text; el.style.color = color||'#fff';
+  el.textContent  = text;
+  el.style.color  = color || 'var(--text-main)';
 }
 
 function updateInfo() {
   if (isGameOver) return;
-  const isAI = (gameMode==='PvE' && turn===aiColor);
-  const label = turn==='red' ? '🔴 紅方' : '⚫ 黑方';
+  const isAI  = gameMode === 'PvE' && turn === aiColor;
+  const label = turn === 'red' ? '🔴 紅方' : '⚫ 黑方';
   let who;
-  if (gameMode==='PvE') {
+  if (gameMode === 'PvE') {
     who = isAI ? '🤖 AI 思考中…' : '👤 你的回合';
   } else {
-    who = turn==='red' ? '👤 紅方玩家' : '👤 黑方玩家';
+    who = turn === 'red' ? '👤 紅方玩家' : '👤 黑方玩家';
   }
-  setInfo(`${label} · ${who}`, turn==='red'?'#ef9a9a':'#90a4ae');
+  setInfo(`${label} · ${who}`, turn === 'red' ? '#ef9a9a' : '#90a4ae');
 }
 
 function updateUndoUI() {
   document.getElementById('undo-count').textContent = undoRemaining;
-  document.getElementById('undo-btn').disabled = (undoRemaining<=0||historyStack.length===0||isGameOver);
+  document.getElementById('undo-btn').disabled =
+    undoRemaining <= 0 || historyStack.length === 0 || isGameOver;
 }
 
-// ==============================================
+// ================================================
 // 遊戲初始化
-// ==============================================
+// ================================================
 function initGame() {
-  if (aiTimeoutId) clearTimeout(aiTimeoutId);
-  stopConfetti();
-  closeWin();
+  if (aiTimeoutId) { clearTimeout(aiTimeoutId); aiTimeoutId = null; }
+  stopConfetti(); closeWin();
   undoRemaining = 3;
-  gameMode = document.getElementById('mode-select').value;
+  gameMode     = document.getElementById('mode-select').value;
   aiDifficulty = document.getElementById('ai-difficulty').value;
-  aiColor=null; isGameOver=false; turn='none';
-  selectedIdx=-1; validMoves=[]; lastMovedIdx=-1;
-  capturedPieces={red:[],black:[]}; historyStack=[]; logStack=[];
-  resetGameSession();
-
-  let shuffled = [...pieceTypes].sort(()=>Math.random()-0.5);
-  board = shuffled.map(p=>({piece:{...p}, isFaceUp:false, isEmpty:false}));
-
+  aiColor = null; isGameOver = false; turn = 'none';
+  selectedIdx = -1; validMoves = []; lastMovedIdx = -1;
+  capturedPieces = {red:[], black:[]}; historyStack = []; logStack = [];
+  resetGs();
+  const shuffled = [...pieceTypes].sort(() => Math.random() - 0.5);
+  board = shuffled.map(p => ({ piece:{...p}, isFaceUp:false, isEmpty:false }));
   renderBoard(); renderCaptured(); renderLog(); updateUndoUI();
-  setInfo('請翻開第一顆棋子決定陣營','#c9a84c');
+  setInfo('請翻開第一顆棋子決定陣營', 'var(--accent)');
 }
 
-// ==============================================
-// 核心規則
-// ==============================================
+// ================================================
+// 核心規則（已修正炮移動 & 相鄰判斷）
+// ================================================
 function canMove(from, to) {
-  if (from<0||to<0||from===to) return false;
-  const f=board[from], t=board[to];
-  if (f.isEmpty||!f.isFaceUp) return false;
-  if (!t.isEmpty&&!t.isFaceUp) return false; // 不能走到未翻面棋子
+  if (from < 0 || to < 0 || from === to) return false;
+  const f = board[from], t = board[to];
+  if (f.isEmpty || !f.isFaceUp) return false;
+  if (!t.isEmpty && !t.isFaceUp) return false; // 不能走向未翻面棋子
 
-  const r1=Math.floor(from/8), c1=from%8;
-  const r2=Math.floor(to/8),   c2=to%8;
-  const sameRow=(r1===r2), sameCol=(c1===c2);
-  const dist = Math.abs(r1-r2)+Math.abs(c1-c2);
+  const r1 = Math.floor(from / 8), c1 = from % 8;
+  const r2 = Math.floor(to   / 8), c2 = to   % 8;
+  const sameRow = r1 === r2, sameCol = c1 === c2;
+  const dist = Math.abs(r1 - r2) + Math.abs(c1 - c2);
 
-  // 炮/包
-  if (f.piece.rank===2) {
-    if (!sameRow&&!sameCol) return false;
-    let cnt=0;
-    if (sameRow) { for(let c=Math.min(c1,c2)+1;c<Math.max(c1,c2);c++) if(!board[r1*8+c].isEmpty) cnt++; }
-    else         { for(let r=Math.min(r1,r2)+1;r<Math.max(r1,r2);r++) if(!board[r*8+c1].isEmpty) cnt++; }
-    if (t.isEmpty) return cnt===0;          // 移動到空格：中間不能有子
-    return cnt===1 && f.piece.color!==t.piece.color; // 吃子：必須隔一子，且吃對方
+  // 炮/包：特殊移動規則
+  if (f.piece.rank === 2) {
+    if (!sameRow && !sameCol) return false;
+    let cnt = 0;
+    if (sameRow) {
+      for (let c = Math.min(c1,c2)+1; c < Math.max(c1,c2); c++)
+        if (!board[r1*8+c].isEmpty) cnt++;
+    } else {
+      for (let r = Math.min(r1,r2)+1; r < Math.max(r1,r2); r++)
+        if (!board[r*8+c1].isEmpty) cnt++;
+    }
+    if (t.isEmpty) return cnt === 0;                                   // 移動到空格
+    return cnt === 1 && f.piece.color !== t.piece.color;               // 吃子
   }
 
-  // 一般棋子：只走相鄰一格
-  if (dist!==1) return false;
+  // 一般棋子：只能走相鄰一格
+  if (dist !== 1) return false;
   if (t.isEmpty) return true;
-  if (f.piece.color===t.piece.color) return false;
-  if (f.piece.rank===1 && t.piece.rank===7) return true;  // 兵吃帥
-  if (f.piece.rank===7 && t.piece.rank===1) return false; // 帥不能吃兵
+  if (f.piece.color === t.piece.color) return false;
+  if (f.piece.rank === 1 && t.piece.rank === 7) return true;           // 兵吃帥
+  if (f.piece.rank === 7 && t.piece.rank === 1) return false;          // 帥不能吃兵
   return f.piece.rank >= t.piece.rank;
 }
 
-// ==============================================
+// ================================================
 // 動作處理
-// ==============================================
+// ================================================
 function processAction(idx) {
-  if (isGameOver||(gameMode==='PvE'&&turn===aiColor)) return;
-  getAC(); // 啟動 AudioContext
-
+  if (isGameOver || (gameMode === 'PvE' && turn === aiColor)) return;
+  getAC(); // 確保 AudioContext 啟動
   const sq = board[idx];
 
+  // 點到空格
   if (sq.isEmpty) {
-    if (selectedIdx!==-1 && canMove(selectedIdx, idx)) executeMove(selectedIdx, idx);
-    else { selectedIdx=-1; validMoves=[]; renderBoard(); }
+    if (selectedIdx !== -1 && canMove(selectedIdx, idx)) executeMove(selectedIdx, idx);
+    else { selectedIdx = -1; validMoves = []; renderBoard(); }
     return;
   }
 
+  // 點到未翻面棋子
   if (!sq.isFaceUp) {
-    if (selectedIdx!==-1) { selectedIdx=-1; validMoves=[]; renderBoard(); return; }
+    if (selectedIdx !== -1) { selectedIdx = -1; validMoves = []; renderBoard(); return; }
     doFlip(idx);
     return;
   }
 
-  // 正面棋子
-  if (sq.piece.color===turn) {
-    selectedIdx=idx; validMoves=[];
-    for(let i=0;i<32;i++) if(canMove(idx,i)) validMoves.push(i);
-    renderBoard(); playSound(350, 0.06,'sine');
-  } else if (selectedIdx!==-1 && canMove(selectedIdx, idx)) {
+  // 點到正面棋子
+  if (sq.piece.color === turn) {
+    selectedIdx = idx; validMoves = [];
+    for (let i = 0; i < 32; i++) if (canMove(idx, i)) validMoves.push(i);
+    renderBoard(); playSound(350, 0.06, 'sine');
+  } else if (selectedIdx !== -1 && canMove(selectedIdx, idx)) {
     executeMove(selectedIdx, idx);
   } else {
-    selectedIdx=-1; validMoves=[]; renderBoard();
+    selectedIdx = -1; validMoves = []; renderBoard();
   }
 }
 
-function doFlip(idx, isAI=false) {
+// ================================================
+// 翻牌（修正首翻後回合邏輯）
+// ================================================
+function doFlip(idx) {
   const sq = board[idx];
-  const mover = turn==='none' ? '首翻' : (turn==='red'?'🔴 紅':'⚫ 黑');
+  const mover = turn === 'none' ? '首翻' : (turn === 'red' ? '🔴 紅' : '⚫ 黑');
   saveState(`${mover} 翻開 【${sq.piece.name}】`);
   sq.isFaceUp = true;
   gs.flips++;
   playSound(600, 0.12, 'sine');
 
-  if (turn==='none') {
-    // 首翻決定陣營：翻開者先行
-    aiColor = sq.piece.color==='red' ? 'black' : 'red';
-    turn = sq.piece.color;
+  if (turn === 'none') {
+    // ✅ 修正：首翻後翻牌者先行，AI 是對方顏色
+    // turn 先設為翻牌者顏色，switchTurn 後輪到對方
+    aiColor = sq.piece.color === 'red' ? 'black' : 'red';
+    turn    = sq.piece.color;  // 翻牌者的顏色
 
-    // 成就：首翻
     if (!gs.firstFlipDone) {
       gs.firstFlipDone = true;
-      gs.firstFlipPiece = {...sq.piece};
       unlockAchievement('first_flip');
-      // 隱藏成就：首翻翻到帥/將
-      if (sq.piece.rank===7) unlockAchievement('secret_flip');
+      if (sq.piece.rank === 7) unlockAchievement('secret_flip');
     }
   }
 
-  // 先渲染新狀態，再觸發動畫（確保 DOM 已更新）
+  // 先渲染，再觸發翻牌動畫
   renderBoard();
-  requestAnimationFrame(()=>{
+  requestAnimationFrame(() => {
     const cells = document.getElementById('board').children;
     if (cells[idx]) {
       cells[idx].classList.add('flipping');
-      setTimeout(()=>{ if(cells[idx]) cells[idx].classList.remove('flipping'); }, 350);
+      setTimeout(() => { if (cells[idx]) cells[idx].classList.remove('flipping'); }, 380);
     }
   });
 
+  // ✅ 翻牌後切換回合（翻牌者行動完，輪到對方）
   switchTurn();
 }
 
+// ================================================
+// 執行移動
+// ================================================
 function executeMove(f, t) {
-  const isCapture = !board[t].isEmpty;
+  const isCapture = !board[t].isEmpty && board[t].isFaceUp;
+  // ✅ 修正：只計正面棋子為吃子（board[t].isFaceUp 保護）
   const logEntry = `${turn==='red'?'🔴 紅':'⚫ 黑'} 【${board[f].piece.name}】${isCapture?'吃':'→'} ${isCapture?'【'+board[t].piece.name+'】':posStr(t)}`;
   saveState(logEntry);
 
@@ -1322,44 +1412,43 @@ function executeMove(f, t) {
     capturedPieces[victim.color].push(victim);
     gs.eaten++;
 
-    // 炮吃子統計
-    if (board[f].piece.rank===2) {
+    if (board[f].piece.rank === 2) {
       gs.cannonKills++;
       cumulativeStats.totalCannonKills++;
       unlockAchievement('first_cannon');
-      if (gs.cannonKills>=3) unlockAchievement('cannon_master');
-      if (cumulativeStats.totalCannonKills>=5) unlockAchievement('cannon5');
+      if (gs.cannonKills >= 3)                      unlockAchievement('cannon_master');
+      if (cumulativeStats.totalCannonKills >= 5)     unlockAchievement('cannon5');
     }
-    // 兵吃帥
-    if (board[f].piece.rank===1 && victim.rank===7) {
+    if (board[f].piece.rank === 1 && victim.rank === 7) {
       gs.soldierKillKing++;
       cumulativeStats.totalSoldierKillKing++;
       unlockAchievement('first_soldier_king');
-      if (cumulativeStats.totalSoldierKillKing>=3) unlockAchievement('soldier_king3');
+      if (cumulativeStats.totalSoldierKillKing >= 3) unlockAchievement('soldier_king3');
     }
-
-    if (gs.eaten>=7) unlockAchievement('eat_7');
+    if (gs.eaten >= 7) unlockAchievement('eat_7');
     playSound(800, 0.18, 'square');
   } else {
-    playSound(280, 0.1, 'sine');
+    playSound(280, 0.10, 'sine');
   }
 
-  board[t] = {...board[f]};
-  board[f] = {piece:null, isFaceUp:false, isEmpty:true};
-  lastMovedIdx = t;
-  selectedIdx=-1; validMoves=[];
+  board[t]       = { ...board[f] };
+  board[f]       = { piece:null, isFaceUp:false, isEmpty:true };
+  lastMovedIdx   = t;
+  selectedIdx    = -1; validMoves = [];
   gs.turns++;
   renderCaptured(); switchTurn(); renderBoard();
 }
 
 function posStr(idx) {
-  const rows=['一','二','三','四'];
-  return `${rows[Math.floor(idx/8)]}行${idx%8+1}列`;
+  return `${ ['一','二','三','四'][Math.floor(idx/8)] }行${ idx%8+1 }列`;
 }
 
+// ================================================
+// 狀態存取
+// ================================================
 function saveState(m) {
   historyStack.push({
-    board: JSON.parse(JSON.stringify(board)),
+    board:          JSON.parse(JSON.stringify(board)),
     turn, aiColor,
     capturedPieces: JSON.parse(JSON.stringify(capturedPieces)),
     lastMovedIdx
@@ -1368,138 +1457,152 @@ function saveState(m) {
 }
 
 function undoMove() {
-  if (undoRemaining<=0||historyStack.length===0) return;
-  if (aiTimeoutId) clearTimeout(aiTimeoutId);
-  undoRemaining--;
-  gs.undosUsed++;
+  if (undoRemaining <= 0 || historyStack.length === 0) return;
+  if (aiTimeoutId) { clearTimeout(aiTimeoutId); aiTimeoutId = null; }
+  undoRemaining--; gs.undosUsed++;
   playSound(380, 0.18, 'triangle');
   let s = historyStack.pop(); logStack.pop();
-  if (gameMode==='PvE' && historyStack.length>0 && s.turn===aiColor) {
+  // PvE 模式：同時撤回 AI 那步
+  if (gameMode === 'PvE' && historyStack.length > 0 && s.turn === aiColor) {
     s = historyStack.pop(); logStack.pop();
   }
-  board=s.board; turn=s.turn; aiColor=s.aiColor;
-  capturedPieces=s.capturedPieces; lastMovedIdx=s.lastMovedIdx;
-  selectedIdx=-1; validMoves=[];
+  board = s.board; turn = s.turn; aiColor = s.aiColor;
+  capturedPieces = s.capturedPieces; lastMovedIdx = s.lastMovedIdx;
+  selectedIdx = -1; validMoves = [];
   renderBoard(); renderCaptured(); renderLog(); updateUndoUI(); updateInfo();
 }
 
-// ==============================================
+// ================================================
 // 回合切換 & 勝負判定
-// ==============================================
+// ================================================
 function switchTurn() {
-  turn = turn==='red'?'black':'red';
+  turn = turn === 'red' ? 'black' : 'red';
   updateInfo();
   checkGameOver();
 }
 
 function checkHasAction(color) {
-  if (board.some(s=>!s.isEmpty&&!s.isFaceUp)) return true;
-  for (let i=0;i<32;i++) {
-    if (!board[i].isEmpty&&board[i].isFaceUp&&board[i].piece.color===color)
-      for (let j=0;j<32;j++) if(canMove(i,j)) return true;
+  // 有未翻的棋子可翻
+  if (board.some(s => !s.isEmpty && !s.isFaceUp)) return true;
+  // 有合法移動
+  for (let i = 0; i < 32; i++) {
+    if (!board[i].isEmpty && board[i].isFaceUp && board[i].piece.color === color)
+      for (let j = 0; j < 32; j++) if (canMove(i, j)) return true;
   }
   return false;
 }
 
 function checkGameOver() {
-  let totalRed=0, totalBlack=0;
-  board.forEach(s=>{
-    if (!s.isEmpty) { if(s.piece.color==='red') totalRed++; else totalBlack++; }
+  // ✅ 修正：計算每方「全部棋子數」（含未翻），歸零才算輸
+  let totalRed = 0, totalBlack = 0;
+  board.forEach(s => {
+    if (!s.isEmpty) {
+      if (s.piece.color === 'red') totalRed++; else totalBlack++;
+    }
   });
-  const anyFaceUp = board.some(s=>!s.isEmpty&&s.isFaceUp);
+
+  // 尚未有任何棋子翻開時，不判定勝負（防止首翻誤判）
+  const anyFaceUp = board.some(s => !s.isEmpty && s.isFaceUp);
   if (!anyFaceUp) {
-    if (gameMode==='PvE'&&turn===aiColor) aiTimeoutId=setTimeout(performAITurn,800);
-    return;
+    scheduleAI(); return;
   }
 
-  let winner=null, reason='';
-  if (totalRed===0) { winner='black'; reason='紅方棋子全滅'; }
-  else if (totalBlack===0) { winner='red'; reason='黑方棋子全滅'; }
-  else if (!checkHasAction(turn)) { winner=turn==='red'?'black':'red'; reason=`${turn==='red'?'紅':'黑'}方無棋可走`; }
-
-  if (winner) {
-    endGame(winner, reason); return;
+  let winner = null, reason = '';
+  if (totalRed   === 0) { winner = 'black'; reason = '紅方棋子全滅'; }
+  else if (totalBlack === 0) { winner = 'red';   reason = '黑方棋子全滅'; }
+  else if (!checkHasAction(turn)) {
+    winner = turn === 'red' ? 'black' : 'red';
+    reason = `${turn === 'red' ? '紅' : '黑'}方無棋可走`;
   }
-  if (gameMode==='PvE'&&turn===aiColor) aiTimeoutId=setTimeout(performAITurn,800);
+
+  if (winner) { endGame(winner, reason); return; }
+  scheduleAI();
+}
+
+function scheduleAI() {
+  if (gameMode === 'PvE' && turn === aiColor && !isGameOver) {
+    aiTimeoutId = setTimeout(performAITurn, 800);
+  }
 }
 
 function endGame(winner, reason) {
-  isGameOver=true; updateUndoUI();
+  isGameOver = true; updateUndoUI();
   playerStats.totalGames++;
 
-  // 判斷玩家顏色（PvE 模式下，玩家顏色 = 非 AI 顏色）
-  const playerColor = gameMode==='PvE' ? (aiColor==='red' ? 'black' : 'red') : null;
-  const playerWon   = gameMode==='PvE' ? (winner === playerColor) : false;
+  // ✅ 正確判斷玩家顏色
+  const playerColor = gameMode === 'PvE' ? (aiColor === 'red' ? 'black' : 'red') : null;
+  const playerWon   = gameMode === 'PvE' ? winner === playerColor : false;
 
-  if (gameMode==='PvE') {
+  if (gameMode === 'PvE') {
     if (playerWon) {
       playerStats.wins++;
-      cumulativeStats.winStreak = (cumulativeStats.winStreak||0)+1;
+      cumulativeStats.winStreak  = (cumulativeStats.winStreak  || 0) + 1;
       cumulativeStats.loseStreak = 0;
     } else {
       playerStats.losses++;
-      cumulativeStats.loseStreak = (cumulativeStats.loseStreak||0)+1;
-      cumulativeStats.winStreak = 0;
+      cumulativeStats.loseStreak = (cumulativeStats.loseStreak || 0) + 1;
+      cumulativeStats.winStreak  = 0;
     }
   } else {
-    // PvP：雙方都算局數，紅方贏算紅方勝，黑方贏也計勝場（同機對戰用同一勝場）
-    playerStats.wins++;  // PvP 有人贏就累加
-    if (winner==='red') { cumulativeStats.winStreak++; cumulativeStats.loseStreak=0; }
-    else { cumulativeStats.loseStreak++; cumulativeStats.winStreak=0; }
+    // PvP：計入總場次，勝者累加 winStreak（不計個人 loss，視為友誼賽）
+    playerStats.wins++;
+    cumulativeStats.winStreak  = (cumulativeStats.winStreak  || 0) + 1;
+    cumulativeStats.loseStreak = 0;
   }
 
   saveAchievements(); updateStatsUI();
 
   // 成就解鎖
-  if (gameMode==='PvE' && playerWon) {
+  if (gameMode === 'PvE' && playerWon) {
     unlockAchievement('first_win');
-    if (aiDifficulty==='easy')   unlockAchievement('beat_easy');
-    if (aiDifficulty==='normal') unlockAchievement('beat_normal');
-    if (aiDifficulty==='hard')   unlockAchievement('beat_hard');
-    if (gs.turns<=15)            unlockAchievement('fast_win');
-    if (gs.undosUsed===0)        unlockAchievement('clean_win');
-    if (gs.undosUsed>=3)         unlockAchievement('comeback');
-    if (gs.flips>15)             unlockAchievement('flip_master');
+    if (aiDifficulty === 'easy')   unlockAchievement('beat_easy');
+    if (aiDifficulty === 'normal') unlockAchievement('beat_normal');
+    if (aiDifficulty === 'hard')   unlockAchievement('beat_hard');
+    if (gs.turns    <= 15) unlockAchievement('fast_win');
+    if (gs.undosUsed === 0) unlockAchievement('clean_win');
+    if (gs.undosUsed >= 3)  unlockAchievement('comeback');
+    if (gs.flips    >  15)  unlockAchievement('flip_master');
   }
-  if (gameMode==='PvP' && winner) unlockAchievement('beat_pvp');
-  if (playerStats.wins>=5)  unlockAchievement('win5');
-  if (playerStats.wins>=10) unlockAchievement('win10');
-  if (playerStats.wins>=25) unlockAchievement('win25');
-  if (playerStats.wins>=50) unlockAchievement('win50');
-  if (cumulativeStats.winStreak>=5) unlockAchievement('no_loss');
-  if (playerStats.totalGames>=100)  unlockAchievement('legend');
-  if (unlockedAchievements['beat_easy']&&unlockedAchievements['beat_normal']&&
-      unlockedAchievements['beat_hard']&&unlockedAchievements['beat_pvp'])
+  if (gameMode === 'PvP' && winner)     unlockAchievement('beat_pvp');
+  if (playerStats.wins >= 5)  unlockAchievement('win5');
+  if (playerStats.wins >= 10) unlockAchievement('win10');
+  if (playerStats.wins >= 25) unlockAchievement('win25');
+  if (playerStats.wins >= 50) unlockAchievement('win50');
+  if (cumulativeStats.winStreak >= 5)  unlockAchievement('no_loss');
+  if (playerStats.totalGames >= 100)   unlockAchievement('legend');
+  if (unlockedAchievements['beat_easy']  && unlockedAchievements['beat_normal'] &&
+      unlockedAchievements['beat_hard']  && unlockedAchievements['beat_pvp'])
     unlockAchievement('all_diff');
 
   // UI
-  const winColor = winner==='red';
-  const winLabel = winColor ? '🔴 紅方' : '⚫ 黑方';
-  setInfo(`🏆 ${winLabel}獲勝！（${reason}）`, winColor?'#ef9a9a':'#90a4ae');
+  const isRedWin = winner === 'red';
+  const winLabel = isRedWin ? '🔴 紅方' : '⚫ 黑方';
+  setInfo(`🏆 ${winLabel}獲勝！（${reason}）`, isRedWin ? '#ef9a9a' : '#90a4ae');
 
   // 勝利音效
-  playSound(500,0.1,'sine',0.12);
-  setTimeout(()=>playSound(650,0.1,'sine',0.12), 140);
-  setTimeout(()=>playSound(800,0.35,'sine',0.14), 300);
+  playSound(500, 0.10, 'sine', 0.12);
+  setTimeout(() => playSound(650, 0.10, 'sine', 0.12), 150);
+  setTimeout(() => playSound(800, 0.35, 'sine', 0.14), 310);
 
-  // 顯示勝利覆蓋
-  setTimeout(()=>{
-    document.getElementById('win-icon').textContent = winColor?'🔴':'⚫';
+  // 勝利畫面（延遲 800ms 讓動畫先完成）
+  setTimeout(() => {
+    document.getElementById('win-icon').textContent  = isRedWin ? '🔴' : '⚫';
     document.getElementById('win-title').textContent = `${winLabel} 獲勝！`;
-    document.getElementById('win-sub').textContent = reason + (gameMode==='PvE'?` · ${aiDifficulty==='easy'?'肉腳':aiDifficulty==='normal'?'普通':'高手'} AI`:'·雙人對戰');
+    document.getElementById('win-sub').textContent   =
+      reason + (gameMode === 'PvE'
+        ? ` · ${ aiDifficulty==='easy'?'肉腳':aiDifficulty==='normal'?'普通':'高手' } AI`
+        : ' · 雙人對戰');
 
-    // 本局統計摘要
-    const pveWinRate = (playerStats.wins + playerStats.losses) > 0
+    const pveWR = (playerStats.wins + playerStats.losses) > 0
       ? Math.round(playerStats.wins / (playerStats.wins + playerStats.losses) * 100) + '%'
       : '-';
     document.getElementById('win-stats').innerHTML = `
-      <div class="win-stat-item"><div class="win-stat-val">${gs.turns}</div><div class="win-stat-lbl">回合數</div></div>
-      <div class="win-stat-item"><div class="win-stat-val">${gs.eaten}</div><div class="win-stat-lbl">吃子數</div></div>
-      <div class="win-stat-item"><div class="win-stat-val">${gs.flips}</div><div class="win-stat-lbl">翻牌數</div></div>
-      <div class="win-stat-item"><div class="win-stat-val">${gs.cannonKills}</div><div class="win-stat-lbl">炮擊</div></div>
+      <div class="win-stat-item"><div class="win-stat-val">${gs.turns}</div>       <div class="win-stat-lbl">回合數</div></div>
+      <div class="win-stat-item"><div class="win-stat-val">${gs.eaten}</div>       <div class="win-stat-lbl">吃子數</div></div>
+      <div class="win-stat-item"><div class="win-stat-val">${gs.flips}</div>       <div class="win-stat-lbl">翻牌數</div></div>
+      <div class="win-stat-item"><div class="win-stat-val">${gs.cannonKills}</div> <div class="win-stat-lbl">炮擊</div></div>
       <div class="win-stat-item"><div class="win-stat-val">${playerStats.wins}</div><div class="win-stat-lbl">總勝場</div></div>
-      <div class="win-stat-item"><div class="win-stat-val">${pveWinRate}</div><div class="win-stat-lbl">勝率</div></div>
-    `;
+      <div class="win-stat-item"><div class="win-stat-val">${pveWR}</div>          <div class="win-stat-lbl">勝率</div></div>`;
 
     document.getElementById('win-overlay').classList.add('show');
     fireConfetti();
@@ -1511,156 +1614,156 @@ function closeWin() {
   stopConfetti();
 }
 
-// ==============================================
+// ================================================
 // AI 系統
-// ==============================================
+// ================================================
 function checkThreat(idx, color) {
-  for (let i=0;i<32;i++) {
-    if (!board[i].isEmpty&&board[i].isFaceUp&&board[i].piece.color!==color)
-      if (canMove(i,idx)) return true;
+  for (let i = 0; i < 32; i++) {
+    if (!board[i].isEmpty && board[i].isFaceUp && board[i].piece.color !== color)
+      if (canMove(i, idx)) return true;
   }
   return false;
 }
 
 function simThreat(fromIdx, toIdx, myPiece) {
-  const tb=board[toIdx], fb=board[fromIdx];
-  board[toIdx]={isEmpty:false,isFaceUp:true,piece:myPiece};
-  board[fromIdx]={isEmpty:true,isFaceUp:false,piece:null};
-  const t=checkThreat(toIdx, myPiece.color);
-  board[toIdx]=tb; board[fromIdx]=fb;
-  return t;
+  const tb = board[toIdx], fb = board[fromIdx];
+  board[toIdx]   = { isEmpty:false, isFaceUp:true, piece:myPiece };
+  board[fromIdx] = { isEmpty:true,  isFaceUp:false, piece:null };
+  const threatened = checkThreat(toIdx, myPiece.color);
+  board[toIdx]   = tb; board[fromIdx] = fb;
+  return threatened;
 }
 
 function performAITurn() {
-  if (isGameOver||turn!==aiColor) return;
-  let acts=[], hids=[];
+  if (isGameOver || turn !== aiColor) return;
+  const acts = [], hids = [];
 
-  for (let i=0;i<32;i++) {
-    if (!board[i].isEmpty&&!board[i].isFaceUp) hids.push(i);
-    if (!board[i].isEmpty&&board[i].isFaceUp&&board[i].piece.color===aiColor) {
-      for (let j=0;j<32;j++) {
-        if (!canMove(i,j)) continue;
-        let score=0;
-        const tp = (!board[j].isEmpty&&board[j].isFaceUp)?board[j].piece:null;
-        const mp = board[i].piece;
-        const threatened = checkThreat(i, aiColor);
-        const safeAfter = !simThreat(i, j, mp);
+  for (let i = 0; i < 32; i++) {
+    if (!board[i].isEmpty && !board[i].isFaceUp) hids.push(i);
+    if (!board[i].isEmpty && board[i].isFaceUp && board[i].piece.color === aiColor) {
+      for (let j = 0; j < 32; j++) {
+        if (!canMove(i, j)) continue;
+        let score = 0;
+        const tp   = (!board[j].isEmpty && board[j].isFaceUp) ? board[j].piece : null;
+        const mp   = board[i].piece;
+        const threatened  = checkThreat(i, aiColor);
+        const safeAfter   = !simThreat(i, j, mp);
 
-        if (aiDifficulty==='easy') {
-          score = (tp?tp.rank*8:0) + Math.random()*100;
-        } else if (aiDifficulty==='normal') {
-          if (tp) score += tp.rank*10;
-          if (threatened&&safeAfter) score += 25;
-          score += Math.random()*5;
+        if (aiDifficulty === 'easy') {
+          score = (tp ? tp.rank * 8 : 0) + Math.random() * 100;
+        } else if (aiDifficulty === 'normal') {
+          if (tp) score += tp.rank * 10;
+          if (threatened && safeAfter) score += 25;
+          score += Math.random() * 5;
         } else { // hard
           if (tp) {
-            if (safeAfter) score += tp.rank*55;
-            else score += (tp.rank>mp.rank ? (tp.rank-mp.rank)*15 : -mp.rank*55);
+            if (safeAfter) score += tp.rank * 55;
+            else score += tp.rank > mp.rank ? (tp.rank - mp.rank) * 15 : -mp.rank * 55;
           } else {
-            if (threatened) score += safeAfter ? mp.rank*45 : -mp.rank*55;
-            else score += safeAfter ? 2 : -mp.rank*55;
+            if (threatened) score += safeAfter ? mp.rank * 45 : -mp.rank * 55;
+            else             score += safeAfter ? 2            : -mp.rank * 55;
           }
-          score += Math.random()*2.5;
+          score += Math.random() * 2.5;
         }
-        acts.push({f:i,t:j,s:score});
+        acts.push({ f:i, t:j, s:score });
       }
     }
   }
 
-  acts.sort((a,b)=>b.s-a.s);
-  const flipThreshold = aiDifficulty==='easy'?50 : aiDifficulty==='hard'?2 : 5;
+  acts.sort((a, b) => b.s - a.s);
+  const threshold = aiDifficulty === 'easy' ? 50 : aiDifficulty === 'hard' ? 2 : 5;
 
-  if (acts.length>0 && (acts[0].s>flipThreshold||hids.length===0)) {
+  if (acts.length > 0 && (acts[0].s > threshold || hids.length === 0)) {
     executeMove(acts[0].f, acts[0].t);
-  } else if (hids.length>0) {
-    doFlip(hids[Math.floor(Math.random()*hids.length)], true);
-  } else if (acts.length>0) {
+  } else if (hids.length > 0) {
+    doFlip(hids[Math.floor(Math.random() * hids.length)]);
+  } else if (acts.length > 0) {
     executeMove(acts[0].f, acts[0].t);
   }
 }
 
-// ==============================================
+// ================================================
 // 渲染
-// ==============================================
+// ================================================
 function renderBoard() {
   const b = document.getElementById('board');
-  b.innerHTML='';
-  board.forEach((s,i)=>{
+  b.innerHTML = '';
+  board.forEach((s, i) => {
     const c = document.createElement('div');
-    let cls='cell';
-    if (s.isEmpty) cls+=' empty';
-    else if (!s.isFaceUp) cls+=' hidden';
-
-    if (s.isFaceUp&&!s.isEmpty) {
-      c.textContent=s.piece.name;
-      cls+=' '+(s.piece.color==='red'?'red-p':'black-p');
+    let cls = 'cell';
+    if (s.isEmpty)       cls += ' empty';
+    else if (!s.isFaceUp) cls += ' hidden';
+    if (s.isFaceUp && !s.isEmpty) {
+      c.textContent = s.piece.name;
+      cls += ' ' + (s.piece.color === 'red' ? 'red-p' : 'black-p');
     }
-    if (i===selectedIdx) cls+=' selected';
-    if (i===lastMovedIdx&&!s.isEmpty) cls+=' last-moved';
-    if (validMoves.includes(i)) cls+=s.isEmpty?' valid-move':' valid-capture';
-
-    c.className=cls;
-    c.onclick=()=>processAction(i);
+    if (i === selectedIdx)  cls += ' selected';
+    if (i === lastMovedIdx && !s.isEmpty) cls += ' last-moved';
+    if (validMoves.includes(i)) cls += s.isEmpty ? ' valid-move' : ' valid-capture';
+    c.className = cls;
+    c.onclick   = () => processAction(i);
     b.appendChild(c);
   });
 }
 
 function renderCaptured() {
-  ['red','black'].forEach(color=>{
-    const el=document.getElementById('captured-'+color);
-    el.innerHTML='';
-    capturedPieces[color].forEach(p=>{
-      const d=document.createElement('div');
-      d.className='captured-piece cp-'+(p.color==='red'?'red':'blk');
-      d.textContent=p.name;
+  ['red','black'].forEach(color => {
+    const el = document.getElementById('captured-' + color);
+    el.innerHTML = '';
+    capturedPieces[color].forEach(p => {
+      const d = document.createElement('div');
+      d.className = 'captured-piece cp-' + (p.color === 'red' ? 'red' : 'blk');
+      d.textContent = p.name;
       el.appendChild(d);
     });
   });
 }
 
 function renderLog() {
-  const l=document.getElementById('history-list');
-  l.innerHTML=logStack.map((s,i)=>`<li>${i+1}. ${s}</li>`).join('');
-  l.scrollTop=l.scrollHeight;
+  const l = document.getElementById('history-list');
+  l.innerHTML = logStack.map((s, i) => `<li>${i+1}. ${s}</li>`).join('');
+  l.scrollTop = l.scrollHeight;
 }
 
-// ==============================================
+// ================================================
+// 重置戰績
+// ================================================
+function confirmResetStats() {
+  if (!confirm('確定要重置所有戰績與成就嗎？此操作無法復原。')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  playerStats     = { wins:0, losses:0, draws:0, totalGames:0 };
+  cumulativeStats = { totalCannonKills:0, totalSoldierKillKing:0, winStreak:0, loseStreak:0 };
+  unlockedAchievements = {};
+  updateStatsUI();
+  playSound(220, 0.2, 'triangle', 0.08);
+}
+
+// ================================================
+// 鍵盤快捷鍵
+// ================================================
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.show').forEach(m => m.classList.remove('show'));
+    closeWin(); return;
+  }
+  if (document.querySelector('.modal-overlay.show')) return;
+  if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey) initGame();
+  if ((e.key === 'z' || e.key === 'Z') && (e.ctrlKey || e.metaKey)) { e.preventDefault(); undoMove(); }
+  if (e.key === 'u' || e.key === 'U') undoMove();
+});
+
+window.addEventListener('resize', () => {
+  if (confAnimId) { confCanvas.width = window.innerWidth; confCanvas.height = window.innerHeight; }
+});
+
+// ================================================
 // 啟動
-// ==============================================
+// ================================================
+loadTheme();
 loadAchievements();
 updateStatsUI();
 toggleDifficulty();
 initGame();
-
-function confirmResetStats() {
-  if (confirm('確定要重置所有戰績與成就嗎？此操作無法復原。')) {
-    localStorage.removeItem(STORAGE_KEY);
-    playerStats = { wins:0, losses:0, draws:0, totalGames:0 };
-    cumulativeStats = { totalCannonKills:0, totalSoldierKillKing:0, winStreak:0, loseStreak:0 };
-    unlockedAchievements = {};
-    updateStatsUI();
-    playSound(220, 0.2, 'triangle', 0.08);
-  }
-}
-
-window.addEventListener('resize',()=>{
-  if (confAnimId) { confCanvas.width=window.innerWidth; confCanvas.height=window.innerHeight; }
-});
-
-// 鍵盤快捷鍵
-document.addEventListener('keydown', e => {
-  // Escape 關閉所有模態框
-  if (e.key==='Escape') {
-    document.querySelectorAll('.modal-overlay.show').forEach(m=>m.classList.remove('show'));
-    closeWin();
-    return;
-  }
-  // 若模態框開著，不處理遊戲快捷鍵
-  if (document.querySelector('.modal-overlay.show')) return;
-  if (e.key==='r'||e.key==='R') { if (!e.ctrlKey&&!e.metaKey) { initGame(); } }
-  if (e.key==='z'||e.key==='Z') { if (e.ctrlKey||e.metaKey) { e.preventDefault(); undoMove(); } }
-  if (e.key==='u'||e.key==='U') { undoMove(); }
-});
 </script>
 </body>
 </html>
