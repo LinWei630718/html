@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>獵魔倖存者 Demon Hunter Survivors</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600;700&family=MedievalSharp&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0610; overflow: hidden; touch-action: none; user-select: none; }
+canvas { display: block; }
+:root {
+  --blood: #c0102a;
+  --gold: #e8b84b;
+  --gold-bright: #ffe066;
+  --purple-deep: #1a0a2e;
+  --purple-mid: #2d1854;
+  --cyan: #44ccff;
+  --text-glow: 0 0 12px rgba(232,184,75,0.7);
+}
+</style>
+</head>
+<body>
+<canvas id="gc"></canvas>
+<script>
+'use strict';
+// ====== CONSTANTS ======
+const CVS = document.getElementById('gc');
+const CTX = CVS.getContext('2d');
+let W, H;
+const PI2 = Math.PI * 2;
+const DEG = Math.PI / 180;
+
+function resize() {
+  W = CVS.width = window.innerWidth;
+  H = CVS.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ====== UTILITY ======
+function rand(a, b) { return Math.random() * (b - a) + a; }
+function randInt(a, b) { return Math.floor(rand(a, b + 1)); }
+function dist(a, b) { const dx = a.x - b.x, dy = a.y - b.y; return Math.sqrt(dx * dx + dy * dy); }
+function angleTo(a, b) { return Math.atan2(b.y - a.y, b.x - a.x); }
+function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function rectOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+  return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+}
+function circleOverlap(ax, ay, ar, bx, by, br) {
+  const dx = ax - bx, dy = ay - by;
+  return dx * dx + dy * dy < (ar + br) * (ar + br);
+}
+
+// ====== QUADTREE ======
+class QuadTree {
+  constructor(x, y, w, h, depth = 0) {
+    this.x = x; this.y = y; this.w = w; this.h = h;
+    this.depth = depth; this.items = []; this.children = null;
+  }
+  clear() { this.items.length = 0; this.children = null; }
+  subdivide() {
+    const hw = this.w / 2, hh = this.h / 2, d = this.depth + 1;
+    this.children = [
+      new QuadTree(this.x, this.y, hw, hh, d),
+      new QuadTree(this.x + hw, this.y, hw, hh, d),
+      new QuadTree(this.x, this.y + hh, hw, hh, d),
+      new QuadTree(this.x + hw, this.y + hh, hw, hh, d)
+    ];
+  }
+  insert(item) {
+    if (!rectOverlap(this.x, this.y, this.w, this.h, item.x - item.r, item.y - item.r, item.r * 2, item.r * 2)) return;
+    if (this.children) { for (const c of this.children) c.insert(item); return; }
+    this.items.push(item);
+    if (this.items.length > 8 && this.depth < 6) {
+      this.subdivide();
+      for (const it of this.items) for (const c of this.children) c.insert(it);
+      this.items.length = 0;
+    }
+  }
+  query(x, y, w, h, out) {
+    if (!rectOverlap(this.x, this.y, this.w, this.h, x, y, w, h)) return out;
+    if (this.children) { for (const c of this.children) c.query(x, y, w, h, out); }
+    else { for (const it of this.items) if (out.indexOf(it) === -1) out.push(it); }
+    return out;
+  }
+}
+
+// ====== OBJECT POOL ======
+class Pool {
+  constructor(factory, size) {
+    this.items = [];
+    this.factory = factory;
+    for (let i = 0; i < size; i++) { const o = factory(); o.active = false; this.items.push(o); }
+  }
+  get() {
+    for (const o of this.items) if (!o.active) { o.active = true; return o; }
+    const o = this.factory(); o.active = true; this.items.push(o); return o;
+  }
+  each(fn) { for (const o of this.items) if (o.active) fn(o); }
+  count() { let c = 0; for (const o of this.items) if (o.active) c++; return c; }
+}
+
+// ====== CAMERA ======
+const cam = { x: 0, y: 0 };
+function toScreen(wx, wy) { return { x: wx - cam.x + W / 2, y: wy - cam.y + H / 2 }; }
+function onScreen(wx, wy, margin = 50) {
+  const sx = wx - cam.x + W / 2, sy = wy - cam.y + H / 2;
+  return sx > -margin && sx < W + margin && sy > -margin && sy < H + margin;
+}
+
+// ====== DAMAGE TEXT ======
+const dmgTexts = new Pool(() => ({ active: false, x: 0, y: 0, text: '', timer: 0, color: '#fff' }), 500);
+function spawnDmgText(x, y, text, color = '#fff') {
+  const t = dmgTexts.get();
+  t.x = x + rand(-10, 10); t.y = y - 10; t.text = String(text); t.timer = 0.8; t.color = color;
+}
+
+// ====== PICKUPS (XP GEMS, CHESTS, HEALS) ======
+const GEM_COLORS = { 1: '#44f', 10: '#0c0', 100: '#f22' };
+const pickups = new Pool(() => ({ active: false, x: 0, y: 0, type: 'gem', value: 1, r: 6 }), 2000);
+function spawnGem(x, y, value) {
+  const p = pickups.get();
+  p.x = x + rand(-8, 8); p.y = y + rand(-8, 8); p.type = 'gem'; p.value = value; p.r = value >= 100 ? 10 : value >= 10 ? 8 : 6;
+}
+function spawnChest(x, y) {
+  const p = pickups.get();
+  p.x = x; p.y = y; p.type = 'chest'; p.value = 0; p.r = 16;
+}
+function spawnHeal(x, y) {
+  const p = pickups.get();
+  p.x = x; p.y = y; p.type = 'heal'; p.value = 20; p.r = 8;
+}
+
+// ====== PLAYER ======
+const player = {
+  x: 0, y: 0, r: 12,
+  hp: 100, maxHp: 100,
+  xp: 0, level: 1, xpToNext: 5,
+  baseSpeed: 150,
+  might: 1, area: 1, speed: 1, duration: 1, cooldown: 1, magnet: 30,
+  weapons: [],
+  passives: [],
+  kills: 0,
+  facing: 1, // 1 = right, -1 = left
+  iFrames: 0,
+  alive: true
+};
+
+function playerEffSpeed() { return player.baseSpeed * player.speed; }
+
+// Mouse position tracking for hover effects
+const mouse = { x: 0, y: 0 };
+window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+
+// ====== INPUT ======
+const keys = {};
+window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; keys[e.code] = true; });
+window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; keys[e.code] = false; });
+
+// Virtual joystick
+let touchId = null, touchStartX = 0, touchStartY = 0, touchDX = 0, touchDY = 0, touchActive = false;
+CVS.addEventListener('touchstart', e => {
+  if (game.state === 'title') { game.start(); e.preventDefault(); return; }
+  if (game.state === 'gameover') { game.reset(); e.preventDefault(); return; }
+  if (game.state === 'levelup') return;
+  const t = e.changedTouches[0];
+  touchId = t.identifier; touchStartX = t.clientX; touchStartY = t.clientY; touchActive = true; touchDX = 0; touchDY = 0;
+  e.preventDefault();
+}, { passive: false });
+CVS.addEventListener('touchmove', e => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === touchId) {
+      touchDX = t.clientX - touchStartX; touchDY = t.clientY - touchStartY;
+      const mag = Math.sqrt(touchDX * touchDX + touchDY * touchDY);
+      if (mag > 60) { touchDX = touchDX / mag * 60; touchDY = touchDY / mag * 60; }
+    }
+  }
+  e.preventDefault();
+}, { passive: false });
+CVS.addEventListener('touchend', e => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === touchId) { touchActive = false; touchDX = 0; touchDY = 0; touchId = null; }
+  }
+  e.preventDefault();
+}, { passive: false });
+
+function getInputDir() {
+  let dx = 0, dy = 0;
+  if (keys['w'] || keys['arrowup'] || keys['ArrowUp']) dy -= 1;
+  if (keys['s'] || keys['arrowdown'] || keys['ArrowDown']) dy += 1;
+  if (keys['a'] || keys['arrowleft'] || keys['ArrowLeft']) dx -= 1;
+  if (keys['d'] || keys['arrowright'] || keys['ArrowRight']) dx += 1;
+  if (touchActive) {
+    const mag = Math.sqrt(touchDX * touchDX + touchDY * touchDY);
+    if (mag > 10) { dx = touchDX / mag; dy = touchDY / mag; }
+  }
+  const mag = Math.sqrt(dx * dx + dy * dy);
+  if (mag > 0) { dx /= mag; dy /= mag; }
+  return { x: dx, y: dy };
+}
+
+// ====== ENEMIES ======
+const ENEMY_DEFS = {
+  bat:      { hp: 5,  dmg: 2,  speed: 90,  r: 8,  color: '#a66', xp: 1, knockback: 1 },
+  skeleton: { hp: 10, dmg: 5,  speed: 55,  r: 10, color: '#cca', xp: 1, knockback: 1 },
+  ghost:    { hp: 20, dmg: 5,  speed: 35,  r: 12, color: '#88f', xp: 10, knockback: 0.2 },
+  zombie:   { hp: 30, dmg: 8,  speed: 30,  r: 14, color: '#4a4', xp: 1, knockback: 1 },
+  boss:     { hp: 3000, dmg: 20, speed: 40, r: 30, color: '#f80', xp: 100, knockback: 0.3 },
+  reaper:   { hp: 999999, dmg: 9999, speed: 60, r: 20, color: '#000', xp: 0, knockback: 0 }
+};
+
+const enemies = new Pool(() => ({
+  active: false, x: 0, y: 0, r: 10, hp: 10, maxHp: 10, dmg: 5, speed: 50,
+  type: 'bat', color: '#a66', xp: 1, knockback: 1,
+  kbx: 0, kby: 0, hitTimer: 0, flashTimer: 0
+}), 1000);
+
+function spawnEnemy(type, x, y) {
+  const def = ENEMY_DEFS[type]; if (!def) return;
+  const e = enemies.get();
+  const hpMult = 1 + game.time / 180; // scale with time
+  e.x = x; e.y = y; e.type = type;
+  e.hp = def.hp * hpMult; e.maxHp = e.hp; e.dmg = def.dmg; e.speed = def.speed;
+  e.r = def.r; e.color = def.color; e.xp = def.xp; e.knockback = def.knockback;
+  e.kbx = 0; e.kby = 0; e.hitTimer = 0; e.flashTimer = 0;
+  return e;
+}
+
+function spawnEnemyAtEdge(type) {
+  const angle = rand(0, PI2);
+  const d = Math.max(W, H) / 2 + 60;
+  spawnEnemy(type, player.x + Math.cos(angle) * d, player.y + Math.sin(angle) * d);
+}
+
+// ====== BULLETS / HITBOXES ======
+const bullets = new Pool(() => ({
+  active: false, x: 0, y: 0, vx: 0, vy: 0, r: 5, dmg: 10, pierce: 1, timer: 5,
+  type: 'bullet', color: '#ff0', hitSet: null,
+  // for bible-type
+  ownerOffsetAngle: 0, orbitRadius: 0, orbitSpeed: 0
+}), 500);
+
+function fireBullet(x, y, angle, speed, dmg, r, pierce, timer, color, type) {
+  const b = bullets.get();
+  b.x = x; b.y = y;
+  b.vx = Math.cos(angle) * speed; b.vy = Math.sin(angle) * speed;
+  b.r = r; b.dmg = dmg; b.pierce = pierce; b.timer = timer;
+  b.color = color; b.type = type || 'bullet';
+  b.hitSet = new Set();
+  b.ownerOffsetAngle = 0; b.orbitRadius = 0; b.orbitSpeed = 0;
+  return b;
+}
+
+// ====== WEAPON DEFINITIONS ======
+const WEAPON_DEFS = {
+  whip: {
+    name: '皮鞭 Whip', icon: '🪢', maxLv: 8,
+    base: { dmg: 10, cd: 1.5, areaW: 100, areaH: 50, pierce: 999, dur: 0.3 },
+    lvUp: (w) => { w.dmg += 3; w.areaW += 15; if (w.level % 2 === 0) w.cd = Math.max(0.5, w.cd - 0.1); },
+    fire: (w, dt) => {
+      w.cdTimer -= dt;
+      if (w.cdTimer > 0) return;
+      w.cdTimer = w.cd * player.cooldown;
+      const aw = w.areaW * player.area, ah = w.areaH * player.area;
+      const hx = player.x + player.facing * aw / 2;
+      const hy = player.y;
+      const b = fireBullet(hx, hy, 0, 0, w.dmg * player.might, Math.max(aw, ah) / 2, 999, w.dur * player.duration, 'rgba(255,255,200,0.6)', 'melee');
+      b.mw = aw; b.mh = ah; b.mx = hx - aw / 2; b.my = hy - ah / 2;
+    }
+  },
+  wand: {
+    name: '魔杖 Magic Wand', icon: '🪄', maxLv: 8,
+    base: { dmg: 15, cd: 1.0, speed: 300, projCount: 1, pierce: 1 },
+    lvUp: (w) => { w.dmg += 3; if (w.level % 2 === 0) w.projCount += 1; if (w.level >= 6) w.pierce += 1; },
+    fire: (w, dt) => {
+      w.cdTimer -= dt;
+      if (w.cdTimer > 0) return;
+      w.cdTimer = w.cd * player.cooldown;
+      for (let i = 0; i < w.projCount; i++) {
+        let target = findNearest(player, i);
+        if (!target) return;
+        const a = angleTo(player, target);
+        setTimeout(() => {
+          fireBullet(player.x, player.y, a, w.speed * player.speed, w.dmg * player.might, 5, w.pierce, 3, '#aaf', 'bullet');
+        }, i * 80);
+      }
+    }
+  },
+  axe: {
+    name: '飛斧 Axe', icon: '🪓', maxLv: 8,
+    base: { dmg: 20, cd: 1.5, projCount: 1, pierce: 2, area: 15 },
+    lvUp: (w) => { w.dmg += 5; if (w.level % 2 === 0) w.projCount += 1; w.pierce += 1; },
+    fire: (w, dt) => {
+      w.cdTimer -= dt;
+      if (w.cdTimer > 0) return;
+      w.cdTimer = w.cd * player.cooldown;
+      for (let i = 0; i < w.projCount; i++) {
+        const spread = (i - (w.projCount - 1) / 2) * 0.3;
+        const a = -Math.PI / 2 + spread + rand(-0.2, 0.2);
+        const b = fireBullet(player.x, player.y, a, 250 * player.speed, w.dmg * player.might, w.area * player.area, w.pierce, 3, '#c84', 'axe');
+        b.gravity = 200;
+        b.spin = rand(-8, 8);
+      }
+    }
+  },
+  bible: {
+    name: '聖經 King Bible', icon: '📖', maxLv: 8,
+    base: { dmg: 5, cd: 3.0, dur: 3, orbCount: 1, orbitR: 70, orbitSpeed: 3, area: 12 },
+    lvUp: (w) => { w.dmg += 2; w.dur += 0.5; if (w.level % 2 === 0) w.orbCount += 1; w.orbitR += 5; w.orbitSpeed += 0.2; },
+    fire: (w, dt) => {
+      w.cdTimer -= dt;
+      if (w.cdTimer > 0) return;
+      if (w._orbiting) return;
+      w.cdTimer = w.cd * player.cooldown;
+      w._orbiting = true;
+      w._orbTimer = w.dur * player.duration;
+      w._orbs = [];
+      for (let i = 0; i < w.orbCount; i++) {
+        const b = fireBullet(player.x, player.y, 0, 0, w.dmg * player.might, w.area * player.area, 999, w.dur * player.duration + 0.5, '#ff8', 'bible');
+        b.ownerOffsetAngle = (PI2 / w.orbCount) * i;
+        b.orbitRadius = w.orbitR * player.area;
+        b.orbitSpeed = w.orbitSpeed;
+        b.hitSet = new Set(); // reset every 0.3s handled in update
+        b._hitResetTimer = 0;
+        w._orbs.push(b);
+      }
+    },
+    update: (w, dt) => {
+      if (!w._orbiting) return;
+      w._orbTimer -= dt;
+      if (w._orbTimer <= 0) { w._orbiting = false; for (const b of w._orbs) b.active = false; w._orbs = []; return; }
+      w._orbAngle = (w._orbAngle || 0) + w.orbitSpeed * dt;
+      for (const b of w._orbs) {
+        b.x = player.x + Math.cos(w._orbAngle + b.ownerOffsetAngle) * b.orbitRadius;
+        b.y = player.y + Math.sin(w._orbAngle + b.ownerOffsetAngle) * b.orbitRadius;
+        b._hitResetTimer = (b._hitResetTimer || 0) + dt;
+        if (b._hitResetTimer > 0.3) { b._hitResetTimer = 0; b.hitSet.clear(); }
+      }
+    }
+  },
+  firewand: {
+    name: '火球 Fire Wand', icon: '🔥', maxLv: 8,
+    base: { dmg: 30, cd: 1.2, speed: 200, pierce: 1 },
+    lvUp: (w) => { w.dmg += 8; if (w.level >= 4) w.pierce += 1; },
+    fire: (w, dt) => {
+      w.cdTimer -= dt;
+      if (w.cdTimer > 0) return;
+      w.cdTimer = w.cd * player.cooldown;
+      // random enemy target
+      let target = null;
+      const candidates = [];
+      enemies.each(e => { if (dist(player, e) < 600) candidates.push(e); });
+      if (candidates.length > 0) target = candidates[randInt(0, candidates.length - 1)];
+      const a = target ? angleTo(player, target) : rand(0, PI2);
+      fireBullet(player.x, player.y, a, w.speed * player.speed, w.dmg * player.might, 8, w.pierce, 4, '#f60', 'fireball');
+    }
+  }
+};
+
+function createWeapon(type) {
+  const def = WEAPON_DEFS[type];
+  const w = { type, level: 1, cdTimer: 0, ...def.base, _orbiting: false, _orbs: [], _orbAngle: 0, _orbTimer: 0 };
+  return w;
+}
+
+function upgradeWeapon(w) {
+  if (w.level >= WEAPON_DEFS[w.type].maxLv) return;
+  w.level++;
+  WEAPON_DEFS[w.type].lvUp(w);
+}
+
+function findNearest(from, skip = 0) {
+  let best = null, bestD = Infinity, count = 0;
+  const sorted = [];
+  enemies.each(e => { sorted.push({ e, d: dist(from, e) }); });
+  sorted.sort((a, b) => a.d - b.d);
+  if (sorted.length > skip) return sorted[skip].e;
+  return null;
+}
+
+// ====== PASSIVE DEFINITIONS ======
+const PASSIVE_DEFS = {
+  spinach:    { name: '菠菜 Spinach', icon: '🥬', maxLv: 5, desc: '傷害 +10%', apply: (lv) => { player.might = 1 + lv * 0.1; } },
+  heart:      { name: '空虛之心 Hollow Heart', icon: '💜', maxLv: 5, desc: '最大HP +20%', apply: (lv) => { player.maxHp = 100 * (1 + lv * 0.2); if (player.hp > player.maxHp) player.hp = player.maxHp; } },
+  candle:     { name: '燭台 Candelabrador', icon: '🕯️', maxLv: 5, desc: '攻擊範圍 +10%', apply: (lv) => { player.area = 1 + lv * 0.1; } },
+  bracer:     { name: '護腕 Bracer', icon: '🦾', maxLv: 5, desc: '投射物速度 +10%', apply: (lv) => { player.speed = 1 + lv * 0.1; } },
+  tome:       { name: '魔法書 Empty Tome', icon: '📕', maxLv: 5, desc: '冷卻 -8%', apply: (lv) => { player.cooldown = Math.max(0.3, 1 - lv * 0.08); } },
+  attractorb: { name: '吸引器 Attractorb', icon: '🧲', maxLv: 5, desc: '拾取範圍 +30%', apply: (lv) => { player.magnet = 30 * (1 + lv * 0.3); } }
+};
+
+function getPassiveLevel(type) {
+  const p = player.passives.find(p => p.type === type);
+  return p ? p.level : 0;
+}
+
+function addOrUpgradePassive(type) {
+  let p = player.passives.find(p => p.type === type);
+  if (p) { if (p.level < PASSIVE_DEFS[type].maxLv) p.level++; }
+  else { player.passives.push({ type, level: 1 }); }
+  applyPassives();
+}
+
+function applyPassives() {
+  // Reset to base
+  player.might = 1; player.area = 1; player.speed = 1; player.duration = 1;
+  player.cooldown = 1; player.magnet = 30; player.maxHp = 100;
+  for (const p of player.passives) PASSIVE_DEFS[p.type].apply(p.level);
+}
+
+// ====== LEVEL UP ======
+function xpNeeded(level) {
+  if (level === 1) return 5;
+  if (level === 2) return 10;
+  return Math.floor(10 * Math.pow(1.15, level - 2));
+}
+
+function addXP(amount) {
+  player.xp += amount;
+  while (player.xp >= player.xpToNext) {
+    player.xp -= player.xpToNext;
+    player.level++;
+    player.xpToNext = xpNeeded(player.level);
+    showLevelUpScreen();
+  }
+}
+
+// Generate level up choices
+function generateChoices() {
+  const choices = [];
+  const weaponTypes = Object.keys(WEAPON_DEFS);
+  const passiveTypes = Object.keys(PASSIVE_DEFS);
+  const pool = [];
+
+  // Existing weapons that can be upgraded
+  for (const w of player.weapons) {
+    if (w.level < WEAPON_DEFS[w.type].maxLv) {
+      pool.push({ cat: 'weapon', type: w.type, isNew: false, level: w.level + 1 });
+    }
+  }
+  // New weapons (if slots available)
+  if (player.weapons.length < 3) {
+    for (const t of weaponTypes) {
+      if (!player.weapons.find(w => w.type === t)) {
+        pool.push({ cat: 'weapon', type: t, isNew: true, level: 1 });
+      }
+    }
+  }
+  // Existing passives that can be upgraded
+  for (const p of player.passives) {
+    if (p.level < PASSIVE_DEFS[p.type].maxLv) {
+      pool.push({ cat: 'passive', type: p.type, isNew: false, level: p.level + 1 });
+    }
+  }
+  // New passives (if slots available)
+  if (player.passives.length < 3) {
+    for (const t of passiveTypes) {
+      if (!player.passives.find(p => p.type === t)) {
+        pool.push({ cat: 'passive', type: t, isNew: true, level: 1 });
+      }
+    }
+  }
+
+  // Shuffle and pick 3
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = randInt(0, i);
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, 3);
+}
+
+let levelUpChoices = [];
+function showLevelUpScreen() {
+  levelUpChoices = generateChoices();
+  game.state = 'levelup';
+}
+
+function selectChoice(idx) {
+  const c = levelUpChoices[idx];
+  if (!c) return;
+  if (c.cat === 'weapon') {
+    if (c.isNew) {
+      player.weapons.push(createWeapon(c.type));
+    } else {
+      const w = player.weapons.find(w => w.type === c.type);
+      if (w) upgradeWeapon(w);
+    }
+  } else {
+    addOrUpgradePassive(c.type);
+  }
+  game.state = 'playing';
+}
+
+// ====== CHEST LOGIC ======
+function openChest() {
+  const numUpgrades = randInt(1, 3);
+  for (let i = 0; i < numUpgrades; i++) {
+    const choices = generateChoices();
+    if (choices.length > 0) {
+      const c = choices[0];
+      if (c.cat === 'weapon') {
+        if (c.isNew) player.weapons.push(createWeapon(c.type));
+        else { const w = player.weapons.find(w => w.type === c.type); if (w) upgradeWeapon(w); }
+      } else {
+        addOrUpgradePassive(c.type);
+      }
+    }
+  }
+  spawnDmgText(player.x, player.y - 30, '寶箱! +' + numUpgrades + ' 升級', '#ff0');
+}
+
+// ====== WAVE SYSTEM ======
+const waveSystem = {
+  timers: [],
+  bossSpawned: false,
+  reaperSpawned: false,
+
+  init() {
+    this.timers = [];
+    this.bossSpawned = false;
+    this.reaperSpawned = false;
+  },
+
+  update(dt) {
+    const t = game.time;
+    const spawnRate = this.getSpawnRate(t);
+
+    // Continuous spawning
+    this._spawnAccum = (this._spawnAccum || 0) + dt * spawnRate;
+    while (this._spawnAccum >= 1) {
+      this._spawnAccum -= 1;
+      this.spawnWaveEnemy(t);
+    }
+
+    // Boss at 3 min
+    if (t >= 180 && !this.bossSpawned) {
+      this.bossSpawned = true;
+      spawnEnemyAtEdge('boss');
+      spawnDmgText(player.x, player.y - 50, '⚠ BOSS 出現!', '#f80');
+    }
+
+    // Reaper at 10 min
+    if (t >= 600 && !this.reaperSpawned) {
+      this.reaperSpawned = true;
+      spawnEnemyAtEdge('reaper');
+      spawnDmgText(player.x, player.y - 50, '☠ 死神降臨!', '#f00');
+    }
+  },
+
+  getSpawnRate(t) {
+    if (t < 60) return 1.5;
+    if (t < 180) return 2.5;
+    if (t < 300) return 4;
+    if (t < 480) return 5;
+    return 7;
+  },
+
+  spawnWaveEnemy(t) {
+    if (enemies.count() > 500) return;
+    let type;
+    if (t < 60) { type = 'bat'; }
+    else if (t < 180) { type = Math.random() < 0.6 ? 'bat' : 'skeleton'; }
+    else if (t < 300) { type = Math.random() < 0.5 ? 'skeleton' : 'zombie'; }
+    else if (t < 480) { type = Math.random() < 0.5 ? 'ghost' : 'bat'; }
+    else {
+      const r = Math.random();
+      if (r < 0.25) type = 'bat';
+      else if (r < 0.5) type = 'skeleton';
+      else if (r < 0.75) type = 'zombie';
+      else type = 'ghost';
+    }
+    spawnEnemyAtEdge(type);
+  }
+};
+
+// ====== GAME STATE ======
+const game = {
+  state: 'title', // title, playing, levelup, gameover, victory
+  time: 0,
+  shakeTimer: 0, shakeIntensity: 0,
+
+  reset() {
+    player.x = 0; player.y = 0; player.hp = 100; player.maxHp = 100;
+    player.xp = 0; player.level = 1; player.xpToNext = 5;
+    player.might = 1; player.area = 1; player.speed = 1; player.duration = 1;
+    player.cooldown = 1; player.magnet = 30;
+    player.weapons = [createWeapon('whip')];
+    player.passives = [];
+    player.kills = 0; player.facing = 1; player.iFrames = 0; player.alive = true;
+    enemies.items.forEach(e => e.active = false);
+    bullets.items.forEach(b => b.active = false);
+    pickups.items.forEach(p => p.active = false);
+    dmgTexts.items.forEach(t => t.active = false);
+    this.time = 0;
+    waveSystem.init();
+    this.state = 'playing';
+  },
+
+  start() { this.reset(); },
+
+  shake(intensity, dur) { this.shakeIntensity = intensity; this.shakeTimer = dur; }
+};
+
+// ====== GROUND TILES ======
+function drawGround() {
+  const tileSize = 64;
+  const startX = Math.floor((cam.x - W / 2) / tileSize) * tileSize;
+  const startY = Math.floor((cam.y - H / 2) / tileSize) * tileSize;
+
+  // Deep night gradient background
+  const bg = CTX.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H) * 0.7);
+  bg.addColorStop(0, '#1a0a2e');
+  bg.addColorStop(1, '#07030f');
+  CTX.fillStyle = bg;
+  CTX.fillRect(0, 0, W, H);
+
+  // Subtle grid
+  CTX.strokeStyle = 'rgba(80,40,120,0.18)';
+  CTX.lineWidth = 1;
+  for (let x = startX; x < cam.x + W / 2 + tileSize; x += tileSize) {
+    const sx = x - cam.x + W / 2;
+    CTX.beginPath(); CTX.moveTo(sx, 0); CTX.lineTo(sx, H); CTX.stroke();
+  }
+  for (let y = startY; y < cam.y + H / 2 + tileSize; y += tileSize) {
+    const sy = y - cam.y + H / 2;
+    CTX.beginPath(); CTX.moveTo(0, sy); CTX.lineTo(W, sy); CTX.stroke();
+  }
+
+  // Blood moon glow at center
+  const moonGlow = CTX.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.min(W,H)*0.6);
+  moonGlow.addColorStop(0, 'rgba(150,10,30,0.06)');
+  moonGlow.addColorStop(1, 'rgba(0,0,0,0)');
+  CTX.fillStyle = moonGlow;
+  CTX.fillRect(0, 0, W, H);
+}
+
+// ====== MAIN UPDATE ======
+function update(dt) {
+  if (game.state !== 'playing') return;
+
+  game.time += dt;
+  if (game.shakeTimer > 0) game.shakeTimer -= dt;
+
+  // Victory at 10 min
+  if (game.time >= 600 && !waveSystem.reaperSpawned) {
+    game.state = 'victory';
+    return;
+  }
+
+  // Player movement
+  const dir = getInputDir();
+  if (dir.x !== 0) player.facing = dir.x > 0 ? 1 : -1;
+  const effSpeed = playerEffSpeed();
+  player.x += dir.x * effSpeed * dt;
+  player.y += dir.y * effSpeed * dt;
+
+  // Camera follow
+  cam.x = lerp(cam.x, player.x, 5 * dt);
+  cam.y = lerp(cam.y, player.y, 5 * dt);
+
+  // iFrames
+  if (player.iFrames > 0) player.iFrames -= dt;
+
+  // Weapons
+  for (const w of player.weapons) {
+    const def = WEAPON_DEFS[w.type];
+    def.fire(w, dt);
+    if (def.update) def.update(w, dt);
+  }
+
+  // Wave system
+  waveSystem.update(dt);
+
+  // Quadtree for enemies
+  const qt = new QuadTree(cam.x - W, cam.y - H, W * 2, H * 2);
+  enemies.each(e => qt.insert(e));
+
+  // Update bullets
+  bullets.each(b => {
+    if (b.type === 'bible') return; // handled by weapon update
+    b.timer -= dt;
+    if (b.timer <= 0) { b.active = false; return; }
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+    if (b.gravity) b.vy += b.gravity * dt;
+
+    // Check collision with enemies
+    if (b.type === 'melee') {
+      // Rect collision
+      const candidates = qt.query(b.mx, b.my, b.mw, b.mh, []);
+      for (const e of candidates) {
+        if (b.hitSet.has(e)) continue;
+        if (rectOverlap(b.mx, b.my, b.mw, b.mh, e.x - e.r, e.y - e.r, e.r * 2, e.r * 2)) {
+          b.hitSet.add(e);
+          damageEnemy(e, b.dmg);
+        }
+      }
+    } else {
+      const candidates = qt.query(b.x - b.r, b.y - b.r, b.r * 2, b.r * 2, []);
+      for (const e of candidates) {
+        if (b.hitSet.has(e)) continue;
+        if (circleOverlap(b.x, b.y, b.r, e.x, e.y, e.r)) {
+          b.hitSet.add(e);
+          damageEnemy(e, b.dmg);
+          b.pierce--;
+          if (b.pierce <= 0) { b.active = false; return; }
+        }
+      }
+    }
+
+    // Off screen cleanup
+    if (!onScreen(b.x, b.y, 200)) b.active = false;
+  });
+
+  // Bible bullets collision
+  bullets.each(b => {
+    if (b.type !== 'bible' || !b.active) return;
+    const candidates = qt.query(b.x - b.r, b.y - b.r, b.r * 2, b.r * 2, []);
+    for (const e of candidates) {
+      if (b.hitSet.has(e)) continue;
+      if (circleOverlap(b.x, b.y, b.r, e.x, e.y, e.r)) {
+        b.hitSet.add(e);
+        damageEnemy(e, b.dmg);
+        // knockback
+        const a = angleTo(player, e);
+        e.kbx += Math.cos(a) * 80 * e.knockback;
+        e.kby += Math.sin(a) * 80 * e.knockback;
+      }
+    }
+  });
+
+  // Update enemies
+  enemies.each(e => {
+    // Move toward player
+    const a = angleTo(e, player);
+    e.x += Math.cos(a) * e.speed * dt;
+    e.y += Math.sin(a) * e.speed * dt;
+
+    // Knockback
+    if (Math.abs(e.kbx) > 0.1 || Math.abs(e.kby) > 0.1) {
+      e.x += e.kbx * dt * 5;
+      e.y += e.kby * dt * 5;
+      e.kbx *= 0.9;
+      e.kby *= 0.9;
+    }
+
+    e.hitTimer -= dt;
+    e.flashTimer -= dt;
+
+    // Damage player
+    if (player.iFrames <= 0 && circleOverlap(player.x, player.y, player.r, e.x, e.y, e.r)) {
+      player.hp -= e.dmg;
+      player.iFrames = 0.5;
+      spawnDmgText(player.x, player.y, e.dmg, '#f44');
+      game.shake(5, 0.15);
+      // Push player away
+      const pa = angleTo(e, player);
+      player.x += Math.cos(pa) * 30;
+      player.y += Math.sin(pa) * 30;
+
+      if (player.hp <= 0) {
+        player.hp = 0;
+        player.alive = false;
+        game.state = 'gameover';
+      }
+    }
+
+    // Despawn far enemies
+    if (dist(player, e) > 1200) e.active = false;
+  });
+
+  // Pickups
+  pickups.each(p => {
+    const d = dist(player, p);
+    // Magnet pull
+    if (d < player.magnet * 3) {
+      const a = angleTo(p, player);
+      const pullSpeed = 300 * (1 - d / (player.magnet * 3));
+      p.x += Math.cos(a) * pullSpeed * dt;
+      p.y += Math.sin(a) * pullSpeed * dt;
+    }
+    // Collect
+    if (d < player.magnet) {
+      p.active = false;
+      if (p.type === 'gem') {
+        addXP(p.value);
+      } else if (p.type === 'chest') {
+        openChest();
+      } else if (p.type === 'heal') {
+        player.hp = Math.min(player.hp + p.value, player.maxHp);
+        spawnDmgText(player.x, player.y, '+' + p.value, '#0f0');
+      }
+    }
+  });
+
+  // Damage texts
+  dmgTexts.each(t => {
+    t.timer -= dt;
+    t.y -= 40 * dt;
+    if (t.timer <= 0) t.active = false;
+  });
+}
+
+function damageEnemy(e, dmg) {
+  e.hp -= dmg;
+  e.flashTimer = 0.1;
+  spawnDmgText(e.x, e.y, Math.round(dmg), '#ff0');
+  // Knockback
+  const a = angleTo(player, e);
+  e.kbx += Math.cos(a) * 40 * e.knockback;
+  e.kby += Math.sin(a) * 40 * e.knockback;
+
+  if (e.hp <= 0) {
+    e.active = false;
+    player.kills++;
+    // Drop XP
+    if (e.xp >= 100) spawnGem(e.x, e.y, 100);
+    else if (e.xp >= 10) spawnGem(e.x, e.y, 10);
+    else spawnGem(e.x, e.y, 1);
+    // Boss drops chest
+    if (e.type === 'boss') spawnChest(e.x, e.y);
+    // Random heal drop
+    if (Math.random() < 0.02) spawnHeal(e.x, e.y);
+  }
+}
+
+// ====== RENDER ======
+function render() {
+  CTX.save();
+
+  // Screen shake
+  let sx = 0, sy = 0;
+  if (game.shakeTimer > 0) {
+    sx = rand(-game.shakeIntensity, game.shakeIntensity);
+    sy = rand(-game.shakeIntensity, game.shakeIntensity);
+    CTX.translate(sx, sy);
+  }
+
+  drawGround();
+
+  // Pickups
+  pickups.each(p => {
+    if (!onScreen(p.x, p.y)) return;
+    const s = toScreen(p.x, p.y);
+    CTX.beginPath();
+    if (p.type === 'gem') {
+      CTX.fillStyle = GEM_COLORS[p.value] || '#44f';
+      // Diamond shape
+      CTX.moveTo(s.x, s.y - p.r);
+      CTX.lineTo(s.x + p.r * 0.7, s.y);
+      CTX.lineTo(s.x, s.y + p.r * 0.6);
+      CTX.lineTo(s.x - p.r * 0.7, s.y);
+    } else if (p.type === 'chest') {
+      CTX.fillStyle = '#da2';
+      CTX.fillRect(s.x - 12, s.y - 10, 24, 20);
+      CTX.fillStyle = '#a80';
+      CTX.fillRect(s.x - 12, s.y - 10, 24, 4);
+      CTX.fillStyle = '#ff0';
+      CTX.fillRect(s.x - 3, s.y - 4, 6, 6);
+      return;
+    } else if (p.type === 'heal') {
+      CTX.fillStyle = '#0f0';
+      CTX.fillRect(s.x - 2, s.y - 6, 4, 12);
+      CTX.fillRect(s.x - 6, s.y - 2, 12, 4);
+      return;
+    }
+    CTX.closePath();
+    CTX.fill();
+  });
+
+  // Enemies
+  enemies.each(e => {
+    if (!onScreen(e.x, e.y)) return;
+    const s = toScreen(e.x, e.y);
+    CTX.beginPath();
+    CTX.arc(s.x, s.y, e.r, 0, PI2);
+    CTX.fillStyle = e.flashTimer > 0 ? '#fff' : e.color;
+    CTX.fill();
+
+    // Eyes
+    CTX.fillStyle = '#000';
+    const eyeOff = e.r * 0.3;
+    CTX.beginPath(); CTX.arc(s.x - eyeOff, s.y - eyeOff * 0.5, e.r * 0.15, 0, PI2); CTX.fill();
+    CTX.beginPath(); CTX.arc(s.x + eyeOff, s.y - eyeOff * 0.5, e.r * 0.15, 0, PI2); CTX.fill();
+
+    // HP bar for bosses
+    if (e.type === 'boss' || e.type === 'reaper') {
+      const bw = e.r * 2;
+      CTX.fillStyle = '#400';
+      CTX.fillRect(s.x - bw / 2, s.y - e.r - 10, bw, 4);
+      CTX.fillStyle = '#f00';
+      CTX.fillRect(s.x - bw / 2, s.y - e.r - 10, bw * (e.hp / e.maxHp), 4);
+    }
+
+    // Reaper special look
+    if (e.type === 'reaper') {
+      CTX.fillStyle = '#000';
+      CTX.beginPath(); CTX.arc(s.x, s.y, e.r + 4, 0, PI2); CTX.fill();
+      CTX.fillStyle = '#f00';
+      CTX.beginPath(); CTX.arc(s.x - 5, s.y - 3, 3, 0, PI2); CTX.fill();
+      CTX.beginPath(); CTX.arc(s.x + 5, s.y - 3, 3, 0, PI2); CTX.fill();
+    }
+  });
+
+  // Bullets
+  bullets.each(b => {
+    if (!onScreen(b.x, b.y)) return;
+    const s = toScreen(b.x, b.y);
+    if (b.type === 'melee') {
+      CTX.fillStyle = b.color;
+      const ms = toScreen(b.mx + b.mw / 2, b.my + b.mh / 2);
+      CTX.fillRect(ms.x - b.mw / 2, ms.y - b.mh / 2, b.mw, b.mh);
+    } else {
+      CTX.beginPath();
+      CTX.arc(s.x, s.y, b.r, 0, PI2);
+      CTX.fillStyle = b.color;
+      CTX.fill();
+      // Glow
+      CTX.beginPath();
+      CTX.arc(s.x, s.y, b.r + 3, 0, PI2);
+      CTX.fillStyle = b.color + '44';
+      CTX.fill();
+    }
+  });
+
+  // Player
+  if (player.alive) {
+    const ps = toScreen(player.x, player.y);
+    const blink = player.iFrames > 0 && Math.floor(player.iFrames * 15) % 2 === 0;
+    if (!blink) {
+      // Body glow
+      CTX.save();
+      CTX.shadowColor = '#44aaff';
+      CTX.shadowBlur = 18;
+      CTX.fillStyle = '#4af';
+      CTX.beginPath(); CTX.arc(ps.x, ps.y, player.r, 0, PI2); CTX.fill();
+      CTX.restore();
+      // Inner highlight
+      CTX.fillStyle = 'rgba(180,230,255,0.5)';
+      CTX.beginPath(); CTX.arc(ps.x - 3, ps.y - 3, player.r * 0.45, 0, PI2); CTX.fill();
+      // Face direction indicator
+      CTX.fillStyle = '#fff';
+      CTX.beginPath();
+      CTX.arc(ps.x + player.facing * 4, ps.y - 3, 3, 0, PI2);
+      CTX.fill();
+      CTX.beginPath();
+      CTX.arc(ps.x + player.facing * 4 + player.facing * 1.5, ps.y - 3, 1.5, 0, PI2);
+      CTX.fillStyle = '#000';
+      CTX.fill();
+    }
+  }
+
+  // Damage texts
+  dmgTexts.each(t => {
+    if (!onScreen(t.x, t.y)) return;
+    const s = toScreen(t.x, t.y);
+    CTX.save();
+    CTX.font = 'bold 14px "Cinzel", serif';
+    CTX.fillStyle = t.color;
+    CTX.shadowColor = t.color;
+    CTX.shadowBlur = 6;
+    CTX.globalAlpha = clamp(t.timer / 0.3, 0, 1);
+    CTX.textAlign = 'center';
+    CTX.fillText(t.text, s.x, s.y);
+    CTX.globalAlpha = 1;
+    CTX.restore();
+  });
+
+  CTX.restore();
+
+  // ====== UI OVERLAYS ======
+  if (game.state === 'playing' || game.state === 'levelup') drawHUD();
+  if (game.state === 'title') drawTitle();
+  if (game.state === 'levelup') drawLevelUp();
+  if (game.state === 'gameover') drawGameOver();
+  if (game.state === 'victory') drawVictory();
+
+  // Virtual joystick
+  if (touchActive && game.state === 'playing') {
+    CTX.globalAlpha = 0.3;
+    CTX.beginPath(); CTX.arc(touchStartX, touchStartY, 50, 0, PI2);
+    CTX.strokeStyle = '#fff'; CTX.lineWidth = 2; CTX.stroke();
+    CTX.beginPath(); CTX.arc(touchStartX + touchDX, touchStartY + touchDY, 20, 0, PI2);
+    CTX.fillStyle = '#fff'; CTX.fill();
+    CTX.globalAlpha = 1;
+  }
+}
+
+function drawHUD() {
+  // === XP Bar (top center) ===
+  const barW = W * 0.55, barH = 14;
+  const barX = (W - barW) / 2, barY = 12;
+  const xpRatio = player.xp / player.xpToNext;
+
+  // Bar background with dark border
+  CTX.fillStyle = 'rgba(0,0,0,0.6)';
+  CTX.fillRect(barX - 2, barY - 2, barW + 4, barH + 4);
+  CTX.fillStyle = '#1a0a2e';
+  CTX.fillRect(barX, barY, barW, barH);
+
+  // XP fill gradient
+  if (xpRatio > 0) {
+    const xpGrad = CTX.createLinearGradient(barX, 0, barX + barW, 0);
+    xpGrad.addColorStop(0, '#6a2fcc');
+    xpGrad.addColorStop(0.5, '#9b5de5');
+    xpGrad.addColorStop(1, '#c77dff');
+    CTX.fillStyle = xpGrad;
+    CTX.fillRect(barX, barY, barW * xpRatio, barH);
+
+    // Shimmer overlay
+    CTX.fillStyle = 'rgba(255,255,255,0.12)';
+    CTX.fillRect(barX, barY, barW * xpRatio, barH / 2);
+  }
+
+  // Border
+  CTX.strokeStyle = 'rgba(180,100,255,0.6)';
+  CTX.lineWidth = 1.5;
+  CTX.strokeRect(barX, barY, barW, barH);
+
+  // Level text with glow
+  CTX.save();
+  CTX.shadowColor = '#b060ff';
+  CTX.shadowBlur = 8;
+  CTX.fillStyle = '#e8d4ff';
+  CTX.font = 'bold 11px "Cinzel", serif';
+  CTX.textAlign = 'center';
+  CTX.fillText('LEVEL ' + player.level, W / 2, barY + 11);
+  CTX.restore();
+
+  // === HP Bar (left top) ===
+  const hpW = 140, hpH = 14;
+  const hpRatio = player.hp / player.maxHp;
+
+  CTX.fillStyle = 'rgba(0,0,0,0.6)';
+  CTX.fillRect(8, 32, hpW + 4, hpH + 4);
+  CTX.fillStyle = '#1a0005';
+  CTX.fillRect(10, 34, hpW, hpH);
+
+  if (hpRatio > 0) {
+    const hpGrad = CTX.createLinearGradient(10, 0, 10 + hpW, 0);
+    const hue = hpRatio > 0.5 ? '#e8102a' : hpRatio > 0.25 ? '#ff6600' : '#ff0000';
+    hpGrad.addColorStop(0, '#800010');
+    hpGrad.addColorStop(1, hue);
+    CTX.fillStyle = hpGrad;
+    CTX.fillRect(10, 34, hpW * hpRatio, hpH);
+    CTX.fillStyle = 'rgba(255,255,255,0.1)';
+    CTX.fillRect(10, 34, hpW * hpRatio, hpH / 2);
+  }
+
+  CTX.strokeStyle = 'rgba(200,50,70,0.7)';
+  CTX.lineWidth = 1.5;
+  CTX.strokeRect(10, 34, hpW, hpH);
+
+  // ❤ HP label
+  CTX.save();
+  CTX.shadowColor = '#ff2040';
+  CTX.shadowBlur = 6;
+  CTX.fillStyle = '#ffccd5';
+  CTX.font = 'bold 10px "Cinzel", serif';
+  CTX.textAlign = 'left';
+  CTX.fillText('❤ ' + Math.ceil(player.hp) + ' / ' + Math.ceil(player.maxHp), 12, 43);
+  CTX.restore();
+
+  // === Time & Kills (right top) ===
+  const mins = Math.floor(game.time / 60);
+  const secs = Math.floor(game.time % 60);
+  const timeStr = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+
+  CTX.save();
+  CTX.shadowColor = '#e8b84b';
+  CTX.shadowBlur = 10;
+  CTX.font = 'bold 18px "Cinzel", serif';
+  CTX.textAlign = 'right';
+  CTX.fillStyle = '#ffe066';
+  CTX.fillText('⏱ ' + timeStr, W - 10, 30);
+  CTX.shadowBlur = 4;
+  CTX.font = '12px "Cinzel", serif';
+  CTX.fillStyle = '#e8c87a';
+  CTX.fillText('☠ ' + player.kills, W - 10, 48);
+  CTX.restore();
+
+  // === Weapon & Passive icons (bottom) ===
+  const slotSize = 44, slotPad = 6;
+
+  // Weapons (bottom left)
+  let wx = 10;
+  const bottomY = H - slotSize - 10;
+  for (const w of player.weapons) {
+    const def = WEAPON_DEFS[w.type];
+    // Slot background
+    CTX.fillStyle = 'rgba(0,0,0,0.7)';
+    CTX.fillRect(wx, bottomY, slotSize, slotSize);
+    CTX.strokeStyle = 'rgba(100,60,200,0.8)';
+    CTX.lineWidth = 2;
+    CTX.strokeRect(wx, bottomY, slotSize, slotSize);
+    // Icon
+    CTX.font = '22px serif';
+    CTX.textAlign = 'center';
+    CTX.fillText(def.icon, wx + slotSize/2, bottomY + 28);
+    // Level badge
+    CTX.fillStyle = '#9b5de5';
+    CTX.fillRect(wx + slotSize - 14, bottomY - 1, 14, 12);
+    CTX.fillStyle = '#fff';
+    CTX.font = 'bold 9px "Cinzel", serif';
+    CTX.fillText(w.level, wx + slotSize - 7, bottomY + 9);
+    wx += slotSize + slotPad;
+  }
+
+  // Passives (bottom right)
+  let px = W - slotSize - 10;
+  for (const p of player.passives) {
+    const def = PASSIVE_DEFS[p.type];
+    CTX.fillStyle = 'rgba(0,0,0,0.7)';
+    CTX.fillRect(px, bottomY, slotSize, slotSize);
+    CTX.strokeStyle = 'rgba(60,160,80,0.8)';
+    CTX.lineWidth = 2;
+    CTX.strokeRect(px, bottomY, slotSize, slotSize);
+    CTX.font = '22px serif';
+    CTX.textAlign = 'center';
+    CTX.fillText(def.icon, px + slotSize/2, bottomY + 28);
+    CTX.fillStyle = '#2ecc71';
+    CTX.fillRect(px + slotSize - 14, bottomY - 1, 14, 12);
+    CTX.fillStyle = '#fff';
+    CTX.font = 'bold 9px "Cinzel", serif';
+    CTX.fillText(p.level, px + slotSize - 7, bottomY + 9);
+    px -= slotSize + slotPad;
+  }
+}
+
+// ====== TITLE SCREEN ======
+function drawTitle() {
+  CTX.fillStyle = 'rgba(0,0,0,0.92)';
+  CTX.fillRect(0, 0, W, H);
+
+  // Blood moon ambient glow
+  const moonGrad = CTX.createRadialGradient(W/2, H/2 - 80, 0, W/2, H/2 - 80, 350);
+  moonGrad.addColorStop(0, 'rgba(180,10,30,0.2)');
+  moonGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  CTX.fillStyle = moonGrad;
+  CTX.fillRect(0, 0, W, H);
+
+  CTX.textAlign = 'center';
+
+  // Main title
+  CTX.save();
+  CTX.shadowColor = '#c0102a';
+  CTX.shadowBlur = 40;
+  CTX.fillStyle = '#ff2040';
+  CTX.font = 'bold 54px "Cinzel Decorative", serif';
+  CTX.fillText('獵魔倖存者', W / 2, H / 2 - 65);
+  CTX.restore();
+
+  // Subtitle
+  CTX.save();
+  CTX.shadowColor = '#e8b84b';
+  CTX.shadowBlur = 12;
+  CTX.fillStyle = '#e8b84b';
+  CTX.font = '600 18px "Cinzel", serif';
+  CTX.fillText('DEMON HUNTER SURVIVORS', W / 2, H / 2 - 22);
+  CTX.restore();
+
+  // Divider
+  CTX.save();
+  const lineGrad = CTX.createLinearGradient(W/2 - 160, 0, W/2 + 160, 0);
+  lineGrad.addColorStop(0, 'transparent');
+  lineGrad.addColorStop(0.5, 'rgba(232,184,75,0.7)');
+  lineGrad.addColorStop(1, 'transparent');
+  CTX.strokeStyle = lineGrad;
+  CTX.lineWidth = 1;
+  CTX.beginPath(); CTX.moveTo(W/2 - 160, H/2 + 5); CTX.lineTo(W/2 + 160, H/2 + 5); CTX.stroke();
+  CTX.restore();
+
+  CTX.fillStyle = 'rgba(200,180,220,0.65)';
+  CTX.font = '13px "Cinzel", serif';
+  CTX.fillText('WASD / 方向鍵 移動  ·  自動攻擊', W / 2, H / 2 + 32);
+
+  // Start button
+  const bx = W / 2 - 100, by = H / 2 + 58, bw = 200, bh = 52;
+  CTX.save();
+  CTX.shadowColor = '#c0102a';
+  CTX.shadowBlur = 25;
+  const btnGrad = CTX.createLinearGradient(bx, by, bx, by + bh);
+  btnGrad.addColorStop(0, '#8b0010');
+  btnGrad.addColorStop(0.5, '#c0102a');
+  btnGrad.addColorStop(1, '#6a000f');
+  CTX.fillStyle = btnGrad;
+  CTX.fillRect(bx, by, bw, bh);
+  CTX.restore();
+  CTX.strokeStyle = '#e8b84b';
+  CTX.lineWidth = 1.5;
+  CTX.strokeRect(bx, by, bw, bh);
+  CTX.save();
+  CTX.shadowColor = '#ffe066';
+  CTX.shadowBlur = 8;
+  CTX.fillStyle = '#ffe066';
+  CTX.font = 'bold 20px "Cinzel", serif';
+  CTX.fillText('⚔  開始遊戲  ⚔', W / 2, by + 34);
+  CTX.restore();
+
+  // Blink hint
+  if (Math.floor(Date.now() / 900) % 2 === 0) {
+    CTX.fillStyle = 'rgba(200,180,220,0.45)';
+    CTX.font = '11px "Cinzel", serif';
+    CTX.fillText('按任意鍵開始', W / 2, H / 2 + 140);
+  }
+
+  if (!drawTitle._bound) {
+    drawTitle._bound = true;
+    CVS.addEventListener('click', e => {
+      if (game.state !== 'title') return;
+      if (e.clientX >= bx && e.clientX <= bx + bw && e.clientY >= by && e.clientY <= by + bh) {
+        game.start();
+      }
+    });
+    function titleKeyHandler(e) {
+      if (game.state === 'title') { game.start(); window.removeEventListener('keydown', titleKeyHandler); }
+    }
+    window.addEventListener('keydown', titleKeyHandler);
+  }
+}
+
+// ====== LEVEL UP SCREEN ======
+const _levelUpCards = [];
+function drawLevelUp() {
+  CTX.fillStyle = 'rgba(5,0,15,0.82)';
+  CTX.fillRect(0, 0, W, H);
+
+  // Vignette
+  const vig = CTX.createRadialGradient(W/2, H/2, 100, W/2, H/2, Math.max(W,H)*0.7);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.6)');
+  CTX.fillStyle = vig;
+  CTX.fillRect(0, 0, W, H);
+
+  CTX.textAlign = 'center';
+
+  // Level up title with glow
+  CTX.save();
+  CTX.shadowColor = '#ffe066';
+  CTX.shadowBlur = 30;
+  CTX.fillStyle = '#ffe066';
+  CTX.font = 'bold 42px "Cinzel Decorative", serif';
+  CTX.fillText('⬆ LEVEL UP! ⬆', W / 2, H / 2 - 140);
+  CTX.restore();
+
+  CTX.fillStyle = 'rgba(200,180,230,0.6)';
+  CTX.font = '13px "Cinzel", serif';
+  CTX.fillText('選擇一項升級', W / 2, H / 2 - 100);
+
+  const cardW = 190, cardH = 220, gap = 22;
+  const totalW = levelUpChoices.length * cardW + (levelUpChoices.length - 1) * gap;
+  const startX = (W - totalW) / 2;
+  const startY = H / 2 - 88;
+
+  _levelUpCards.length = 0;
+  for (let i = 0; i < levelUpChoices.length; i++) {
+    const c = levelUpChoices[i];
+    const cx = startX + i * (cardW + gap);
+    const cy = startY;
+    _levelUpCards.push({ x: cx, y: cy, w: cardW, h: cardH, idx: i });
+
+    const isWeapon = c.cat === 'weapon';
+    const def = isWeapon ? WEAPON_DEFS[c.type] : PASSIVE_DEFS[c.type];
+    const isHover = mouse.x >= cx && mouse.x <= cx + cardW && mouse.y >= cy && mouse.y <= cy + cardH;
+
+    // Card shadow
+    if (isHover) {
+      CTX.save();
+      CTX.shadowColor = isWeapon ? '#6644cc' : '#22aa44';
+      CTX.shadowBlur = 30;
+      CTX.fillStyle = 'transparent';
+      CTX.fillRect(cx, cy, cardW, cardH);
+      CTX.restore();
+    }
+
+    // Card background
+    const cardGrad = CTX.createLinearGradient(cx, cy, cx, cy + cardH);
+    if (isWeapon) {
+      cardGrad.addColorStop(0, isHover ? '#2a1a5a' : '#1e1440');
+      cardGrad.addColorStop(1, isHover ? '#18103c' : '#100c28');
+    } else {
+      cardGrad.addColorStop(0, isHover ? '#0f3020' : '#0a2218');
+      cardGrad.addColorStop(1, isHover ? '#082018' : '#051510');
+    }
+    CTX.fillStyle = cardGrad;
+    CTX.fillRect(cx, cy, cardW, cardH);
+
+    // Card border
+    CTX.strokeStyle = isHover
+      ? (isWeapon ? '#9b5de5' : '#2ecc71')
+      : (isWeapon ? 'rgba(100,60,180,0.6)' : 'rgba(40,140,70,0.6)');
+    CTX.lineWidth = isHover ? 2 : 1.5;
+    CTX.strokeRect(cx, cy, cardW, cardH);
+
+    // Top accent line
+    CTX.fillStyle = isWeapon ? '#9b5de5' : '#2ecc71';
+    CTX.fillRect(cx, cy, cardW, 3);
+
+    // Icon with glow
+    CTX.save();
+    if (isHover) {
+      CTX.shadowColor = isWeapon ? '#cc88ff' : '#44ee88';
+      CTX.shadowBlur = 20;
+    }
+    CTX.font = '40px serif';
+    CTX.fillText(def.icon, cx + cardW / 2, cy + 58);
+    CTX.restore();
+
+    // Name
+    CTX.save();
+    CTX.fillStyle = '#e8e0f8';
+    CTX.font = 'bold 13px "Cinzel", serif';
+    CTX.fillText(def.name, cx + cardW / 2, cy + 90);
+    CTX.restore();
+
+    // Level badge
+    CTX.save();
+    CTX.shadowColor = '#ffe066';
+    CTX.shadowBlur = c.isNew ? 12 : 4;
+    CTX.fillStyle = c.isNew ? '#ffe066' : '#c0a830';
+    CTX.font = 'bold 12px "Cinzel", serif';
+    CTX.fillText(c.isNew ? '✦ NEW ✦' : 'Lv ' + (c.level - 1) + ' → ' + c.level, cx + cardW / 2, cy + 116);
+    CTX.restore();
+
+    // Type label
+    const typeColor = isWeapon ? '#9b5de5' : '#2ecc71';
+    CTX.fillStyle = typeColor;
+    CTX.font = '11px "Cinzel", serif';
+    CTX.fillText(isWeapon ? '— 武器 —' : '— 被動 —', cx + cardW / 2, cy + 140);
+
+    // Desc for passives
+    if (!isWeapon) {
+      CTX.fillStyle = 'rgba(200,230,200,0.75)';
+      CTX.font = '11px "Cinzel", serif';
+      CTX.fillText(def.desc, cx + cardW / 2, cy + 165);
+    }
+
+    // Bottom "click to select" hint
+    if (isHover) {
+      CTX.fillStyle = 'rgba(255,255,255,0.35)';
+      CTX.font = '10px "Cinzel", serif';
+      CTX.fillText('點擊選擇', cx + cardW / 2, cy + cardH - 12);
+    }
+  }
+
+  if (!drawLevelUp._bound) {
+    drawLevelUp._bound = true;
+    CVS.addEventListener('click', e => {
+      if (game.state !== 'levelup') return;
+      for (const card of _levelUpCards) {
+        if (e.clientX >= card.x && e.clientX <= card.x + card.w &&
+            e.clientY >= card.y && e.clientY <= card.y + card.h) {
+          selectChoice(card.idx);
+          return;
+        }
+      }
+    });
+  }
+}
+
+// ====== GAME OVER ======
+function drawGameOver() {
+  CTX.fillStyle = 'rgba(0,0,0,0.9)';
+  CTX.fillRect(0, 0, W, H);
+
+  // Red ambient glow
+  const glow = CTX.createRadialGradient(W/2, H/2, 0, W/2, H/2, 400);
+  glow.addColorStop(0, 'rgba(150,0,20,0.25)');
+  glow.addColorStop(1, 'rgba(0,0,0,0)');
+  CTX.fillStyle = glow;
+  CTX.fillRect(0, 0, W, H);
+
+  CTX.textAlign = 'center';
+
+  CTX.save();
+  CTX.shadowColor = '#ff0000';
+  CTX.shadowBlur = 50;
+  CTX.fillStyle = '#cc1020';
+  CTX.font = 'bold 62px "Cinzel Decorative", serif';
+  CTX.fillText('GAME OVER', W / 2, H / 2 - 80);
+  CTX.restore();
+
+  // Stats panel
+  CTX.fillStyle = 'rgba(0,0,0,0.5)';
+  CTX.fillRect(W/2 - 160, H/2 - 50, 320, 110);
+  CTX.strokeStyle = 'rgba(180,20,30,0.6)';
+  CTX.lineWidth = 1;
+  CTX.strokeRect(W/2 - 160, H/2 - 50, 320, 110);
+
+  const mins = Math.floor(game.time / 60);
+  const secs = Math.floor(game.time % 60);
+  CTX.fillStyle = '#e8d0d8';
+  CTX.font = '15px "Cinzel", serif';
+  CTX.fillText('⏱  存活時間  ' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0'), W/2, H/2 - 18);
+  CTX.fillText('☠  總擊殺    ' + player.kills, W/2, H/2 + 14);
+  CTX.fillText('⬆  達到等級  ' + player.level, W/2, H/2 + 46);
+
+  // Restart button
+  const bx = W / 2 - 100, by = H / 2 + 78, bw = 200, bh = 52;
+  CTX.save();
+  CTX.shadowColor = '#aa0010';
+  CTX.shadowBlur = 20;
+  const btnGrad = CTX.createLinearGradient(bx, by, bx, by+bh);
+  btnGrad.addColorStop(0, '#6a0010');
+  btnGrad.addColorStop(1, '#3a0008');
+  CTX.fillStyle = btnGrad;
+  CTX.fillRect(bx, by, bw, bh);
+  CTX.restore();
+  CTX.strokeStyle = 'rgba(200,50,60,0.8)';
+  CTX.lineWidth = 1.5;
+  CTX.strokeRect(bx, by, bw, bh);
+  CTX.save();
+  CTX.shadowColor = '#ff8890';
+  CTX.shadowBlur = 6;
+  CTX.fillStyle = '#ffcccc';
+  CTX.font = 'bold 18px "Cinzel", serif';
+  CTX.fillText('↺  重新開始', W / 2, by + 34);
+  CTX.restore();
+
+  if (!drawGameOver._bound) {
+    drawGameOver._bound = true;
+    CVS.addEventListener('click', e => {
+      if (game.state !== 'gameover') return;
+      if (e.clientX >= bx && e.clientX <= bx + bw && e.clientY >= by && e.clientY <= by + bh) {
+        game.reset();
+      }
+    });
+    window.addEventListener('keydown', e => {
+      if (game.state === 'gameover') game.reset();
+    });
+  }
+}
+
+// ====== VICTORY ======
+function drawVictory() {
+  CTX.fillStyle = 'rgba(0,0,0,0.9)';
+  CTX.fillRect(0, 0, W, H);
+
+  // Golden ambient glow
+  const glow = CTX.createRadialGradient(W/2, H/2, 0, W/2, H/2, 400);
+  glow.addColorStop(0, 'rgba(200,160,0,0.2)');
+  glow.addColorStop(1, 'rgba(0,0,0,0)');
+  CTX.fillStyle = glow;
+  CTX.fillRect(0, 0, W, H);
+
+  CTX.textAlign = 'center';
+
+  CTX.save();
+  CTX.shadowColor = '#ffe066';
+  CTX.shadowBlur = 50;
+  CTX.fillStyle = '#e8b84b';
+  CTX.font = 'bold 56px "Cinzel Decorative", serif';
+  CTX.fillText('✦ 通關! ✦', W / 2, H / 2 - 85);
+  CTX.restore();
+
+  CTX.fillStyle = 'rgba(255,240,150,0.7)';
+  CTX.font = '15px "Cinzel", serif';
+  CTX.fillText('你存活了整整 10 分鐘！', W / 2, H / 2 - 40);
+
+  CTX.fillStyle = 'rgba(0,0,0,0.5)';
+  CTX.fillRect(W/2 - 160, H/2 - 18, 320, 90);
+  CTX.strokeStyle = 'rgba(232,184,75,0.5)';
+  CTX.lineWidth = 1;
+  CTX.strokeRect(W/2 - 160, H/2 - 18, 320, 90);
+
+  CTX.fillStyle = '#e8d8b0';
+  CTX.font = '14px "Cinzel", serif';
+  CTX.fillText('☠  總擊殺  ' + player.kills, W/2, H/2 + 14);
+  CTX.fillText('⬆  達到等級  ' + player.level, W/2, H/2 + 44);
+
+  const bx = W / 2 - 100, by = H / 2 + 90, bw = 200, bh = 52;
+  CTX.save();
+  CTX.shadowColor = '#e8b84b';
+  CTX.shadowBlur = 20;
+  const btnGrad = CTX.createLinearGradient(bx, by, bx, by+bh);
+  btnGrad.addColorStop(0, '#5a4000');
+  btnGrad.addColorStop(1, '#2a1e00');
+  CTX.fillStyle = btnGrad;
+  CTX.fillRect(bx, by, bw, bh);
+  CTX.restore();
+  CTX.strokeStyle = 'rgba(232,184,75,0.8)';
+  CTX.lineWidth = 1.5;
+  CTX.strokeRect(bx, by, bw, bh);
+  CTX.save();
+  CTX.shadowColor = '#ffe066';
+  CTX.shadowBlur = 6;
+  CTX.fillStyle = '#ffe066';
+  CTX.font = 'bold 18px "Cinzel", serif';
+  CTX.fillText('⚔  再來一局', W / 2, by + 34);
+  CTX.restore();
+
+  if (!drawVictory._bound) {
+    drawVictory._bound = true;
+    CVS.addEventListener('click', e => {
+      if (game.state !== 'victory') return;
+      if (e.clientX >= bx && e.clientX <= bx + bw && e.clientY >= by && e.clientY <= by + bh) {
+        game.reset();
+      }
+    });
+  }
+}
+
+// ====== GAME LOOP ======
+let lastTime = 0;
+function loop(ts) {
+  const dt = Math.min((ts - lastTime) / 1000, 0.05); // cap at 50ms
+  lastTime = ts;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(ts => { lastTime = ts; requestAnimationFrame(loop); });
+</script>
+</body>
+</html>
