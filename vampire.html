@@ -39,6 +39,12 @@ function resize() {
 resize();
 window.addEventListener('resize', resize);
 
+// ====== RESPONSIVE SCALE ======
+// Base design at 480px width. Scale UI elements proportionally.
+function rw(base) { return base * Math.min(1, W / 480); }   // scale by width
+function rh(base) { return base * Math.min(1, H / 860); }   // scale by height
+function rs(base) { return base * Math.min(1, Math.min(W, H) / 480); } // uniform scale
+
 // ====== UTILITY ======
 function rand(a, b) { return Math.random() * (b - a) + a; }
 function randInt(a, b) { return Math.floor(rand(a, b + 1)); }
@@ -160,17 +166,52 @@ const keys = {};
 window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; keys[e.code] = true; });
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; keys[e.code] = false; });
 
+// ====== UNIFIED UI BUTTON REGISTRY ======
+// All clickable/tappable UI regions registered here each frame
+const _uiButtons = [];
+function registerBtn(x, y, w, h, state, fn) {
+  _uiButtons.push({ x, y, w, h, state, fn });
+}
+function hitTestButtons(px, py) {
+  for (const b of _uiButtons) {
+    if (b.state === game.state && px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h) {
+      b.fn(); return true;
+    }
+  }
+  return false;
+}
+// Unified click handler (works for mouse on desktop)
+CVS.addEventListener('click', e => {
+  hitTestButtons(e.clientX, e.clientY);
+});
+
 // Virtual joystick
 let touchId = null, touchStartX = 0, touchStartY = 0, touchDX = 0, touchDY = 0, touchActive = false;
+
 CVS.addEventListener('touchstart', e => {
-  if (game.state === 'title') { game.start(); e.preventDefault(); return; }
-  if (game.state === 'gameover') { game.reset(); e.preventDefault(); return; }
-  if (game.state === 'levelup') return;
-  const t = e.changedTouches[0];
-  touchId = t.identifier; touchStartX = t.clientX; touchStartY = t.clientY; touchActive = true; touchDX = 0; touchDY = 0;
   e.preventDefault();
+  const t = e.changedTouches[0];
+  const tx = t.clientX, ty = t.clientY;
+
+  // UI overlay states: try button hit test first
+  if (game.state === 'title' || game.state === 'gameover' || game.state === 'victory' || game.state === 'levelup') {
+    if (hitTestButtons(tx, ty)) return;
+    // Fallback: full-screen tap for title/gameover/victory
+    if (game.state === 'title') { game.start(); return; }
+    if (game.state === 'gameover') { game.reset(); return; }
+    if (game.state === 'victory') { game.reset(); return; }
+    return; // levelup: must tap a card
+  }
+
+  // Playing state: start joystick
+  touchId = t.identifier;
+  touchStartX = tx; touchStartY = ty;
+  touchActive = true; touchDX = 0; touchDY = 0;
 }, { passive: false });
+
 CVS.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (game.state !== 'playing') return;
   for (const t of e.changedTouches) {
     if (t.identifier === touchId) {
       touchDX = t.clientX - touchStartX; touchDY = t.clientY - touchStartY;
@@ -178,13 +219,13 @@ CVS.addEventListener('touchmove', e => {
       if (mag > 60) { touchDX = touchDX / mag * 60; touchDY = touchDY / mag * 60; }
     }
   }
-  e.preventDefault();
 }, { passive: false });
+
 CVS.addEventListener('touchend', e => {
+  e.preventDefault();
   for (const t of e.changedTouches) {
     if (t.identifier === touchId) { touchActive = false; touchDX = 0; touchDY = 0; touchId = null; }
   }
-  e.preventDefault();
 }, { passive: false });
 
 function getInputDir() {
@@ -828,6 +869,9 @@ function damageEnemy(e, dmg) {
 
 // ====== RENDER ======
 function render() {
+  // Clear UI button registry each frame so buttons track current positions
+  _uiButtons.length = 0;
+
   CTX.save();
 
   // Screen shake
@@ -989,18 +1033,18 @@ function render() {
 }
 
 function drawHUD() {
+  const isMobile = W < 600;
+
   // === XP Bar (top center) ===
-  const barW = W * 0.55, barH = 14;
-  const barX = (W - barW) / 2, barY = 12;
+  const barW = W * (isMobile ? 0.5 : 0.55), barH = isMobile ? 10 : 14;
+  const barX = (W - barW) / 2, barY = 8;
   const xpRatio = player.xp / player.xpToNext;
 
-  // Bar background with dark border
   CTX.fillStyle = 'rgba(0,0,0,0.6)';
   CTX.fillRect(barX - 2, barY - 2, barW + 4, barH + 4);
   CTX.fillStyle = '#1a0a2e';
   CTX.fillRect(barX, barY, barW, barH);
 
-  // XP fill gradient
   if (xpRatio > 0) {
     const xpGrad = CTX.createLinearGradient(barX, 0, barX + barW, 0);
     xpGrad.addColorStop(0, '#6a2fcc');
@@ -1008,59 +1052,55 @@ function drawHUD() {
     xpGrad.addColorStop(1, '#c77dff');
     CTX.fillStyle = xpGrad;
     CTX.fillRect(barX, barY, barW * xpRatio, barH);
-
-    // Shimmer overlay
     CTX.fillStyle = 'rgba(255,255,255,0.12)';
     CTX.fillRect(barX, barY, barW * xpRatio, barH / 2);
   }
 
-  // Border
   CTX.strokeStyle = 'rgba(180,100,255,0.6)';
   CTX.lineWidth = 1.5;
   CTX.strokeRect(barX, barY, barW, barH);
 
-  // Level text with glow
   CTX.save();
   CTX.shadowColor = '#b060ff';
   CTX.shadowBlur = 8;
   CTX.fillStyle = '#e8d4ff';
-  CTX.font = 'bold 11px "Cinzel", serif';
+  CTX.font = `bold ${isMobile ? 9 : 11}px "Cinzel", serif`;
   CTX.textAlign = 'center';
-  CTX.fillText('LEVEL ' + player.level, W / 2, barY + 11);
+  CTX.fillText('LEVEL ' + player.level, W / 2, barY + barH - 1);
   CTX.restore();
 
   // === HP Bar (left top) ===
-  const hpW = 140, hpH = 14;
+  const hpW = isMobile ? Math.min(110, W * 0.28) : 140;
+  const hpH = isMobile ? 10 : 14;
+  const hpX = 8, hpY = barY + barH + 6;
   const hpRatio = player.hp / player.maxHp;
 
   CTX.fillStyle = 'rgba(0,0,0,0.6)';
-  CTX.fillRect(8, 32, hpW + 4, hpH + 4);
+  CTX.fillRect(hpX - 2, hpY - 2, hpW + 4, hpH + 4);
   CTX.fillStyle = '#1a0005';
-  CTX.fillRect(10, 34, hpW, hpH);
+  CTX.fillRect(hpX, hpY, hpW, hpH);
 
   if (hpRatio > 0) {
-    const hpGrad = CTX.createLinearGradient(10, 0, 10 + hpW, 0);
-    const hue = hpRatio > 0.5 ? '#e8102a' : hpRatio > 0.25 ? '#ff6600' : '#ff0000';
+    const hpGrad = CTX.createLinearGradient(hpX, 0, hpX + hpW, 0);
     hpGrad.addColorStop(0, '#800010');
-    hpGrad.addColorStop(1, hue);
+    hpGrad.addColorStop(1, hpRatio > 0.5 ? '#e8102a' : hpRatio > 0.25 ? '#ff6600' : '#ff0000');
     CTX.fillStyle = hpGrad;
-    CTX.fillRect(10, 34, hpW * hpRatio, hpH);
+    CTX.fillRect(hpX, hpY, hpW * hpRatio, hpH);
     CTX.fillStyle = 'rgba(255,255,255,0.1)';
-    CTX.fillRect(10, 34, hpW * hpRatio, hpH / 2);
+    CTX.fillRect(hpX, hpY, hpW * hpRatio, hpH / 2);
   }
 
   CTX.strokeStyle = 'rgba(200,50,70,0.7)';
   CTX.lineWidth = 1.5;
-  CTX.strokeRect(10, 34, hpW, hpH);
+  CTX.strokeRect(hpX, hpY, hpW, hpH);
 
-  // ❤ HP label
   CTX.save();
   CTX.shadowColor = '#ff2040';
   CTX.shadowBlur = 6;
   CTX.fillStyle = '#ffccd5';
-  CTX.font = 'bold 10px "Cinzel", serif';
+  CTX.font = `bold ${isMobile ? 8 : 10}px "Cinzel", serif`;
   CTX.textAlign = 'left';
-  CTX.fillText('❤ ' + Math.ceil(player.hp) + ' / ' + Math.ceil(player.maxHp), 12, 43);
+  CTX.fillText('❤ ' + Math.ceil(player.hp) + '/' + Math.ceil(player.maxHp), hpX + 2, hpY + hpH - 1);
   CTX.restore();
 
   // === Time & Kills (right top) ===
@@ -1071,61 +1111,59 @@ function drawHUD() {
   CTX.save();
   CTX.shadowColor = '#e8b84b';
   CTX.shadowBlur = 10;
-  CTX.font = 'bold 18px "Cinzel", serif';
+  CTX.font = `bold ${isMobile ? 14 : 18}px "Cinzel", serif`;
   CTX.textAlign = 'right';
   CTX.fillStyle = '#ffe066';
-  CTX.fillText('⏱ ' + timeStr, W - 10, 30);
+  CTX.fillText('⏱ ' + timeStr, W - 8, barY + barH + 2);
   CTX.shadowBlur = 4;
-  CTX.font = '12px "Cinzel", serif';
+  CTX.font = `${isMobile ? 10 : 12}px "Cinzel", serif`;
   CTX.fillStyle = '#e8c87a';
-  CTX.fillText('☠ ' + player.kills, W - 10, 48);
+  CTX.fillText('☠ ' + player.kills, W - 8, barY + barH + (isMobile ? 16 : 20));
   CTX.restore();
 
-  // === Weapon & Passive icons (bottom) ===
-  const slotSize = 44, slotPad = 6;
+  // === Weapon & Passive slots (bottom) ===
+  const slotSize = isMobile ? 36 : 44;
+  const slotPad = isMobile ? 4 : 6;
+  const bottomY = H - slotSize - 8;
 
   // Weapons (bottom left)
-  let wx = 10;
-  const bottomY = H - slotSize - 10;
+  let wx = 8;
   for (const w of player.weapons) {
     const def = WEAPON_DEFS[w.type];
-    // Slot background
     CTX.fillStyle = 'rgba(0,0,0,0.7)';
     CTX.fillRect(wx, bottomY, slotSize, slotSize);
     CTX.strokeStyle = 'rgba(100,60,200,0.8)';
     CTX.lineWidth = 2;
     CTX.strokeRect(wx, bottomY, slotSize, slotSize);
-    // Icon
-    CTX.font = '22px serif';
+    CTX.font = `${isMobile ? 18 : 22}px serif`;
     CTX.textAlign = 'center';
-    CTX.fillText(def.icon, wx + slotSize/2, bottomY + 28);
-    // Level badge
+    CTX.fillText(def.icon, wx + slotSize/2, bottomY + slotSize * 0.65);
     CTX.fillStyle = '#9b5de5';
-    CTX.fillRect(wx + slotSize - 14, bottomY - 1, 14, 12);
+    CTX.fillRect(wx + slotSize - 12, bottomY - 1, 12, 10);
     CTX.fillStyle = '#fff';
-    CTX.font = 'bold 9px "Cinzel", serif';
-    CTX.fillText(w.level, wx + slotSize - 7, bottomY + 9);
+    CTX.font = `bold ${isMobile ? 8 : 9}px "Cinzel", serif`;
+    CTX.fillText(w.level, wx + slotSize - 6, bottomY + 8);
     wx += slotSize + slotPad;
   }
 
   // Passives (bottom right)
-  let px = W - slotSize - 10;
+  let ppx = W - slotSize - 8;
   for (const p of player.passives) {
     const def = PASSIVE_DEFS[p.type];
     CTX.fillStyle = 'rgba(0,0,0,0.7)';
-    CTX.fillRect(px, bottomY, slotSize, slotSize);
+    CTX.fillRect(ppx, bottomY, slotSize, slotSize);
     CTX.strokeStyle = 'rgba(60,160,80,0.8)';
     CTX.lineWidth = 2;
-    CTX.strokeRect(px, bottomY, slotSize, slotSize);
-    CTX.font = '22px serif';
+    CTX.strokeRect(ppx, bottomY, slotSize, slotSize);
+    CTX.font = `${isMobile ? 18 : 22}px serif`;
     CTX.textAlign = 'center';
-    CTX.fillText(def.icon, px + slotSize/2, bottomY + 28);
+    CTX.fillText(def.icon, ppx + slotSize/2, bottomY + slotSize * 0.65);
     CTX.fillStyle = '#2ecc71';
-    CTX.fillRect(px + slotSize - 14, bottomY - 1, 14, 12);
+    CTX.fillRect(ppx + slotSize - 12, bottomY - 1, 12, 10);
     CTX.fillStyle = '#fff';
-    CTX.font = 'bold 9px "Cinzel", serif';
-    CTX.fillText(p.level, px + slotSize - 7, bottomY + 9);
-    px -= slotSize + slotPad;
+    CTX.font = `bold ${isMobile ? 8 : 9}px "Cinzel", serif`;
+    CTX.fillText(p.level, ppx + slotSize - 6, bottomY + 8);
+    ppx -= slotSize + slotPad;
   }
 }
 
@@ -1134,7 +1172,6 @@ function drawTitle() {
   CTX.fillStyle = 'rgba(0,0,0,0.92)';
   CTX.fillRect(0, 0, W, H);
 
-  // Blood moon ambient glow
   const moonGrad = CTX.createRadialGradient(W/2, H/2 - 80, 0, W/2, H/2 - 80, 350);
   moonGrad.addColorStop(0, 'rgba(180,10,30,0.2)');
   moonGrad.addColorStop(1, 'rgba(0,0,0,0)');
@@ -1143,41 +1180,40 @@ function drawTitle() {
 
   CTX.textAlign = 'center';
 
-  // Main title
+  const titleSize = Math.min(54, rw(54));
   CTX.save();
   CTX.shadowColor = '#c0102a';
   CTX.shadowBlur = 40;
   CTX.fillStyle = '#ff2040';
-  CTX.font = 'bold 54px "Cinzel Decorative", serif';
-  CTX.fillText('獵魔倖存者', W / 2, H / 2 - 65);
+  CTX.font = `bold ${titleSize}px "Cinzel Decorative", serif`;
+  CTX.fillText('獵魔倖存者', W / 2, H / 2 - rh(65));
   CTX.restore();
 
-  // Subtitle
   CTX.save();
   CTX.shadowColor = '#e8b84b';
   CTX.shadowBlur = 12;
   CTX.fillStyle = '#e8b84b';
-  CTX.font = '600 18px "Cinzel", serif';
-  CTX.fillText('DEMON HUNTER SURVIVORS', W / 2, H / 2 - 22);
+  CTX.font = `600 ${Math.min(18, rw(18))}px "Cinzel", serif`;
+  CTX.fillText('DEMON HUNTER SURVIVORS', W / 2, H / 2 - rh(22));
   CTX.restore();
 
-  // Divider
   CTX.save();
-  const lineGrad = CTX.createLinearGradient(W/2 - 160, 0, W/2 + 160, 0);
+  const lineGrad = CTX.createLinearGradient(W/2 - rw(160), 0, W/2 + rw(160), 0);
   lineGrad.addColorStop(0, 'transparent');
   lineGrad.addColorStop(0.5, 'rgba(232,184,75,0.7)');
   lineGrad.addColorStop(1, 'transparent');
   CTX.strokeStyle = lineGrad;
   CTX.lineWidth = 1;
-  CTX.beginPath(); CTX.moveTo(W/2 - 160, H/2 + 5); CTX.lineTo(W/2 + 160, H/2 + 5); CTX.stroke();
+  CTX.beginPath(); CTX.moveTo(W/2 - rw(160), H/2 + rh(5)); CTX.lineTo(W/2 + rw(160), H/2 + rh(5)); CTX.stroke();
   CTX.restore();
 
   CTX.fillStyle = 'rgba(200,180,220,0.65)';
-  CTX.font = '13px "Cinzel", serif';
-  CTX.fillText('WASD / 方向鍵 移動  ·  自動攻擊', W / 2, H / 2 + 32);
+  CTX.font = `${Math.min(13, rw(13))}px "Cinzel", serif`;
+  CTX.fillText('WASD / 方向鍵 移動  ·  自動攻擊', W / 2, H / 2 + rh(32));
 
-  // Start button
-  const bx = W / 2 - 100, by = H / 2 + 58, bw = 200, bh = 52;
+  // Start button — sized responsively
+  const bw = Math.min(200, rw(200)), bh = Math.min(52, rh(52));
+  const bx = W / 2 - bw / 2, by = H / 2 + rh(58);
   CTX.save();
   CTX.shadowColor = '#c0102a';
   CTX.shadowBlur = 25;
@@ -1195,26 +1231,22 @@ function drawTitle() {
   CTX.shadowColor = '#ffe066';
   CTX.shadowBlur = 8;
   CTX.fillStyle = '#ffe066';
-  CTX.font = 'bold 20px "Cinzel", serif';
-  CTX.fillText('⚔  開始遊戲  ⚔', W / 2, by + 34);
+  CTX.font = `bold ${Math.min(20, rw(20))}px "Cinzel", serif`;
+  CTX.fillText('⚔  開始遊戲  ⚔', W / 2, by + bh * 0.65);
   CTX.restore();
 
-  // Blink hint
   if (Math.floor(Date.now() / 900) % 2 === 0) {
     CTX.fillStyle = 'rgba(200,180,220,0.45)';
     CTX.font = '11px "Cinzel", serif';
-    CTX.fillText('按任意鍵開始', W / 2, H / 2 + 140);
+    CTX.fillText('按任意鍵 / 點擊畫面開始', W / 2, by + bh + rh(25));
   }
 
-  if (!drawTitle._bound) {
-    drawTitle._bound = true;
-    CVS.addEventListener('click', e => {
-      if (game.state !== 'title') return;
-      if (e.clientX >= bx && e.clientX <= bx + bw && e.clientY >= by && e.clientY <= by + bh) {
-        game.start();
-      }
-    });
-    function titleKeyHandler(e) {
+  // Register button for both click and touch
+  registerBtn(bx, by, bw, bh, 'title', () => game.start());
+
+  if (!drawTitle._keyBound) {
+    drawTitle._keyBound = true;
+    function titleKeyHandler() {
       if (game.state === 'title') { game.start(); window.removeEventListener('keydown', titleKeyHandler); }
     }
     window.addEventListener('keydown', titleKeyHandler);
@@ -1227,7 +1259,6 @@ function drawLevelUp() {
   CTX.fillStyle = 'rgba(5,0,15,0.82)';
   CTX.fillRect(0, 0, W, H);
 
-  // Vignette
   const vig = CTX.createRadialGradient(W/2, H/2, 100, W/2, H/2, Math.max(W,H)*0.7);
   vig.addColorStop(0, 'rgba(0,0,0,0)');
   vig.addColorStop(1, 'rgba(0,0,0,0.6)');
@@ -1236,23 +1267,32 @@ function drawLevelUp() {
 
   CTX.textAlign = 'center';
 
-  // Level up title with glow
+  const isPortrait = H > W;
+  const isMobile = W < 600;
+
+  // Title
   CTX.save();
   CTX.shadowColor = '#ffe066';
   CTX.shadowBlur = 30;
   CTX.fillStyle = '#ffe066';
-  CTX.font = 'bold 42px "Cinzel Decorative", serif';
-  CTX.fillText('⬆ LEVEL UP! ⬆', W / 2, H / 2 - 140);
+  const lvTitleSize = Math.min(42, rw(42));
+  CTX.font = `bold ${lvTitleSize}px "Cinzel Decorative", serif`;
+  CTX.fillText('⬆ LEVEL UP! ⬆', W / 2, isMobile ? 50 : H / 2 - 140);
   CTX.restore();
 
   CTX.fillStyle = 'rgba(200,180,230,0.6)';
-  CTX.font = '13px "Cinzel", serif';
-  CTX.fillText('選擇一項升級', W / 2, H / 2 - 100);
+  CTX.font = `${Math.min(13, rw(13))}px "Cinzel", serif`;
+  CTX.fillText('點擊卡片選擇升級', W / 2, isMobile ? 72 : H / 2 - 100);
 
-  const cardW = 190, cardH = 220, gap = 22;
+  // Card dimensions — adapt to screen
+  const maxCardW = isMobile ? Math.min(160, (W - 30) / 3 - 8) : 190;
+  const cardW = maxCardW;
+  const cardH = isMobile ? Math.min(190, H - 110) : 220;
+  const gap = isMobile ? 8 : 22;
+
   const totalW = levelUpChoices.length * cardW + (levelUpChoices.length - 1) * gap;
-  const startX = (W - totalW) / 2;
-  const startY = H / 2 - 88;
+  const startX = Math.max(4, (W - totalW) / 2);
+  const startY = isMobile ? 85 : H / 2 - 88;
 
   _levelUpCards.length = 0;
   for (let i = 0; i < levelUpChoices.length; i++) {
@@ -1261,17 +1301,19 @@ function drawLevelUp() {
     const cy = startY;
     _levelUpCards.push({ x: cx, y: cy, w: cardW, h: cardH, idx: i });
 
+    // Register for touch/click
+    registerBtn(cx, cy, cardW, cardH, 'levelup', () => selectChoice(i));
+
     const isWeapon = c.cat === 'weapon';
     const def = isWeapon ? WEAPON_DEFS[c.type] : PASSIVE_DEFS[c.type];
-    const isHover = mouse.x >= cx && mouse.x <= cx + cardW && mouse.y >= cy && mouse.y <= cy + cardH;
+    const isHover = !isMobile && mouse.x >= cx && mouse.x <= cx + cardW && mouse.y >= cy && mouse.y <= cy + cardH;
 
-    // Card shadow
     if (isHover) {
       CTX.save();
       CTX.shadowColor = isWeapon ? '#6644cc' : '#22aa44';
       CTX.shadowBlur = 30;
-      CTX.fillStyle = 'transparent';
-      CTX.fillRect(cx, cy, cardW, cardH);
+      CTX.fillStyle = 'rgba(0,0,0,0)';
+      CTX.fillRect(cx - 5, cy - 5, cardW + 10, cardH + 10);
       CTX.restore();
     }
 
@@ -1287,32 +1329,38 @@ function drawLevelUp() {
     CTX.fillStyle = cardGrad;
     CTX.fillRect(cx, cy, cardW, cardH);
 
-    // Card border
+    // Border
     CTX.strokeStyle = isHover
       ? (isWeapon ? '#9b5de5' : '#2ecc71')
       : (isWeapon ? 'rgba(100,60,180,0.6)' : 'rgba(40,140,70,0.6)');
     CTX.lineWidth = isHover ? 2 : 1.5;
     CTX.strokeRect(cx, cy, cardW, cardH);
 
-    // Top accent line
+    // Top accent
     CTX.fillStyle = isWeapon ? '#9b5de5' : '#2ecc71';
     CTX.fillRect(cx, cy, cardW, 3);
 
-    // Icon with glow
+    // Icon
+    const iconSize = Math.min(40, cardW * 0.22);
     CTX.save();
-    if (isHover) {
-      CTX.shadowColor = isWeapon ? '#cc88ff' : '#44ee88';
-      CTX.shadowBlur = 20;
-    }
-    CTX.font = '40px serif';
-    CTX.fillText(def.icon, cx + cardW / 2, cy + 58);
+    if (isHover) { CTX.shadowColor = isWeapon ? '#cc88ff' : '#44ee88'; CTX.shadowBlur = 20; }
+    CTX.font = `${iconSize}px serif`;
+    CTX.fillText(def.icon, cx + cardW / 2, cy + cardH * 0.27);
     CTX.restore();
 
-    // Name
+    // Name — clip if needed
+    const nameFontSize = Math.min(13, cardW * 0.075);
     CTX.save();
     CTX.fillStyle = '#e8e0f8';
-    CTX.font = 'bold 13px "Cinzel", serif';
-    CTX.fillText(def.name, cx + cardW / 2, cy + 90);
+    CTX.font = `bold ${nameFontSize}px "Cinzel", serif`;
+    // Truncate name if mobile
+    let displayName = def.name;
+    if (isMobile) {
+      // Show only Chinese part (before space) on mobile
+      const parts = def.name.split(' ');
+      displayName = parts[0];
+    }
+    CTX.fillText(displayName, cx + cardW / 2, cy + cardH * 0.42);
     CTX.restore();
 
     // Level badge
@@ -1320,43 +1368,29 @@ function drawLevelUp() {
     CTX.shadowColor = '#ffe066';
     CTX.shadowBlur = c.isNew ? 12 : 4;
     CTX.fillStyle = c.isNew ? '#ffe066' : '#c0a830';
-    CTX.font = 'bold 12px "Cinzel", serif';
-    CTX.fillText(c.isNew ? '✦ NEW ✦' : 'Lv ' + (c.level - 1) + ' → ' + c.level, cx + cardW / 2, cy + 116);
+    CTX.font = `bold ${Math.min(12, cardW * 0.07)}px "Cinzel", serif`;
+    CTX.fillText(c.isNew ? '✦ NEW ✦' : `Lv${c.level-1}→${c.level}`, cx + cardW / 2, cy + cardH * 0.55);
     CTX.restore();
 
     // Type label
-    const typeColor = isWeapon ? '#9b5de5' : '#2ecc71';
-    CTX.fillStyle = typeColor;
-    CTX.font = '11px "Cinzel", serif';
-    CTX.fillText(isWeapon ? '— 武器 —' : '— 被動 —', cx + cardW / 2, cy + 140);
+    CTX.fillStyle = isWeapon ? '#9b5de5' : '#2ecc71';
+    CTX.font = `${Math.min(11, cardW * 0.065)}px "Cinzel", serif`;
+    CTX.fillText(isWeapon ? '武器' : '被動', cx + cardW / 2, cy + cardH * 0.67);
 
-    // Desc for passives
-    if (!isWeapon) {
+    // Desc
+    if (!isWeapon && cardH > 160) {
       CTX.fillStyle = 'rgba(200,230,200,0.75)';
-      CTX.font = '11px "Cinzel", serif';
-      CTX.fillText(def.desc, cx + cardW / 2, cy + 165);
+      CTX.font = `${Math.min(11, cardW * 0.063)}px "Cinzel", serif`;
+      CTX.fillText(def.desc, cx + cardW / 2, cy + cardH * 0.78);
     }
 
-    // Bottom "click to select" hint
-    if (isHover) {
-      CTX.fillStyle = 'rgba(255,255,255,0.35)';
-      CTX.font = '10px "Cinzel", serif';
-      CTX.fillText('點擊選擇', cx + cardW / 2, cy + cardH - 12);
+    // Tap hint (always on mobile)
+    const tapHint = isMobile ? '點擊' : (isHover ? '點擊選擇' : '');
+    if (tapHint) {
+      CTX.fillStyle = 'rgba(255,255,255,0.3)';
+      CTX.font = `${Math.min(10, cardW * 0.06)}px "Cinzel", serif`;
+      CTX.fillText(tapHint, cx + cardW / 2, cy + cardH - 10);
     }
-  }
-
-  if (!drawLevelUp._bound) {
-    drawLevelUp._bound = true;
-    CVS.addEventListener('click', e => {
-      if (game.state !== 'levelup') return;
-      for (const card of _levelUpCards) {
-        if (e.clientX >= card.x && e.clientX <= card.x + card.w &&
-            e.clientY >= card.y && e.clientY <= card.y + card.h) {
-          selectChoice(card.idx);
-          return;
-        }
-      }
-    });
   }
 }
 
@@ -1365,7 +1399,6 @@ function drawGameOver() {
   CTX.fillStyle = 'rgba(0,0,0,0.9)';
   CTX.fillRect(0, 0, W, H);
 
-  // Red ambient glow
   const glow = CTX.createRadialGradient(W/2, H/2, 0, W/2, H/2, 400);
   glow.addColorStop(0, 'rgba(150,0,20,0.25)');
   glow.addColorStop(1, 'rgba(0,0,0,0)');
@@ -1378,27 +1411,27 @@ function drawGameOver() {
   CTX.shadowColor = '#ff0000';
   CTX.shadowBlur = 50;
   CTX.fillStyle = '#cc1020';
-  CTX.font = 'bold 62px "Cinzel Decorative", serif';
-  CTX.fillText('GAME OVER', W / 2, H / 2 - 80);
+  CTX.font = `bold ${Math.min(62, rw(62))}px "Cinzel Decorative", serif`;
+  CTX.fillText('GAME OVER', W / 2, H / 2 - rh(80));
   CTX.restore();
 
-  // Stats panel
+  const panW = Math.min(320, W - 40);
   CTX.fillStyle = 'rgba(0,0,0,0.5)';
-  CTX.fillRect(W/2 - 160, H/2 - 50, 320, 110);
+  CTX.fillRect(W/2 - panW/2, H/2 - rh(50), panW, rh(110));
   CTX.strokeStyle = 'rgba(180,20,30,0.6)';
   CTX.lineWidth = 1;
-  CTX.strokeRect(W/2 - 160, H/2 - 50, 320, 110);
+  CTX.strokeRect(W/2 - panW/2, H/2 - rh(50), panW, rh(110));
 
   const mins = Math.floor(game.time / 60);
   const secs = Math.floor(game.time % 60);
   CTX.fillStyle = '#e8d0d8';
-  CTX.font = '15px "Cinzel", serif';
-  CTX.fillText('⏱  存活時間  ' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0'), W/2, H/2 - 18);
-  CTX.fillText('☠  總擊殺    ' + player.kills, W/2, H/2 + 14);
-  CTX.fillText('⬆  達到等級  ' + player.level, W/2, H/2 + 46);
+  CTX.font = `${Math.min(15, rw(15))}px "Cinzel", serif`;
+  CTX.fillText('⏱  存活時間  ' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0'), W/2, H/2 - rh(18));
+  CTX.fillText('☠  總擊殺    ' + player.kills, W/2, H/2 + rh(14));
+  CTX.fillText('⬆  達到等級  ' + player.level, W/2, H/2 + rh(46));
 
-  // Restart button
-  const bx = W / 2 - 100, by = H / 2 + 78, bw = 200, bh = 52;
+  const bw = Math.min(200, W - 40), bh = Math.min(52, rh(52));
+  const bx = W / 2 - bw / 2, by = H / 2 + rh(78);
   CTX.save();
   CTX.shadowColor = '#aa0010';
   CTX.shadowBlur = 20;
@@ -1415,21 +1448,15 @@ function drawGameOver() {
   CTX.shadowColor = '#ff8890';
   CTX.shadowBlur = 6;
   CTX.fillStyle = '#ffcccc';
-  CTX.font = 'bold 18px "Cinzel", serif';
-  CTX.fillText('↺  重新開始', W / 2, by + 34);
+  CTX.font = `bold ${Math.min(18, rw(18))}px "Cinzel", serif`;
+  CTX.fillText('↺  重新開始', W / 2, by + bh * 0.65);
   CTX.restore();
 
-  if (!drawGameOver._bound) {
-    drawGameOver._bound = true;
-    CVS.addEventListener('click', e => {
-      if (game.state !== 'gameover') return;
-      if (e.clientX >= bx && e.clientX <= bx + bw && e.clientY >= by && e.clientY <= by + bh) {
-        game.reset();
-      }
-    });
-    window.addEventListener('keydown', e => {
-      if (game.state === 'gameover') game.reset();
-    });
+  registerBtn(bx, by, bw, bh, 'gameover', () => game.reset());
+
+  if (!drawGameOver._keyBound) {
+    drawGameOver._keyBound = true;
+    window.addEventListener('keydown', e => { if (game.state === 'gameover') game.reset(); });
   }
 }
 
@@ -1438,7 +1465,6 @@ function drawVictory() {
   CTX.fillStyle = 'rgba(0,0,0,0.9)';
   CTX.fillRect(0, 0, W, H);
 
-  // Golden ambient glow
   const glow = CTX.createRadialGradient(W/2, H/2, 0, W/2, H/2, 400);
   glow.addColorStop(0, 'rgba(200,160,0,0.2)');
   glow.addColorStop(1, 'rgba(0,0,0,0)');
@@ -1451,26 +1477,28 @@ function drawVictory() {
   CTX.shadowColor = '#ffe066';
   CTX.shadowBlur = 50;
   CTX.fillStyle = '#e8b84b';
-  CTX.font = 'bold 56px "Cinzel Decorative", serif';
-  CTX.fillText('✦ 通關! ✦', W / 2, H / 2 - 85);
+  CTX.font = `bold ${Math.min(56, rw(56))}px "Cinzel Decorative", serif`;
+  CTX.fillText('✦ 通關! ✦', W / 2, H / 2 - rh(85));
   CTX.restore();
 
   CTX.fillStyle = 'rgba(255,240,150,0.7)';
-  CTX.font = '15px "Cinzel", serif';
-  CTX.fillText('你存活了整整 10 分鐘！', W / 2, H / 2 - 40);
+  CTX.font = `${Math.min(15, rw(15))}px "Cinzel", serif`;
+  CTX.fillText('你存活了整整 10 分鐘！', W / 2, H / 2 - rh(40));
 
+  const panW = Math.min(320, W - 40);
   CTX.fillStyle = 'rgba(0,0,0,0.5)';
-  CTX.fillRect(W/2 - 160, H/2 - 18, 320, 90);
+  CTX.fillRect(W/2 - panW/2, H/2 - rh(18), panW, rh(90));
   CTX.strokeStyle = 'rgba(232,184,75,0.5)';
   CTX.lineWidth = 1;
-  CTX.strokeRect(W/2 - 160, H/2 - 18, 320, 90);
+  CTX.strokeRect(W/2 - panW/2, H/2 - rh(18), panW, rh(90));
 
   CTX.fillStyle = '#e8d8b0';
-  CTX.font = '14px "Cinzel", serif';
-  CTX.fillText('☠  總擊殺  ' + player.kills, W/2, H/2 + 14);
-  CTX.fillText('⬆  達到等級  ' + player.level, W/2, H/2 + 44);
+  CTX.font = `${Math.min(14, rw(14))}px "Cinzel", serif`;
+  CTX.fillText('☠  總擊殺  ' + player.kills, W/2, H/2 + rh(14));
+  CTX.fillText('⬆  達到等級  ' + player.level, W/2, H/2 + rh(44));
 
-  const bx = W / 2 - 100, by = H / 2 + 90, bw = 200, bh = 52;
+  const bw = Math.min(200, W - 40), bh = Math.min(52, rh(52));
+  const bx = W / 2 - bw / 2, by = H / 2 + rh(90);
   CTX.save();
   CTX.shadowColor = '#e8b84b';
   CTX.shadowBlur = 20;
@@ -1487,19 +1515,11 @@ function drawVictory() {
   CTX.shadowColor = '#ffe066';
   CTX.shadowBlur = 6;
   CTX.fillStyle = '#ffe066';
-  CTX.font = 'bold 18px "Cinzel", serif';
-  CTX.fillText('⚔  再來一局', W / 2, by + 34);
+  CTX.font = `bold ${Math.min(18, rw(18))}px "Cinzel", serif`;
+  CTX.fillText('⚔  再來一局', W / 2, by + bh * 0.65);
   CTX.restore();
 
-  if (!drawVictory._bound) {
-    drawVictory._bound = true;
-    CVS.addEventListener('click', e => {
-      if (game.state !== 'victory') return;
-      if (e.clientX >= bx && e.clientX <= bx + bw && e.clientY >= by && e.clientY <= by + bh) {
-        game.reset();
-      }
-    });
-  }
+  registerBtn(bx, by, bw, bh, 'victory', () => game.reset());
 }
 
 // ====== GAME LOOP ======
