@@ -165,7 +165,7 @@ function spawnDmgText(x, y, text, color = '#fff') {
 }
 
 // ====== PICKUPS ======
-const GEM_COLORS = { 1: '#4466ff', 10: '#00cc44', 100: '#ff2244' };
+const GEM_COLORS = { 1: '#4466ff', 10: '#00cc44', 100: '#ff2244', 200: '#ff00aa' };
 const pickups = new Pool(() => ({ active: false, x: 0, y: 0, type: 'gem', value: 1, r: 9 }), 2000);
 function spawnGem(x, y, value) {
   const p = pickups.get();
@@ -188,7 +188,8 @@ const player = {
   baseSpeed: 150,
   might: 1, area: 1, speed: 1, duration: 1, cooldown: 1, magnet: 40,
   weapons: [], passives: [],
-  kills: 0, facing: 1, iFrames: 0, alive: true
+  kills: 0, facing: 1, iFrames: 0, alive: true,
+  critChance: 0, armor: 0
 };
 
 function playerEffSpeed() { return player.baseSpeed * player.speed; }
@@ -357,7 +358,7 @@ const WEAPON_DEFS = {
       w.cdTimer = w.cd * player.cooldown;
       for (let i = 0; i < w.projCount; i++) {
         const target = findNearest(player, i);
-        if (!target) return;
+        if (!target) continue;
         const a = angleTo(player, target);
         const px = player.x, py = player.y, spd = w.speed * player.speed, dmg = w.dmg * player.might, prc = w.pierce;
         setTimeout(() => {
@@ -519,12 +520,12 @@ function findNearest(from, skip = 0) {
 
 // ====== PASSIVE DEFINITIONS ======
 const PASSIVE_DEFS = {
-  spinach:    { name: '菠菜 Spinach',         icon: '🥬', maxLv: 5, desc: '傷害 +10%',   apply: (lv) => { player.might = 1 + lv * 0.1; } },
+  spinach:    { name: '菠菜 Spinach',         icon: '🥬', maxLv: 5, desc: '傷害 +10%',   apply: (lv) => { player.might += lv * 0.1; } },
   heart:      { name: '空虛之心 Hollow Heart', icon: '💜', maxLv: 5, desc: '最大HP +20%', apply: (lv) => { player.maxHp = 100 * (1 + lv * 0.2); if (player.hp > player.maxHp) player.hp = player.maxHp; } },
-  candle:     { name: '燭台 Candelabrador',   icon: '🕯️', maxLv: 5, desc: '範圍 +10%',   apply: (lv) => { player.area = 1 + lv * 0.1; } },
-  bracer:     { name: '護腕 Bracer',          icon: '🦾', maxLv: 5, desc: '速度 +10%',   apply: (lv) => { player.speed = 1 + lv * 0.1; } },
-  tome:       { name: '魔法書 Empty Tome',    icon: '📕', maxLv: 5, desc: '冷卻 -8%',    apply: (lv) => { player.cooldown = Math.max(0.3, 1 - lv * 0.08); } },
-  attractorb: { name: '吸引器 Attractorb',    icon: '🧲', maxLv: 5, desc: '拾取範圍 +30%', apply: (lv) => { player.magnet = 40 * (1 + lv * 0.3); } },
+  candle:     { name: '燭台 Candelabrador',   icon: '🕯️', maxLv: 5, desc: '範圍 +10%',   apply: (lv) => { player.area += lv * 0.1; } },
+  bracer:     { name: '護腕 Bracer',          icon: '🦾', maxLv: 5, desc: '速度 +10%',   apply: (lv) => { player.speed += lv * 0.1; } },
+  tome:       { name: '魔法書 Empty Tome',    icon: '📕', maxLv: 5, desc: '冷卻 -8%',    apply: (lv) => { player.cooldown = Math.max(0.3, player.cooldown - lv * 0.08); } },
+  attractorb: { name: '吸引器 Attractorb',    icon: '🧲', maxLv: 5, desc: '拾取範圍 +30%', apply: (lv) => { player.magnet += 40 * lv * 0.3; } },
   // Stage 2 passives
   clover:     { name: '幸運草 Lucky Clover',  icon: '🍀', maxLv: 5, desc: '暴擊 +10%',   apply: (lv) => { player.critChance = lv * 0.1; } },
   wings:      { name: '惡魔翼 Demon Wings',   icon: '🦅', maxLv: 5, desc: '速度 +15%',   apply: (lv) => { player.speed = Math.min(3, (player.speed || 1) + lv * 0.15); } },
@@ -557,12 +558,27 @@ function xpNeeded(level) {
   return Math.floor(10 * Math.pow(1.15, level - 2));
 }
 
+// Pending level-up count (queue) - if multiple levels at once, show them one at a time
+let _pendingLevelUps = 0;
+
 function addXP(amount) {
   player.xp += amount;
   while (player.xp >= player.xpToNext) {
     player.xp -= player.xpToNext;
     player.level++;
     player.xpToNext = xpNeeded(player.level);
+    _pendingLevelUps++;
+  }
+  if (_pendingLevelUps > 0 && game.state === 'playing') {
+    _pendingLevelUps--;
+    showLevelUpScreen();
+  }
+}
+
+// Called after player picks a level-up upgrade — consume next pending level-up if any
+function consumeNextLevelUp() {
+  if (_pendingLevelUps > 0) {
+    _pendingLevelUps--;
     showLevelUpScreen();
   }
 }
@@ -621,12 +637,13 @@ function showLevelUpScreen() {
 }
 
 function selectChoice(idx) {
-  const c = levelUpChoices[idx]; if (!c) return;
-  if (c.cat === 'weapon') {
-    if (c.isNew) player.weapons.push(createWeapon(c.type));
-    else { const w = player.weapons.find(w => w.type === c.type); if (w) upgradeWeapon(w); }
-  } else { addOrUpgradePassive(c.type); }
+  const ch = levelUpChoices[idx]; if (!ch) return;
+  if (ch.cat === 'weapon') {
+    if (ch.isNew) player.weapons.push(createWeapon(ch.type));
+    else { const w = player.weapons.find(w => w.type === ch.type); if (w) upgradeWeapon(w); }
+  } else { addOrUpgradePassive(ch.type); }
   game.state = 'playing';
+  consumeNextLevelUp(); // show next pending level-up if any
 }
 
 // ====== CHEST LOGIC ======
@@ -763,6 +780,7 @@ const game = {
     player.passives = [];
     player.kills = 0; player.facing = 1; player.iFrames = 0; player.alive = true;
     if (stage !== 2) this.reviveCount = 0; // keep revive count when restarting from stage 2 revive
+    _pendingLevelUps = 0;
     enemies.items.forEach(e => e.active = false);
     bullets.items.forEach(b => b.active = false);
     pickups.items.forEach(p => p.active = false);
@@ -1178,7 +1196,7 @@ function update(dt) {
   waveSystem.update(dt);
 
   // Quadtree
-  const qt = new QuadTree(cam.x - W, cam.y - H, W * 2, H * 2);
+  const qt = new QuadTree(cam.x - 1500, cam.y - 1500, 3000, 3000);
   enemies.each(e => qt.insert(e));
 
   // Update bullets
@@ -1610,7 +1628,7 @@ function drawTitle() {
   pxRect(bx8, by8, 84, 20, '#220044');
   pxRectOutline(bx8, by8, 84, 20, '#aa44ff', 2);
   CTX.fillStyle = '#cc88ff'; CTX.font = 'bold 11px "Cinzel", serif';
-  CTX.fillText('[ 8位元像素版本 ]', W/2, by8 + 14);
+  CTX.fillText('[ 8位元像素版 ]', W/2, by8 + 14);
 
   CTX.fillStyle = 'rgba(200,180,220,0.6)';
   CTX.font = `${Math.min(12, rw(12))}px "Cinzel", serif`;
