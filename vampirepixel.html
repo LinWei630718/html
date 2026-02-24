@@ -222,10 +222,11 @@ CVS.addEventListener('touchstart', e => {
   const t = e.changedTouches[0];
   const tx = t.clientX, ty = t.clientY;
   if (game.state === 'title' || game.state === 'weaponSelect' || game.state === 'gameover' ||
-      game.state === 'victory' || game.state === 'levelup' || game.state === 'stageSelect') {
+      game.state === 'gameover2' || game.state === 'victory' || game.state === 'levelup' || game.state === 'stageSelect') {
     if (hitTestButtons(tx, ty)) return;
     if (game.state === 'title') { game.start(); return; }
     if (game.state === 'gameover') { game.startNewGame(game.stage); return; }
+    if (game.state === 'gameover2') { return; }  // gameover2: only button clicks should act
     if (game.state === 'victory') { return; }  // victory: only button clicks should act
     return;
   }
@@ -744,11 +745,13 @@ const waveSystem = {
 
 // ====== GAME STATE ======
 const game = {
-  state: 'title', // title | weaponSelect | playing | levelup | gameover | victory | stageSelect
+  state: 'title', // title | weaponSelect | playing | levelup | gameover | gameover2 | victory | stageSelect
   selectedWeapon: 'whip',
   stage: 1,
   time: 0,
   shakeTimer: 0, shakeIntensity: 0,
+  reviveCount: 0,   // how many times player has revived in stage 2
+  MAX_REVIVES: 3,   // max revives allowed in stage 2
 
   reset(weaponType, stage) {
     game.stage = stage || 1;
@@ -759,6 +762,7 @@ const game = {
     player.weapons = [createWeapon(weaponType || this.selectedWeapon || 'whip')];
     player.passives = [];
     player.kills = 0; player.facing = 1; player.iFrames = 0; player.alive = true;
+    if (stage !== 2) this.reviveCount = 0; // keep revive count when restarting from stage 2 revive
     enemies.items.forEach(e => e.active = false);
     bullets.items.forEach(b => b.active = false);
     pickups.items.forEach(p => p.active = false);
@@ -1241,7 +1245,14 @@ function update(dt) {
       game.shake(5, 0.15);
       const pa = angleTo(e, player);
       player.x += Math.cos(pa) * 30; player.y += Math.sin(pa) * 30;
-      if (player.hp <= 0) { player.hp = 0; player.alive = false; game.state = 'gameover'; }
+      if (player.hp <= 0) {
+        player.hp = 0; player.alive = false;
+        if (game.stage === 2) {
+          game.state = 'gameover2'; // show revive dialog for stage 2
+        } else {
+          game.state = 'gameover';
+        }
+      }
     }
 
     if (dist(player, e) > 1400) e.active = false;
@@ -1471,6 +1482,7 @@ function render() {
   if (game.state === 'weaponSelect') drawWeaponSelect();
   if (game.state === 'levelup')     drawLevelUp();
   if (game.state === 'gameover')    drawGameOver();
+  if (game.state === 'gameover2')   drawGameOver2();
   if (game.state === 'victory')     drawVictory();
   if (game.state === 'stageSelect') drawStageSelect();
 
@@ -1598,7 +1610,7 @@ function drawTitle() {
   pxRect(bx8, by8, 84, 20, '#220044');
   pxRectOutline(bx8, by8, 84, 20, '#aa44ff', 2);
   CTX.fillStyle = '#cc88ff'; CTX.font = 'bold 11px "Cinzel", serif';
-  CTX.fillText('[ 8-BIT PIXEL ]', W/2, by8 + 14);
+  CTX.fillText('[ 8位元像素版本 ]', W/2, by8 + 14);
 
   CTX.fillStyle = 'rgba(200,180,220,0.6)';
   CTX.font = `${Math.min(12, rw(12))}px "Cinzel", serif`;
@@ -1827,8 +1839,24 @@ function drawLevelUp() {
 }
 
 // ====== GAME OVER ======
+// ─── helper: draw a pixel-art button and register it ───
+function drawPxBtn(label, x, y, w, h, bgDark, bgLight, borderCol, textCol, state, fn) {
+  pxRect(x, y, w, h, bgDark);
+  pxRect(x+3, y+3, w-6, h-6, bgLight);
+  pxRectOutline(x, y, w, h, borderCol, 2);
+  CTX.save();
+  CTX.shadowColor = textCol; CTX.shadowBlur = 6;
+  CTX.fillStyle = textCol;
+  CTX.font = `bold ${Math.min(14, rw(14))}px "Cinzel", serif`;
+  CTX.textAlign = 'center';
+  CTX.fillText(label, x + w/2, y + h * 0.67);
+  CTX.restore();
+  registerBtn(x, y, w, h, state, fn);
+}
+
+// ====== GAME OVER (Stage 1 / Stage 2 exhausted revives) ======
 function drawGameOver() {
-  CTX.fillStyle = 'rgba(0,0,0,0.92)'; CTX.fillRect(0, 0, W, H);
+  CTX.fillStyle = 'rgba(0,0,0,0.93)'; CTX.fillRect(0, 0, W, H);
   const glow = CTX.createRadialGradient(W/2, H/2, 0, W/2, H/2, 400);
   glow.addColorStop(0, 'rgba(150,0,20,0.25)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
   CTX.fillStyle = glow; CTX.fillRect(0, 0, W, H);
@@ -1845,22 +1873,150 @@ function drawGameOver() {
 
   const mins = Math.floor(game.time / 60), secs = Math.floor(game.time % 60);
   CTX.fillStyle = '#e8d0d8'; CTX.font = `${Math.min(15, rw(15))}px "Cinzel", serif`;
-  CTX.fillText('⏱  存活時間  ' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0'), W/2, H/2 - rh(20));
-  CTX.fillText('☠  總擊殺    ' + player.kills, W/2, H/2 + rh(12));
-  CTX.fillText('⬆  達到等級  ' + player.level, W/2, H/2 + rh(44));
+  CTX.fillText('\u23f1  \u5b58\u6d3b\u6642\u9593  ' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0'), W/2, H/2 - rh(20));
+  CTX.fillText('\u2620  \u7e3d\u64ca\u6bba    ' + player.kills, W/2, H/2 + rh(12));
+  CTX.fillText('\u2b06  \u9054\u5230\u7b49\u7d1a  ' + player.level, W/2, H/2 + rh(44));
 
   const bw = Math.min(190, W - 40), bh = Math.min(46, rh(46));
   const bx = W/2 - bw/2, by = H/2 + rh(80);
-  pxRect(bx, by, bw, bh, '#3a0008'); pxRect(bx+3, by+3, bw-6, bh-6, '#6a0010');
-  pxRectOutline(bx, by, bw, bh, 'rgba(200,50,60,0.85)', 2);
-  CTX.save(); CTX.shadowColor = '#ff8890'; CTX.shadowBlur = 5;
-  CTX.fillStyle = '#ffcccc'; CTX.font = `bold ${Math.min(17, rw(17))}px "Cinzel", serif`;
-  CTX.fillText('↺  重新開始', W/2, by + bh * 0.66); CTX.restore();
-  registerBtn(bx, by, bw, bh, 'gameover', () => game.startNewGame(1));
+  drawPxBtn('\u21ba  \u91cd\u65b0\u958b\u59cb', bx, by, bw, bh,
+    '#3a0008', '#6a0010', 'rgba(200,50,60,0.85)', '#ffcccc', 'gameover', () => game.startNewGame(1));
 
   if (!drawGameOver._keyBound) {
     drawGameOver._keyBound = true;
-    window.addEventListener('keydown', e => { if (game.state === 'gameover') game.startNewGame(game.stage); });
+    window.addEventListener('keydown', e => { if (game.state === 'gameover') game.startNewGame(1); });
+  }
+}
+
+// ====== GAMEOVER2: Stage 2 death — revive dialog ======
+function drawGameOver2() {
+  // Semi-transparent overlay (game world still visible behind)
+  CTX.fillStyle = 'rgba(0,0,0,0.82)'; CTX.fillRect(0, 0, W, H);
+  const glow = CTX.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*0.55);
+  glow.addColorStop(0, 'rgba(120,0,180,0.2)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+  CTX.fillStyle = glow; CTX.fillRect(0, 0, W, H);
+  CTX.textAlign = 'center';
+
+  const remaining = game.MAX_REVIVES - game.reviveCount;
+  const isMobile = W < 600;
+
+  if (remaining > 0) {
+    // ── REVIVE AVAILABLE ──
+    CTX.save(); CTX.shadowColor = '#cc44ff'; CTX.shadowBlur = 36;
+    CTX.fillStyle = '#dd66ff';
+    CTX.font = `bold ${Math.min(44, rw(44))}px "Cinzel Decorative", serif`;
+    CTX.fillText('\u2620 \u9670\u4ea1 \u2620', W/2, H/2 - rh(110)); CTX.restore();
+
+    CTX.fillStyle = 'rgba(220,180,255,0.8)';
+    CTX.font = `${Math.min(14, rw(14))}px "Cinzel", serif`;
+    CTX.fillText('\u7b2c\u4e8c\u95dc\u7384\u529b\u5377\u571f\u91cd\u4e34\uff0c\u60a8\u662f\u5426\u8981\u5fa9\u6d3b\uff1f', W/2, H/2 - rh(68));
+
+    // Revive hearts display
+    const heartSize = isMobile ? 22 : 28;
+    const heartGap = isMobile ? 6 : 8;
+    const totalHW = game.MAX_REVIVES * (heartSize + heartGap) - heartGap;
+    const heartX0 = W/2 - totalHW/2;
+    const heartY = H/2 - rh(42);
+    for (let i = 0; i < game.MAX_REVIVES; i++) {
+      const hx = heartX0 + i * (heartSize + heartGap);
+      const used = i >= remaining; // used hearts are dim
+      CTX.font = heartSize + 'px serif';
+      CTX.globalAlpha = used ? 0.22 : 1.0;
+      CTX.fillText(used ? '\u2661' : '\u2764', hx + heartSize/2, heartY + heartSize);
+      CTX.globalAlpha = 1;
+    }
+
+    CTX.save(); CTX.fillStyle = 'rgba(200,160,240,0.6)';
+    CTX.font = `${Math.min(12, rw(12))}px "Cinzel", serif`;
+    CTX.fillText('\u5269\u9918\u5fa9\u6d3b\u6a5f\u6703: ' + remaining + ' / ' + game.MAX_REVIVES, W/2, H/2 - rh(4));
+    CTX.restore();
+
+    // Stats panel
+    const panW = Math.min(300, W - 40);
+    const panH = rh(60);
+    const panX = W/2 - panW/2, panY = H/2 + rh(4);
+    pxRect(panX, panY, panW, panH, 'rgba(20,0,40,0.7)');
+    pxRectOutline(panX, panY, panW, panH, 'rgba(140,60,200,0.5)', 1);
+    const mins = Math.floor(game.time / 60), secs = Math.floor(game.time % 60);
+    CTX.fillStyle = 'rgba(220,200,240,0.75)';
+    CTX.font = `${Math.min(13, rw(13))}px "Cinzel", serif`;
+    CTX.fillText('\u23f1 ' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0') +
+      '   \u2620 ' + player.kills + '\u6bba   \u2b06 Lv.' + player.level,
+      W/2, panY + panH * 0.6);
+
+    // Two buttons
+    const btnW = Math.min(isMobile ? 140 : 170, (W - 50) / 2);
+    const btnH = Math.min(48, rh(48));
+    const gap = 12;
+    const totalBW = btnW * 2 + gap;
+    const b1x = W/2 - totalBW/2, b2x = b1x + btnW + gap;
+    const bY = H/2 + rh(72);
+
+    // Revive button (purple/gold)
+    drawPxBtn('\u2728 \u5fa9\u6d3b\u7e7c\u7e8c (\u5269' + remaining + ')', b1x, bY, btnW, btnH,
+      '#240048', '#4a0090', '#cc44ff', '#eeccff', 'gameover2', () => {
+        game.reviveCount++;
+        // Restore player in-place, clear nearby enemies, full HP
+        player.hp = player.maxHp;
+        player.alive = true;
+        player.iFrames = 3.0; // 3s invincibility after revive
+        // Push all nearby enemies away
+        enemies.each(e => {
+          if (dist(player, e) < 200) {
+            const ang = angleTo(player, e);
+            e.x = player.x + Math.cos(ang) * 220;
+            e.y = player.y + Math.sin(ang) * 220;
+          }
+        });
+        spawnDmgText(player.x, player.y - 30, '\u5fa9\u6d3b! HP\u6062\u5fa9', '#ee88ff');
+        game.shake(6, 0.3);
+        game.state = 'playing';
+      });
+
+    // Give up button (red)
+    drawPxBtn('\u2620 \u653e\u68c4\u904a\u6232', b2x, bY, btnW, btnH,
+      '#3a0008', '#6a0010', 'rgba(200,50,60,0.85)', '#ffcccc', 'gameover2', () => {
+        game.state = 'gameover';
+      });
+
+  } else {
+    // ── ALL REVIVES EXHAUSTED: show final game over with restart-from-stage-2 option ──
+    CTX.save(); CTX.shadowColor = '#ff0000'; CTX.shadowBlur = 44;
+    CTX.fillStyle = '#cc1020';
+    CTX.font = `bold ${Math.min(48, rw(48))}px "Cinzel Decorative", serif`;
+    CTX.fillText('GAME OVER', W/2, H/2 - rh(105)); CTX.restore();
+
+    CTX.fillStyle = 'rgba(255,180,180,0.8)';
+    CTX.font = `${Math.min(14, rw(14))}px "Cinzel", serif`;
+    CTX.fillText('\u5fa9\u6d3b\u6a5f\u6703\u5df2\u7528\u76e1 (\u5df2\u5fa9\u6d3b ' + game.reviveCount + ' \u6b21)', W/2, H/2 - rh(62));
+
+    const panW = Math.min(300, W - 40);
+    pxRect(W/2 - panW/2, H/2 - rh(46), panW, rh(80), 'rgba(0,0,0,0.55)');
+    pxRectOutline(W/2 - panW/2, H/2 - rh(46), panW, rh(80), 'rgba(180,20,30,0.6)', 1);
+    const mins = Math.floor(game.time / 60), secs = Math.floor(game.time % 60);
+    CTX.fillStyle = '#e8d0d8'; CTX.font = `${Math.min(14, rw(14))}px "Cinzel", serif`;
+    CTX.fillText('\u23f1  \u5b58\u6d3b  ' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0') +
+      '   \u2620  ' + player.kills + '\u6bba   \u2b06  Lv.' + player.level, W/2, H/2 - rh(14));
+
+    const btnW = Math.min(isMobile ? 140 : 170, (W - 50) / 2);
+    const btnH = Math.min(46, rh(46));
+    const gap = 12, totalBW = btnW * 2 + gap;
+    const b1x = W/2 - totalBW/2, b2x = b1x + btnW + gap;
+    const bY = H/2 + rh(44);
+
+    // Restart stage 2 button (gold)
+    drawPxBtn('\u21ba \u91cd\u6311\u7b2c\u4e8c\u95dc', b1x, bY, btnW, btnH,
+      '#3a2800', '#6a5000', '#e8b84b', '#ffe066', 'gameover2', () => {
+        game.reviveCount = 0;
+        game.startNewGame(2);
+      });
+
+    // Return to stage 1 button (red)
+    drawPxBtn('\u25b6 \u56de\u7b2c\u4e00\u95dc', b2x, bY, btnW, btnH,
+      '#3a0008', '#6a0010', 'rgba(200,50,60,0.85)', '#ffcccc', 'gameover2', () => {
+        game.reviveCount = 0;
+        game.startNewGame(1);
+      });
   }
 }
 
