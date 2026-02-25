@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>獵魔倖存者 Demon Hunter Survivors</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0610; overflow: hidden; touch-action: none; user-select: none; }
+canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+</style>
+</head>
+<body>
+<canvas id="gc"></canvas>
+<script>
+'use strict';
+
+// ====== POLYFILL: roundRect for older browsers ======
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    if (typeof r === 'number') r = [r, r, r, r];
+    const [tl, tr, br, bl] = Array.isArray(r) ? r : [r, r, r, r];
+    this.beginPath();
+    this.moveTo(x + tl, y);
+    this.lineTo(x + w - tr, y);
+    this.quadraticCurveTo(x + w, y, x + w, y + tr);
+    this.lineTo(x + w, y + h - br);
+    this.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+    this.lineTo(x + bl, y + h);
+    this.quadraticCurveTo(x, y + h, x, y + h - bl);
+    this.lineTo(x, y + tl);
+    this.quadraticCurveTo(x, y, x + tl, y);
+    this.closePath();
+    return this;
+  };
+}
+
+// ====== CANVAS SETUP ======
+const CVS = document.getElementById('gc');
+const CTX = CVS.getContext('2d');
+let W, H;
+const PI2 = Math.PI * 2;
+
+function resize() {
+  W = CVS.width = window.innerWidth;
+  H = CVS.height = window.innerHeight;
+  CTX.imageSmoothingEnabled = false;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ====== PIXEL SIZE (8-bit look) ======
+const PX = 2; 
+
+function pxRect(x, y, w, h, color) {
+  CTX.fillStyle = color;
+  CTX.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+}
+
+function pxCircle(cx, cy, r, color) {
+  CTX.fillStyle = color;
+  const step = Math.max(1, Math.round(r * 0.4));
+  for (let dy = -r; dy <= r; dy += step) {
+    const hw = Math.sqrt(Math.max(0, r * r - dy * dy));
+    CTX.fillRect(Math.round(cx - hw), Math.round(cy + dy), Math.round(hw * 2), step);
+  }
+}
+
+function pxRectOutline(x, y, w, h, color, thick = 2) {
+  CTX.fillStyle = color;
+  CTX.fillRect(Math.round(x), Math.round(y), Math.round(w), thick);
+  CTX.fillRect(Math.round(x), Math.round(y + h - thick), Math.round(w), thick);
+  CTX.fillRect(Math.round(x), Math.round(y), thick, Math.round(h));
+  CTX.fillRect(Math.round(x + w - thick), Math.round(y), thick, Math.round(h));
+}
+
+// ====== RESPONSIVE SCALE ======
+function rw(base) { return base * Math.min(1, W / 480); }
+function rh(base) { return base * Math.min(1, H / 860); }
+
+// ====== UTILITY ======
+function rand(a, b) { return Math.random() * (b - a) + a; }
+function randInt(a, b) { return Math.floor(rand(a, b + 1)); }
+function dist(a, b) { const dx = a.x - b.x, dy = a.y - b.y; return Math.sqrt(dx * dx + dy * dy); }
+function angleTo(a, b) { return Math.atan2(b.y - a.y, b.x - a.x); }
+function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function rectOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+  return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+}
+function circleOverlap(ax, ay, ar, bx, by, br) {
+  const dx = ax - bx, dy = ay - by;
+  return dx * dx + dy * dy < (ar + br) * (ar + br);
+}
+
+// ====== QUADTREE ======
+class QuadTree {
+  constructor(x, y, w, h, depth = 0) {
+    this.x = x; this.y = y; this.w = w; this.h = h;
+    this.depth = depth; this.items = []; this.children = null;
+  }
+  clear() { this.items.length = 0; this.children = null; }
+  subdivide() {
+    const hw = this.w / 2, hh = this.h / 2, d = this.depth + 1;
+    this.children = [
+      new QuadTree(this.x, this.y, hw, hh, d),
+      new QuadTree(this.x + hw, this.y, hw, hh, d),
+      new QuadTree(this.x, this.y + hh, hw, hh, d),
+      new QuadTree(this.x + hw, this.y + hh, hw, hh, d)
+    ];
+  }
+  insert(item) {
+    if (!rectOverlap(this.x, this.y, this.w, this.h, item.x - item.r, item.y - item.r, item.r * 2, item.r * 2)) return;
+    if (this.children) { for (const c of this.children) c.insert(item); return; }
+    this.items.push(item);
+    if (this.items.length > 8 && this.depth < 6) {
+      this.subdivide();
+      for (const it of this.items) for (const c of this.children) c.insert(it);
+      this.items.length = 0;
+    }
+  }
+  query(x, y, w, h, out) {
+    if (!rectOverlap(this.x, this.y, this.w, this.h, x, y, w, h)) return out;
+    if (this.children) { for (const c of this.children) c.query(x, y, w, h, out); }
+    else { for (const it of this.items) if (out.indexOf(it) === -1) out.push(it); }
+    return out;
+  }
+}
+
+// ====== OBJECT POOL ======
+class Pool {
+  constructor(factory, size) {
+    this.items = [];
+    this.factory = factory;
+    for (let i = 0; i < size; i++) { const o = factory(); o.active = false; this.items.push(o); }
+  }
+  get() {
+    for (const o of this.items) if (!o.active) { o.active = true; return o; }
+    const o = this.factory(); o.active = true; this.items.push(o); return o;
+  }
+  each(fn) { for (const o of this.items) if (o.active) fn(o); }
+  count() { let c = 0; for (const o of this.items) if (o.active) c++; return c; }
+}
+
+// ====== CAMERA ======
+const cam = { x: 0, y: 0 };
+function toScreen(wx, wy) { return { x: Math.round(wx - cam.x + W / 2), y: Math.round(wy - cam.y + H / 2) }; }
+function onScreen(wx, wy, margin = 80) {
+  const sx = wx - cam.x + W / 2, sy = wy - cam.y + H / 2;
+  return sx > -margin && sx < W + margin && sy > -margin && sy < H + margin;
+}
+
+// ====== DAMAGE TEXT ======
+const dmgTexts = new Pool(() => ({ active: false, x: 0, y: 0, text: '', timer: 0, color: '#fff' }), 500);
+function spawnDmgText(x, y, text, color = '#fff') {
+  const t = dmgTexts.get();
+  t.x = x + rand(-10, 10); t.y = y - 10; t.text = String(text); t.timer = 0.8; t.color = color;
+}
+
+// ====== PICKUPS ======
+const GEM_COLORS = { 1: '#4466ff', 10: '#00cc44', 100: '#ff2244', 200: '#ff00aa' };
+const pickups = new Pool(() => ({ active: false, x: 0, y: 0, type: 'gem', value: 1, r: 9 }), 2000);
+function spawnGem(x, y, value) {
+  const p = pickups.get();
+  p.x = x + rand(-8, 8); p.y = y + rand(-8, 8);
+  p.type = 'gem'; p.value = value;
+  p.r = value >= 100 ? 15 : value >= 10 ? 12 : 9;
+}
+function spawnChest(x, y) {
+  const p = pickups.get(); p.x = x; p.y = y; p.type = 'chest'; p.value = 0; p.r = 24;
+}
+function spawnHeal(x, y) {
+  const p = pickups.get(); p.x = x; p.y = y; p.type = 'heal'; p.value = 20; p.r = 12;
+}
+function spawnWeaponChest(x, y) {
+  const p = pickups.get(); p.x = x; p.y = y; p.type = 'weaponChest'; p.value = 0; p.r = 22;
+}
+function spawnPassiveChest(x, y) {
+  const p = pickups.get(); p.x = x; p.y = y; p.type = 'passiveChest'; p.value = 0; p.r = 22;
+}
+function spawnItemChest(x, y) {
+  const p = pickups.get(); p.x = x; p.y = y; p.type = 'itemChest'; p.value = 0; p.r = 22;
+}
+
+// ====== PLAYER ======
+const player = {
+  x: 0, y: 0, r: 18,
+  hp: 100, maxHp: 100,
+  xp: 0, level: 1, xpToNext: 5,
+  baseSpeed: 150,
+  might: 1, area: 1, speed: 1, duration: 1, cooldown: 1, magnet: 40,
+  weapons: [], passives: [],
+  kills: 0, facing: 1, iFrames: 0, alive: true,
+  critChance: 0, armor: 0,
+  mightMult: 1, defenseBreak: false, invincible: false
+};
+
+function playerEffSpeed() { return player.baseSpeed * player.speed; }
+
+// ====== ACTIVE EFFECTS ======
+const activeEffects = [];
+function addEffect(type, duration) {
+  const idx = activeEffects.findIndex(e => e.type === type);
+  if (idx !== -1) activeEffects.splice(idx, 1);
+  activeEffects.push({ type, timer: duration, duration });
+  applyActiveEffects();
+  const labels = { mightBoost: '⚔ 傷害 ×2  ' + duration + 's!', defenseBreak: '💥 防禦破碎  ' + duration + 's!', invincible: '🛡 無敵狀態  ' + duration + 's!' };
+  spawnDmgText(player.x, player.y - 40, labels[type] || type, '#ffee00');
+}
+function applyActiveEffects() {
+  player.mightMult = 1; player.defenseBreak = false; player.invincible = false;
+  for (const e of activeEffects) {
+    if (e.type === 'mightBoost') player.mightMult = 2;
+    if (e.type === 'defenseBreak') player.defenseBreak = true;
+    if (e.type === 'invincible') player.invincible = true;
+  }
+}
+function updateActiveEffects(dt) {
+  for (let i = activeEffects.length - 1; i >= 0; i--) {
+    activeEffects[i].timer -= dt;
+    if (activeEffects[i].timer <= 0) {
+      const expired = activeEffects.splice(i, 1)[0];
+      applyActiveEffects();
+      const expLabels = { mightBoost: '⚔ 傷害加成結束', defenseBreak: '防禦恢復', invincible: '🛡 無敵結束' };
+      spawnDmgText(player.x, player.y - 30, expLabels[expired.type] || '效果結束', '#aaa');
+    }
+  }
+}
+
+const mouse = { x: 0, y: 0 };
+window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+
+const keys = {};
+window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; keys[e.code] = true; });
+window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; keys[e.code] = false; });
+
+const _uiButtons = [];
+function registerBtn(x, y, w, h, state, fn) { _uiButtons.push({ x, y, w, h, state, fn }); }
+function hitTestButtons(px, py) {
+  for (const b of _uiButtons) {
+    if (b.state === game.state && px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h) {
+      b.fn(); return true;
+    }
+  }
+  return false;
+}
+CVS.addEventListener('click', e => { hitTestButtons(e.clientX, e.clientY); });
+
+let touchId = null, touchStartX = 0, touchStartY = 0, touchDX = 0, touchDY = 0, touchActive = false;
+CVS.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  const tx = t.clientX, ty = t.clientY;
+  if (game.state !== 'playing') {
+    if (hitTestButtons(tx, ty)) return;
+    if (game.state === 'title') { game.start(); return; }
+    if (game.state === 'gameover') { game.startNewGame(game.stage); return; }
+    return;
+  }
+  touchId = t.identifier; touchStartX = tx; touchStartY = ty;
+  touchActive = true; touchDX = 0; touchDY = 0;
+}, { passive: false });
+CVS.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (game.state !== 'playing') return;
+  for (const t of e.changedTouches) {
+    if (t.identifier === touchId) {
+      touchDX = t.clientX - touchStartX; touchDY = t.clientY - touchStartY;
+      const mag = Math.sqrt(touchDX * touchDX + touchDY * touchDY);
+      if (mag > 60) { touchDX = touchDX / mag * 60; touchDY = touchDY / mag * 60; }
+    }
+  }
+}, { passive: false });
+CVS.addEventListener('touchend', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier === touchId) { touchActive = false; touchDX = 0; touchDY = 0; touchId = null; }
+  }
+}, { passive: false });
+
+function getInputDir() {
+  let dx = 0, dy = 0;
+  if (keys['w'] || keys['arrowup'] || keys['ArrowUp']) dy -= 1;
+  if (keys['s'] || keys['arrowdown'] || keys['ArrowDown']) dy += 1;
+  if (keys['a'] || keys['arrowleft'] || keys['ArrowLeft']) dx -= 1;
+  if (keys['d'] || keys['arrowright'] || keys['ArrowRight']) dx += 1;
+  if (touchActive) {
+    const mag = Math.sqrt(touchDX * touchDX + touchDY * touchDY);
+    if (mag > 10) { dx = touchDX / mag; dy = touchDY / mag; }
+  }
+  const mag = Math.sqrt(dx * dx + dy * dy);
+  if (mag > 0) { dx /= mag; dy /= mag; }
+  return { x: dx, y: dy };
+}
+
+// ====== ENEMIES ======
+const ENEMY_DEFS = {
+  bat:      { hp: 5,      dmg: 2,  speed: 90,  r: 12,  color: '#a66', xp: 1,   knockback: 1   },
+  skeleton: { hp: 10,     dmg: 5,  speed: 55,  r: 15,  color: '#cca', xp: 1,   knockback: 1   },
+  ghost:    { hp: 20,     dmg: 5,  speed: 35,  r: 18,  color: '#88f', xp: 10,  knockback: 0.2 },
+  zombie:   { hp: 30,     dmg: 8,  speed: 30,  r: 21,  color: '#4a4', xp: 1,   knockback: 1   },
+  boss:     { hp: 3000,   dmg: 20, speed: 40,  r: 45,  color: '#f80', xp: 100, knockback: 0.3 },
+  reaper:   { hp: 999999, dmg: 9999, speed: 60, r: 30, color: '#000', xp: 0,   knockback: 0   },
+  darkbat:  { hp: 15,     dmg: 4,  speed: 120, r: 12,  color: '#604', xp: 2,   knockback: 1   },
+  lich:     { hp: 80,     dmg: 12, speed: 45,  r: 18,  color: '#88e', xp: 5,   knockback: 0.5 },
+  gargoyle: { hp: 120,    dmg: 15, speed: 25,  r: 24,  color: '#666', xp: 5,   knockback: 0.8 },
+  boss2:    { hp: 8000,   dmg: 30, speed: 50,  r: 48,  color: '#a00', xp: 200, knockback: 0.3 },
+  // Stage 3 Boss
+  boss3:    { hp: 25000,  dmg: 45, speed: 38,  r: 65,  color: '#408', xp: 5000, knockback: 0.1 },
+  boss3_form2:{hp: 8000,  dmg: 55, speed: 65,  r: 55,  color: '#f00', xp: 10000,knockback: 0   }
+};
+
+const enemies = new Pool(() => ({
+  active: false, x: 0, y: 0, r: 10, hp: 10, maxHp: 10, dmg: 5, speed: 50,
+  type: 'bat', color: '#a66', xp: 1, knockback: 1,
+  kbx: 0, kby: 0, hitTimer: 0, flashTimer: 0
+}), 1000);
+
+function spawnEnemy(type, x, y) {
+  const def = ENEMY_DEFS[type]; if (!def) return;
+  const e = enemies.get();
+  // Bypass scaling for stage 3 bosses to keep exact tuning
+  const timeMult = type.startsWith('boss3') ? 1 : (1 + game.time / 120);
+  const stageMult = type.startsWith('boss3') ? 1 : (game.stage === 2 ? 2.5 : 1);
+  e.x = x; e.y = y; e.type = type;
+  e.hp = def.hp * timeMult * stageMult;
+  e.maxHp = e.hp;
+  e.dmg = def.dmg * (game.stage >= 2 && !type.startsWith('boss3') ? 1.5 : 1);
+  e.speed = def.speed;
+  e.r = def.r; e.color = def.color; e.xp = def.xp; e.knockback = def.knockback;
+  e.kbx = 0; e.kby = 0; e.hitTimer = 0; e.flashTimer = 0;
+  return e;
+}
+
+function spawnEnemyAtEdge(type) {
+  const angle = rand(0, PI2);
+  const d = Math.max(W, H) / 2 + 80;
+  spawnEnemy(type, player.x + Math.cos(angle) * d, player.y + Math.sin(angle) * d);
+}
+
+// ====== BULLETS ======
+const bullets = new Pool(() => ({
+  active: false, x: 0, y: 0, vx: 0, vy: 0, r: 7, dmg: 10, pierce: 1, timer: 5,
+  type: 'bullet', color: '#ff0', hitSet: null, ownerOffsetAngle: 0, orbitRadius: 0, orbitSpeed: 0
+}), 500);
+
+function fireBullet(x, y, angle, speed, dmg, r, pierce, timer, color, type) {
+  const b = bullets.get();
+  b.x = x; b.y = y; b.vx = Math.cos(angle) * speed; b.vy = Math.sin(angle) * speed;
+  b.r = r; b.dmg = dmg; b.pierce = pierce; b.timer = timer; b.color = color; b.type = type || 'bullet';
+  b.hitSet = new Set(); b.ownerOffsetAngle = 0; b.orbitRadius = 0; b.orbitSpeed = 0;
+  return b;
+}
+
+// ====== WEAPON DEFINITIONS ======
+const WEAPON_DEFS = {
+  whip: {
+    name: '皮鞭 Whip', icon: '🪢', maxLv: 8, base: { dmg: 10, cd: 1.5, areaW: 100, areaH: 50, pierce: 999, dur: 0.3 },
+    lvUp: (w) => { w.dmg += 3; w.areaW += 15; if (w.level % 2 === 0) w.cd = Math.max(0.5, w.cd - 0.1); },
+    fire: (w, dt) => {
+      w.cdTimer -= dt; if (w.cdTimer > 0) return; w.cdTimer = w.cd * player.cooldown;
+      const aw = w.areaW * player.area, ah = w.areaH * player.area;
+      const hx = player.x + player.facing * aw / 2;
+      const b = fireBullet(hx, player.y, 0, 0, w.dmg * player.might, Math.max(aw, ah) / 2, 999, w.dur * player.duration, 'rgba(255,255,200,0.5)', 'melee');
+      b.mw = aw; b.mh = ah; b.mx = hx - aw / 2; b.my = player.y - ah / 2;
+    }
+  },
+  wand: {
+    name: '魔杖 Magic Wand', icon: '🪄', maxLv: 8, base: { dmg: 15, cd: 1.0, speed: 300, projCount: 1, pierce: 1 },
+    lvUp: (w) => { w.dmg += 3; if (w.level % 2 === 0) w.projCount += 1; if (w.level >= 6) w.pierce += 1; },
+    fire: (w, dt) => {
+      w.cdTimer -= dt; if (w.cdTimer > 0) return; w.cdTimer = w.cd * player.cooldown;
+      for (let i = 0; i < w.projCount; i++) {
+        const target = findNearest(player, i); if (!target) continue;
+        const a = angleTo(player, target);
+        const px = player.x, py = player.y, spd = w.speed * player.speed, dmg = w.dmg * player.might, prc = w.pierce;
+        setTimeout(() => { if (game.state === 'playing') fireBullet(px, py, a, spd, dmg, 7, prc, 3, '#aaf', 'bullet'); }, i * 80);
+      }
+    }
+  },
+  axe: {
+    name: '飛斧 Axe', icon: '🪓', maxLv: 8, base: { dmg: 20, cd: 1.5, projCount: 1, pierce: 2, area: 15 },
+    lvUp: (w) => { w.dmg += 5; if (w.level % 2 === 0) w.projCount += 1; w.pierce += 1; },
+    fire: (w, dt) => {
+      w.cdTimer -= dt; if (w.cdTimer > 0) return; w.cdTimer = w.cd * player.cooldown;
+      for (let i = 0; i < w.projCount; i++) {
+        const spread = (i - (w.projCount - 1) / 2) * 0.3;
+        const b = fireBullet(player.x, player.y, -Math.PI / 2 + spread + rand(-0.2, 0.2), 250 * player.speed, w.dmg * player.might, w.area * player.area, w.pierce, 3, '#c84', 'axe');
+        b.gravity = 200; b.spin = rand(-8, 8);
+      }
+    }
+  },
+  bible: {
+    name: '聖經 King Bible', icon: '📖', maxLv: 8, base: { dmg: 5, cd: 3.0, dur: 3, orbCount: 1, orbitR: 70, orbitSpeed: 3, area: 12 },
+    lvUp: (w) => { w.dmg += 2; w.dur += 0.5; if (w.level % 2 === 0) w.orbCount += 1; w.orbitR += 5; w.orbitSpeed += 0.2; },
+    fire: (w, dt) => {
+      w.cdTimer -= dt; if (w.cdTimer > 0 || w._orbiting) return; w.cdTimer = w.cd * player.cooldown;
+      w._orbiting = true; w._orbTimer = w.dur * player.duration; w._orbs = [];
+      for (let i = 0; i < w.orbCount; i++) {
+        const b = fireBullet(player.x, player.y, 0, 0, w.dmg * player.might, w.area * player.area, 999, w.dur * player.duration + 0.5, '#ff8', 'bible');
+        b.ownerOffsetAngle = (PI2 / w.orbCount) * i; b.orbitRadius = w.orbitR * player.area; b.orbitSpeed = w.orbitSpeed;
+        b.hitSet = new Set(); b._hitResetTimer = 0; w._orbs.push(b);
+      }
+    },
+    update: (w, dt) => {
+      if (!w._orbiting) return;
+      w._orbTimer -= dt;
+      if (w._orbTimer <= 0) { w._orbiting = false; for (const b of w._orbs) b.active = false; w._orbs = []; return; }
+      w._orbAngle = (w._orbAngle || 0) + w.orbitSpeed * dt;
+      w._orbs = w._orbs.filter(b => b.active);
+      if (w._orbs.length === 0) { w._orbiting = false; return; }
+      for (const b of w._orbs) {
+        b.x = player.x + Math.cos(w._orbAngle + b.ownerOffsetAngle) * b.orbitRadius;
+        b.y = player.y + Math.sin(w._orbAngle + b.ownerOffsetAngle) * b.orbitRadius;
+        b._hitResetTimer = (b._hitResetTimer || 0) + dt;
+        if (b._hitResetTimer > 0.3) { b._hitResetTimer = 0; b.hitSet.clear(); }
+      }
+    }
+  },
+  firewand: {
+    name: '火球 Fire Wand', icon: '🔥', maxLv: 8, base: { dmg: 30, cd: 1.2, speed: 200, pierce: 1 },
+    lvUp: (w) => { w.dmg += 8; if (w.level >= 4) w.pierce += 1; },
+    fire: (w, dt) => {
+      w.cdTimer -= dt; if (w.cdTimer > 0) return; w.cdTimer = w.cd * player.cooldown;
+      const candidates = []; enemies.each(e => { if (dist(player, e) < 600) candidates.push(e); });
+      const target = candidates.length > 0 ? candidates[randInt(0, candidates.length - 1)] : null;
+      fireBullet(player.x, player.y, target ? angleTo(player, target) : rand(0, PI2), w.speed * player.speed, w.dmg * player.might, 10, w.pierce, 4, '#f60', 'fireball');
+    }
+  },
+  lightning: {
+    name: '閃電 Lightning', icon: '⚡', maxLv: 8, base: { dmg: 40, cd: 1.8, chainCount: 2, range: 250 },
+    lvUp: (w) => { w.dmg += 10; if (w.level % 2 === 0) w.chainCount += 1; w.range += 20; },
+    fire: (w, dt) => {
+      w.cdTimer -= dt; if (w.cdTimer > 0) return; w.cdTimer = w.cd * player.cooldown;
+      const sorted = []; enemies.each(e => { const d = dist(player, e); if (d < w.range) sorted.push({ e, d }); });
+      sorted.sort((a, b) => a.d - b.d);
+      const hit = new Set(); let last = null;
+      for (let i = 0; i < Math.min(w.chainCount, sorted.length); i++) {
+        const { e } = sorted[i]; if (hit.has(e)) continue; hit.add(e); damageEnemy(e, w.dmg * player.might);
+        const b = fireBullet(last ? last.x : player.x, last ? last.y : player.y, angleTo(last || player, e), 0, 0, 5, 0, 0.15, '#ccffff', 'lightning');
+        b.lx2 = e.x; b.ly2 = e.y; last = e;
+      }
+    }
+  },
+  cross: {
+    name: '十字架 Holy Cross', icon: '✝️', maxLv: 8, base: { dmg: 25, cd: 2.0, pierce: 5, speed: 280 },
+    lvUp: (w) => { w.dmg += 6; w.pierce += 2; if (w.level % 3 === 0) w.cd = Math.max(0.8, w.cd - 0.2); },
+    fire: (w, dt) => {
+      w.cdTimer -= dt; if (w.cdTimer > 0) return; w.cdTimer = w.cd * player.cooldown;
+      for (let i = 0; i < 4; i++) fireBullet(player.x, player.y, (Math.PI / 2) * i, w.speed * player.speed, w.dmg * player.might, 9, w.pierce, 3, '#ffffcc', 'cross');
+    }
+  },
+  shadow: {
+    name: '暗影刃 Shadow Blade', icon: '🗡', maxLv: 8, base: { dmg: 50, cd: 2.5, projCount: 3, speed: 350, pierce: 1 },
+    lvUp: (w) => { w.dmg += 12; if (w.level % 2 === 0) w.projCount += 1; if (w.level >= 5) w.pierce += 1; },
+    fire: (w, dt) => {
+      w.cdTimer -= dt; if (w.cdTimer > 0) return; w.cdTimer = w.cd * player.cooldown;
+      const target = findNearest(player); const baseAngle = target ? angleTo(player, target) : 0;
+      for (let i = 0; i < w.projCount; i++) {
+        const px = player.x, py = player.y, spd = w.speed * player.speed, dmg = w.dmg * player.might, prc = w.pierce;
+        setTimeout(() => { if (game.state === 'playing') fireBullet(px, py, baseAngle + (i - (w.projCount - 1) / 2) * 0.18, spd, dmg, 8, prc, 2.5, '#aa44ff', 'shadow'); }, i * 60);
+      }
+    }
+  }
+};
+
+function createWeapon(type) { return { type, level: 1, cdTimer: 0, ...WEAPON_DEFS[type].base, _orbiting: false, _orbs: [], _orbAngle: 0, _orbTimer: 0 }; }
+function upgradeWeapon(w) { if (w.level >= WEAPON_DEFS[w.type].maxLv) return; w.level++; WEAPON_DEFS[w.type].lvUp(w); }
+function findNearest(from, skip = 0) {
+  const sorted = []; enemies.each(e => { sorted.push({ e, d: dist(from, e) }); });
+  sorted.sort((a, b) => a.d - b.d); return sorted.length > skip ? sorted[skip].e : null;
+}
+
+// ====== PASSIVE DEFINITIONS ======
+const PASSIVE_DEFS = {
+  spinach:    { name: '菠菜 Spinach',         icon: '🥬', maxLv: 5, desc: '傷害 +10%',   apply: (lv) => { player.might += lv * 0.1; } },
+  heart:      { name: '空虛之心 Hollow Heart', icon: '💜', maxLv: 5, desc: '最大HP +20%', apply: (lv) => { player.maxHp = 100 * (1 + lv * 0.2); if (player.hp > player.maxHp) player.hp = player.maxHp; } },
+  candle:     { name: '燭台 Candelabrador',   icon: '🕯️', maxLv: 5, desc: '範圍 +10%',   apply: (lv) => { player.area += lv * 0.1; } },
+  bracer:     { name: '護腕 Bracer',          icon: '🦾', maxLv: 5, desc: '速度 +10%',   apply: (lv) => { player.speed += lv * 0.1; } },
+  tome:       { name: '魔法書 Empty Tome',    icon: '📕', maxLv: 5, desc: '冷卻 -8%',    apply: (lv) => { player.cooldown = Math.max(0.3, player.cooldown - lv * 0.08); } },
+  attractorb: { name: '吸引器 Attractorb',    icon: '🧲', maxLv: 5, desc: '拾取範圍 +30%', apply: (lv) => { player.magnet += 40 * lv * 0.3; } },
+  clover:     { name: '幸運草 Lucky Clover',  icon: '🍀', maxLv: 5, desc: '暴擊 +10%',   apply: (lv) => { player.critChance = lv * 0.1; } },
+  wings:      { name: '惡魔翼 Demon Wings',   icon: '🦅', maxLv: 5, desc: '速度 +15%',   apply: (lv) => { player.speed = Math.min(3, (player.speed || 1) + lv * 0.15); } },
+  soul:       { name: '靈魂能量 Soul Power',  icon: '🔮', maxLv: 5, desc: '傷害 +15%',   apply: (lv) => { player.might = Math.min(5, (player.might || 1) + lv * 0.15); } },
+  armor:      { name: '暗鐵護甲 Dark Armor',  icon: '🛡', maxLv: 5, desc: '受傷減少 10%', apply: (lv) => { player.armor = lv * 0.1; } }
+};
+
+function getPassiveLevel(type) { const p = player.passives.find(p => p.type === type); return p ? p.level : 0; }
+function addOrUpgradePassive(type) {
+  let p = player.passives.find(p => p.type === type);
+  if (p) { if (p.level < PASSIVE_DEFS[type].maxLv) p.level++; } else { player.passives.push({ type, level: 1 }); }
+  applyPassives();
+}
+function applyPassives() {
+  player.might = 1; player.area = 1; player.speed = 1; player.duration = 1;
+  player.cooldown = 1; player.magnet = 40; player.maxHp = 100; player.critChance = 0; player.armor = 0;
+  for (const p of player.passives) PASSIVE_DEFS[p.type].apply(p.level);
+}
+
+// ====== LEVEL UP ======
+function xpNeeded(level) {
+  if (level === 1) return 5; if (level === 2) return 10;
+  return Math.floor(10 * Math.pow(1.15, level - 2));
+}
+
+let _pendingLevelUps = 0;
+function addXP(amount) {
+  player.xp += amount;
+  while (player.xp >= player.xpToNext) {
+    player.xp -= player.xpToNext; player.level++; player.xpToNext = xpNeeded(player.level); _pendingLevelUps++;
+  }
+  if (_pendingLevelUps > 0 && game.state === 'playing') { _pendingLevelUps--; showLevelUpScreen(); }
+}
+function consumeNextLevelUp() { if (_pendingLevelUps > 0) { _pendingLevelUps--; showLevelUpScreen(); } }
+
+function getAvailableWeapons() {
+  if (game.stage === 1) return ['whip', 'wand', 'axe', 'bible', 'firewand'];
+  return ['whip', 'wand', 'axe', 'bible', 'firewand', 'lightning', 'cross', 'shadow'];
+}
+function getAvailablePassives() {
+  if (game.stage === 1) return ['spinach', 'heart', 'candle', 'bracer', 'tome', 'attractorb'];
+  return ['spinach', 'heart', 'candle', 'bracer', 'tome', 'attractorb', 'clover', 'wings', 'soul', 'armor'];
+}
+
+function maxWeaponSlots() { return game.stage >= 2 ? 4 : 3; }
+function maxPassiveSlots() { return game.stage >= 2 ? 4 : 3; }
+
+function generateChoices() {
+  const pool = [];
+  const weaponTypes = getAvailableWeapons(); const passiveTypes = getAvailablePassives();
+  for (const w of player.weapons) if (w.level < WEAPON_DEFS[w.type].maxLv) pool.push({ cat: 'weapon', type: w.type, isNew: false, level: w.level + 1 });
+  if (player.weapons.length < maxWeaponSlots()) {
+    for (const t of weaponTypes) if (!player.weapons.find(w => w.type === t)) pool.push({ cat: 'weapon', type: t, isNew: true, level: 1 });
+  }
+  for (const p of player.passives) if (p.level < PASSIVE_DEFS[p.type].maxLv) pool.push({ cat: 'passive', type: p.type, isNew: false, level: p.level + 1 });
+  if (player.passives.length < maxPassiveSlots()) {
+    for (const t of passiveTypes) if (!player.passives.find(p => p.type === t)) pool.push({ cat: 'passive', type: t, isNew: true, level: 1 });
+  }
+  for (let i = pool.length - 1; i > 0; i--) { const j = randInt(0, i); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  return pool.slice(0, 3);
+}
+
+let levelUpChoices = [];
+function showLevelUpScreen() {
+  levelUpChoices = generateChoices();
+  if (levelUpChoices.length === 0) return;
+  game.state = 'levelup';
+}
+
+function selectChoice(idx) {
+  const ch = levelUpChoices[idx]; if (!ch) return;
+  if (ch.cat === 'weapon') {
+    if (ch.isNew) player.weapons.push(createWeapon(ch.type));
+    else { const w = player.weapons.find(w => w.type === ch.type); if (w) upgradeWeapon(w); }
+  } else { addOrUpgradePassive(ch.type); }
+  game.state = 'playing'; consumeNextLevelUp();
+}
+
+function openChest() {
+  const numUpgrades = randInt(1, 3);
+  for (let i = 0; i < numUpgrades; i++) {
+    const choices = generateChoices();
+    if (choices.length > 0) {
+      const ch = choices[0];
+      if (ch.cat === 'weapon') {
+        if (ch.isNew) player.weapons.push(createWeapon(ch.type));
+        else { const w = player.weapons.find(w => w.type === ch.type); if (w) upgradeWeapon(w); }
+      } else { addOrUpgradePassive(ch.type); }
+    }
+  }
+  spawnDmgText(player.x, player.y - 30, '寶箱! +' + numUpgrades + ' 升級', '#ff0');
+}
+
+function openWeaponChest() {
+  const weaponTypes = getAvailableWeapons();
+  const upgradable = player.weapons.filter(w => w.level < WEAPON_DEFS[w.type].maxLv);
+  if (upgradable.length > 0) {
+    const w = upgradable[randInt(0, upgradable.length - 1)]; upgradeWeapon(w);
+    spawnDmgText(player.x, player.y - 40, '⚔ ' + WEAPON_DEFS[w.type].name + ' Lv' + w.level + '!', '#ffd700'); return;
+  }
+  if (player.weapons.length < maxWeaponSlots()) {
+    const avail = weaponTypes.filter(t => !player.weapons.find(w => w.type === t));
+    if (avail.length > 0) {
+      const t = avail[randInt(0, avail.length - 1)]; player.weapons.push(createWeapon(t));
+      spawnDmgText(player.x, player.y - 40, '⚔ 新武器: ' + WEAPON_DEFS[t].name + '!', '#ffd700'); return;
+    }
+  }
+  addXP(50); spawnDmgText(player.x, player.y - 40, '⚔ 武器已滿! +50 XP', '#ffd700');
+}
+
+function openPassiveChest() {
+  const passiveTypes = getAvailablePassives();
+  const upgradable = player.passives.filter(p => p.level < PASSIVE_DEFS[p.type].maxLv);
+  if (upgradable.length > 0) {
+    const p = upgradable[randInt(0, upgradable.length - 1)]; addOrUpgradePassive(p.type);
+    spawnDmgText(player.x, player.y - 40, '✦ ' + PASSIVE_DEFS[p.type].name + ' Lv' + p.level + '!', '#88ff88'); return;
+  }
+  if (player.passives.length < maxPassiveSlots()) {
+    const avail = passiveTypes.filter(t => !player.passives.find(p => p.type === t));
+    if (avail.length > 0) {
+      const t = avail[randInt(0, avail.length - 1)]; addOrUpgradePassive(t);
+      spawnDmgText(player.x, player.y - 40, '✦ 新技能: ' + PASSIVE_DEFS[t].name + '!', '#88ff88'); return;
+    }
+  }
+  addXP(50); spawnDmgText(player.x, player.y - 40, '✦ 技能已滿! +50 XP', '#88ff88');
+}
+
+const ITEM_EFFECTS = [
+  { id: 'mightBoost', label: '⚔ 狂暴之力', desc: '30秒傷害 ×2', color: '#ff6600', instant: false, fn: () => addEffect('mightBoost', 30) },
+  { id: 'aoeBlast', label: '💥 全螢幕衝擊波', desc: '全螢幕怪物受 50 傷害', color: '#ff2244', instant: true, fn: () => {
+      let hit = 0; enemies.each(e => { if (e.type !== 'reaper') { damageEnemy(e, 50); hit++; } });
+      spawnDmgText(player.x, player.y - 50, '💥 衝擊波! ' + hit + ' 隻受傷', '#ff2244');
+    }
+  },
+  { id: 'defenseBreak', label: '🗡 防禦破碎', desc: '30秒敵人防禦降 50%', color: '#ff88ff', instant: false, fn: () => addEffect('defenseBreak', 30) },
+  { id: 'invincible', label: '🛡 無敵護盾', desc: '10秒免疫所有傷害', color: '#44ddff', instant: false, fn: () => addEffect('invincible', 10) }
+];
+
+function openItemChest() {
+  const eff = ITEM_EFFECTS[randInt(0, ITEM_EFFECTS.length - 1)];
+  eff.fn();
+  if (!eff.instant) spawnDmgText(player.x, player.y - 30, eff.label + ': ' + eff.desc, eff.color);
+}
+
+// ====== WAVE SYSTEM ======
+const waveSystem = {
+  bossSpawned: false, reaperSpawned: false, boss2Count: 0,
+  boss3Spawned: false,
+  _spawnAccum: 0, _nextBoss2Time: 5 * 60,
+  _chestAccum: 0, _nextChestIn: 30,
+
+  init() {
+    this.bossSpawned = false; this.reaperSpawned = false; this.boss2Count = 0; this.boss3Spawned = false;
+    this._spawnAccum = 0; this._nextBoss2Time = 5 * 60;
+    this._chestAccum = 0; this._nextChestIn = rand(30, 50);
+  },
+
+  update(dt) {
+    const t = game.time;
+
+    if (game.stage === 1) {
+      const spawnRate = this.getSpawnRate1(t);
+      this._spawnAccum += dt * spawnRate;
+      while (this._spawnAccum >= 1) { this._spawnAccum -= 1; this.spawnS1Enemy(t); }
+
+      if (t >= 180 && !this.bossSpawned) {
+        this.bossSpawned = true; spawnEnemyAtEdge('boss'); spawnDmgText(player.x, player.y - 50, '⚠ BOSS 出現!', '#f80');
+      }
+      if (t >= 600) { game.state = 'victory'; return; }
+
+    } else if (game.stage === 2) {
+      const spawnRate = this.getSpawnRate2(t);
+      this._spawnAccum += dt * spawnRate;
+      while (this._spawnAccum >= 1) { this._spawnAccum -= 1; this.spawnS2Enemy(t); }
+
+      if (this.boss2Count < 3 && t >= this._nextBoss2Time) {
+        this.boss2Count++; this._nextBoss2Time += 5 * 60;
+        spawnEnemyAtEdge('boss2'); spawnDmgText(player.x, player.y - 60, '⚠ 惡魔王降臨! (' + this.boss2Count + '/3)', '#ff4400');
+        game.shake(8, 0.4);
+      }
+      if (t >= 1080 && !this.reaperSpawned) {
+        this.reaperSpawned = true; spawnEnemyAtEdge('reaper'); spawnDmgText(player.x, player.y - 50, '☠ 死神降臨!', '#f00');
+      }
+
+      this._chestAccum += dt;
+      if (this._chestAccum >= this._nextChestIn) {
+        this._chestAccum = 0; this._nextChestIn = rand(35, 55); this.spawnRandomS2Chest();
+      }
+      if (t >= 1200) { game.state = 'victory'; return; }
+
+    } else if (game.stage === 3) {
+      // Stage 3 - Boss only + Special Chests
+      if (!this.boss3Spawned) {
+        this.boss3Spawned = true;
+        spawnEnemyAtEdge('boss3');
+        spawnDmgText(player.x, player.y - 80, '⚠ 終極黑暗降臨！', '#aa00ff');
+        game.shake(15, 0.6);
+      }
+      
+      this._chestAccum += dt;
+      if (this._chestAccum >= this._nextChestIn) {
+        this._chestAccum = 0;
+        this._nextChestIn = rand(15, 25);
+        const chestCount = randInt(1, 5);
+        for(let i=0; i<chestCount; i++) {
+          this.spawnRandomS2Chest(); // reuse S2 random chest generation logic
+        }
+      }
+    }
+  },
+
+  getSpawnRate1(t) { if (t < 60) return 1.5; if (t < 180) return 2.5; if (t < 300) return 4; if (t < 480) return 5; return 7; },
+  getSpawnRate2(t) { if (t < 120) return 3; if (t < 360) return 5; if (t < 600) return 7; if (t < 900) return 9; return 12; },
+
+  spawnS1Enemy(t) {
+    if (enemies.count() > 500) return;
+    let type;
+    if (t < 60) type = 'bat'; else if (t < 180) type = Math.random() < 0.6 ? 'bat' : 'skeleton';
+    else if (t < 300) type = Math.random() < 0.5 ? 'skeleton' : 'zombie'; else if (t < 480) type = Math.random() < 0.5 ? 'ghost' : 'bat';
+    else { const r = Math.random(); if (r < 0.25) type = 'bat'; else if (r < 0.5) type = 'skeleton'; else if (r < 0.75) type = 'zombie'; else type = 'ghost'; }
+    spawnEnemyAtEdge(type);
+  },
+
+  spawnS2Enemy(t) {
+    if (enemies.count() > 600) return;
+    const r = Math.random(); let type;
+    if (t < 120) { type = r < 0.5 ? 'darkbat' : 'skeleton'; } else if (t < 360) { type = r < 0.4 ? 'lich' : (r < 0.7 ? 'gargoyle' : 'darkbat'); }
+    else if (t < 600) { type = r < 0.35 ? 'lich' : (r < 0.65 ? 'gargoyle' : (r < 0.85 ? 'ghost' : 'zombie')); }
+    else { type = r < 0.3 ? 'lich' : (r < 0.6 ? 'gargoyle' : (r < 0.8 ? 'ghost' : 'zombie')); }
+    spawnEnemyAtEdge(type);
+  },
+
+  spawnRandomS2Chest() {
+    const angle = rand(0, Math.PI * 2); const d = rand(120, 220);
+    const x = player.x + Math.cos(angle) * d, y = player.y + Math.sin(angle) * d;
+    const roll = Math.random();
+    if (roll < 0.35) { spawnWeaponChest(x, y); spawnDmgText(x, y - 30, '⚔ 武器寶箱!', '#ffd700'); }
+    else if (roll < 0.70) { spawnPassiveChest(x, y); spawnDmgText(x, y - 30, '✦ 技能寶箱!', '#88ff88'); }
+    else { spawnItemChest(x, y); spawnDmgText(x, y - 30, '🎁 道具寶箱!', '#44ddff'); }
+  }
+};
+
+// ====== GAME STATE ======
+const stage3Selections = { weapons: [], passives: [] };
+
+const game = {
+  state: 'title', // title|weaponSelect|stage3Select|playing|levelup|gameover|gameover2|victory|victory3
+  selectedWeapon: 'whip',
+  stage: 1, time: 0, shakeTimer: 0, shakeIntensity: 0, reviveCount: 0, MAX_REVIVES: 3,
+
+  reset(weaponType, stage) {
+    game.stage = stage || 1;
+    player.x = 0; player.y = 0; player.hp = 100; player.maxHp = 100;
+    player.xp = 0; player.level = 1; player.xpToNext = 5;
+    player.might = 1; player.area = 1; player.speed = 1; player.duration = 1;
+    player.cooldown = 1; player.magnet = 40; player.critChance = 0; player.armor = 0;
+    
+    if (game.stage === 3) {
+      player.weapons = stage3Selections.weapons.map(t => createWeapon(t));
+      player.passives = stage3Selections.passives.map(t => ({type: t, level: 1}));
+      applyPassives();
+    } else {
+      player.weapons = [createWeapon(weaponType || this.selectedWeapon || 'whip')];
+      player.passives = [];
+    }
+
+    player.kills = 0; player.facing = 1; player.iFrames = 0; player.alive = true;
+    if (stage !== 2 && stage !== 3) this.reviveCount = 0; 
+    _pendingLevelUps = 0; activeEffects.length = 0;
+    player.mightMult = 1; player.defenseBreak = false; player.invincible = false;
+    enemies.items.forEach(e => e.active = false); bullets.items.forEach(b => b.active = false);
+    pickups.items.forEach(p => p.active = false); dmgTexts.items.forEach(t => t.active = false);
+    this.time = 0; this.shakeTimer = 0; this.shakeIntensity = 0;
+    cam.x = 0; cam.y = 0; waveSystem.init(); this.state = 'playing';
+  },
+  start() { this.state = 'weaponSelect'; },
+  startNewGame(stage) {
+    this.stage = stage || 1; this.selectedWeapon = 'whip';
+    if (this.stage === 3) {
+      stage3Selections.weapons = []; stage3Selections.passives = [];
+      this.state = 'stage3Select';
+    } else {
+      this.state = 'weaponSelect';
+    }
+  },
+  shake(intensity, dur) { this.shakeIntensity = intensity; this.shakeTimer = dur; }
+};
+
+// ====== PIXEL ART RENDERING ======
+function drawGround() {
+  CTX.fillStyle = game.stage === 3 ? '#050010' : '#0d0818';
+  CTX.fillRect(0, 0, W, H);
+  const tileSize = 48;
+  const startX = Math.floor((cam.x - W / 2) / tileSize) * tileSize;
+  const startY = Math.floor((cam.y - H / 2) / tileSize) * tileSize;
+
+  for (let tx = startX; tx < cam.x + W / 2 + tileSize; tx += tileSize) {
+    for (let ty = startY; ty < cam.y + H / 2 + tileSize; ty += tileSize) {
+      const sx = Math.round(tx - cam.x + W / 2), sy = Math.round(ty - cam.y + H / 2);
+      const odd = (Math.floor(tx / tileSize) + Math.floor(ty / tileSize)) % 2;
+      
+      if (game.stage === 3) {
+        CTX.fillStyle = odd ? '#0a001a' : '#060012';
+        CTX.fillRect(sx, sy, tileSize, tileSize);
+        CTX.fillStyle = 'rgba(100,20,150,0.15)';
+      } else {
+        CTX.fillStyle = odd ? '#120920' : '#0e0718';
+        CTX.fillRect(sx, sy, tileSize, tileSize);
+        CTX.fillStyle = 'rgba(80,30,120,0.15)';
+      }
+      CTX.fillRect(sx, sy, tileSize, 1); CTX.fillRect(sx, sy, 1, tileSize);
+    }
+  }
+
+  if (game.stage === 2) { CTX.fillStyle = 'rgba(80,0,0,0.10)'; CTX.fillRect(0, 0, W, H); }
+  if (game.stage === 3) { CTX.fillStyle = 'rgba(40,0,80,0.15)'; CTX.fillRect(0, 0, W, H); }
+}
+
+function drawPixelBat(r, flash) {
+  const wa = Math.sin((Date.now() / 140) % PI2) * 0.6;
+  const col = flash ? '#fff' : '#7a3a6a', col2 = flash ? '#fff' : '#5a2a50', eyeCol = flash ? '#fff' : '#ff2222';
+  CTX.save(); CTX.rotate(-wa - 0.25); pxRect(-r*2.0, -r*0.4, r*2.0, r*0.5, col); CTX.restore();
+  CTX.save(); CTX.rotate(wa + 0.25); pxRect(0, -r*0.4, r*2.0, r*0.5, col); CTX.restore();
+  pxRect(-r*0.7, -r*0.85, r*1.4, r*1.5, col2);
+  pxRect(-r*0.55, -r*1.4, r*0.4, r*0.6, col); pxRect(r*0.15, -r*1.4, r*0.4, r*0.6, col);
+  pxRect(-r*0.45, -r*0.3, r*0.35, r*0.35, eyeCol); pxRect(r*0.10, -r*0.3, r*0.35, r*0.35, eyeCol);
+  pxRect(-r*0.3, r*0.6, r*0.2, r*0.35, '#eee'); pxRect(r*0.10, r*0.6, r*0.2, r*0.35, '#eee');
+}
+function drawPixelSkeleton(r, flash) {
+  const col = flash ? '#fff' : '#d0c8a8', dark = flash ? '#ccc' : '#908870', eye = flash ? '#fff' : '#44ff22';
+  pxRect(-r*0.55, 0, r*1.1, r*0.9, col); pxRect(-r*0.5, -r*1.0, r*1.0, r*1.0, col);
+  pxRect(-r*0.38, -r*0.82, r*0.28, r*0.35, '#111'); pxRect(r*0.10, -r*0.82, r*0.28, r*0.35, '#111');
+  pxRect(-r*0.33, -r*0.78, r*0.18, r*0.26, eye); pxRect(r*0.15, -r*0.78, r*0.18, r*0.26, eye);
+  pxRect(-r*0.4, -r*0.12, r*0.8, r*0.18, col);
+  for (let i = 0; i < 3; i++) pxRect(-r*0.48, r*0.12 + i*r*0.25, r*0.96, r*0.12, dark);
+  pxRect(-r*0.9, -r*0.1, r*0.38, r*0.7, col); pxRect(r*0.52, -r*0.1, r*0.38, r*0.7, col);
+}
+function drawPixelGhost(r, flash) {
+  const bob = Math.sin(Date.now() / 380) * r * 0.12;
+  const col = flash ? '#fff' : '#9999ee', dark = flash ? '#ddd' : '#6666cc';
+  CTX.save(); CTX.translate(0, bob);
+  pxRect(-r*0.85, -r*0.9, r*1.7, r*1.4, col);
+  pxRect(-r*0.85, r*0.45, r*0.6, r*0.25, dark); pxRect(-r*0.05, r*0.45, r*0.6, r*0.25, dark); pxRect(r*0.45, r*0.45, r*0.4, r*0.25, dark);
+  pxRect(-r*0.48, -r*0.5, r*0.4, r*0.44, '#111'); pxRect(r*0.08, -r*0.5, r*0.4, r*0.44, '#111');
+  pxRect(-r*0.38, -r*0.48, r*0.15, r*0.15, 'rgba(180,200,255,0.7)'); pxRect(r*0.18, -r*0.48, r*0.15, r*0.15, 'rgba(180,200,255,0.7)');
+  CTX.restore();
+}
+function drawPixelZombie(r, flash) {
+  CTX.rotate(Math.sin(Date.now() / 260) * 0.08);
+  const col = flash ? '#fff' : '#4a6a30', skin = flash ? '#fff' : '#8aaa58', eye = flash ? '#fff' : '#bbaa00';
+  pxRect(-r*0.6, -r*0.05, r*1.2, r*0.85, col);
+  pxRect(-r*0.35, r*0.15, r*0.2, r*0.55, '#2a4a18'); pxRect(r*0.15, r*0.22, r*0.2, r*0.4, '#2a4a18');
+  pxRect(-r*0.52, -r*1.0, r*1.04, r*1.0, skin);
+  pxRect(-r*0.15, -r*0.8, r*0.3, r*0.3, '#3a5a28'); pxRect(r*0.2, -r*0.55, r*0.25, r*0.2, '#3a5a28');
+  pxRect(-r*0.38, -r*0.78, r*0.28, r*0.26, eye); pxRect(r*0.10, -r*0.78, r*0.28, r*0.26, eye);
+  pxRect(-r*0.32, -r*0.74, r*0.12, r*0.14, '#2a1000'); pxRect(r*0.16, -r*0.74, r*0.12, r*0.14, '#2a1000');
+  pxRect(-r*0.35, -r*0.38, r*0.7, r*0.22, '#1a0808');
+  pxRect(-r*0.24, -r*0.38, r*0.14, r*0.15, '#d8cca8'); pxRect(r*0.10, -r*0.38, r*0.14, r*0.15, '#d8cca8');
+  pxRect(r*0.6, -r*0.15, r*0.7, r*0.35, col); pxRect(-r*1.3, -r*0.25, r*0.7, r*0.35, col);
+}
+function drawPixelBoss(r, flash) {
+  const pulse = 1 + Math.sin(Date.now() / 200) * 0.04; CTX.scale(pulse, pulse);
+  const col = flash ? '#fff' : '#cc2200', dark = flash ? '#ddd' : '#880000', eye = flash ? '#fff' : '#ff8800';
+  pxRect(-r*0.9, -r*0.6, r*1.8, r*1.4, dark); pxRect(-r*0.75, -r*0.85, r*1.5, r*1.2, col);
+  pxRect(-r*0.65, -r*0.3, r*1.3, r*0.55, '#440000'); pxRect(-r*0.5, -r*0.6, r*1.0, r*0.35, '#550000');
+  pxRect(-r*0.8, -r*1.55, r*0.35, r*0.7, '#110000'); pxRect(-r*0.65, -r*1.8, r*0.2, r*0.3, '#110000');
+  pxRect(r*0.45, -r*1.55, r*0.35, r*0.7, '#110000'); pxRect(r*0.45, -r*1.8, r*0.2, r*0.3, '#110000');
+  pxRect(-r*0.7, -r*1.6, r*0.25, r*0.55, 'rgba(255,80,0,0.4)'); pxRect(r*0.45, -r*1.6, r*0.25, r*0.55, 'rgba(255,80,0,0.4)');
+  pxRect(-r*0.6, -r*0.78, r*1.2, r*0.85, '#8a1800');
+  pxRect(-r*0.5, -r*0.62, r*0.38, r*0.34, eye); pxRect(r*0.12, -r*0.62, r*0.38, r*0.34, eye);
+  pxRect(-r*0.38, -r*0.58, r*0.1, r*0.26, '#110000'); pxRect(r*0.28, -r*0.58, r*0.1, r*0.26, '#110000');
+  pxRect(-r*0.42, -r*0.16, r*0.84, r*0.28, '#080000');
+  pxRect(-r*0.32, -r*0.16, r*0.18, r*0.22, '#eee'); pxRect(r*0.14, -r*0.16, r*0.18, r*0.22, '#eee');
+}
+function drawPixelBoss2(r, flash) {
+  const pulse = 1 + Math.sin(Date.now() / 160) * 0.06; CTX.scale(pulse, pulse);
+  const col = flash ? '#fff' : '#aa0000', arm = flash ? '#ddd' : '#333344', eye = flash ? '#fff' : '#ff00aa';
+  pxRect(-r*1.0, -r*0.7, r*2.0, r*1.6, '#220011'); pxRect(-r*0.85, -r*0.95, r*1.7, r*1.4, col);
+  pxRect(-r*0.8, -r*0.5, r*1.6, r*0.7, arm); pxRect(-r*0.6, -r*0.8, r*1.2, r*0.35, arm);
+  pxRect(-r*1.1, -r*0.8, r*0.3, r*0.55, '#111122'); pxRect(r*0.8, -r*0.8, r*0.3, r*0.55, '#111122');
+  for (let s = -1; s <= 1; s += 2) { pxRect(s*r*0.8, -r*1.7, r*0.28, r*0.8, '#110000'); pxRect(s*r*0.55, -r*1.9, r*0.22, r*0.4, '#220011'); }
+  pxRect(-r*0.55, -r*0.62, r*0.3, r*0.3, eye); pxRect(r*0.25, -r*0.62, r*0.3, r*0.3, eye); pxRect(-r*0.12, -r*0.7, r*0.24, r*0.22, '#ffff00');
+  pxRect(-r*0.5, -r*0.18, r*1.0, r*0.32, '#080000');
+  pxRect(-r*0.38, -r*0.18, r*0.2, r*0.26, '#eee'); pxRect(r*0.18, -r*0.18, r*0.2, r*0.26, '#eee'); pxRect(-r*0.06, -r*0.18, r*0.12, r*0.26, '#eee');
+}
+function drawPixelReaper(r, flash) {
+  CTX.rotate(Math.sin(Date.now() / 450) * 0.07);
+  const cloak = flash ? '#fff' : '#150025', pur = flash ? '#ddd' : '#8800cc';
+  pxRect(-r*0.85, -r*0.75, r*1.7, r*1.8, cloak); pxRect(-r*0.75, -r*0.95, r*1.5, r*0.25, cloak);
+  pxRect(-r*0.7, -r*0.7, r*0.18, r*1.6, 'rgba(0,0,0,0.35)'); pxRect(r*0.52, -r*0.7, r*0.18, r*1.6, 'rgba(0,0,0,0.35)');
+  pxRect(-r*0.6, -r*1.2, r*1.2, r*0.5, '#050010'); pxRect(-r*0.45, -r*1.5, r*0.9, r*0.35, '#050010');
+  pxRect(-r*0.32, -r*1.2, r*0.64, r*0.55, '#ccc8b0');
+  pxRect(-r*0.28, -r*1.1, r*0.22, r*0.24, '#111'); pxRect(r*0.06, -r*1.1, r*0.22, r*0.24, '#111');
+  pxRect(-r*0.24, -r*1.06, r*0.14, r*0.16, pur); pxRect(r*0.10, -r*1.06, r*0.14, r*0.16, pur);
+  pxRect(r*0.5, -r*0.15, r*0.28, r*0.22, '#ccc8b0');
+  pxRect(r*0.58, -r*0.85, r*0.12, r*1.6, '#6a5040');
+  pxRect(r*0.5, -r*1.25, r*0.55, r*0.18, '#c0c8d0'); pxRect(r*0.42, -r*1.08, r*0.22, r*0.18, '#c0c8d0'); pxRect(r*0.62, -r*1.42, r*0.35, r*0.18, '#c0c8d0');
+}
+function drawPixelDarkBat(r, flash) {
+  const wa = Math.sin((Date.now() / 100) % PI2) * 0.7;
+  const col = flash ? '#fff' : '#440060', col2 = flash ? '#fff' : '#220040', eyeCol = flash ? '#fff' : '#ff00ff';
+  CTX.save(); CTX.rotate(-wa - 0.3); pxRect(-r*2.2, -r*0.5, r*2.2, r*0.6, col); CTX.restore();
+  CTX.save(); CTX.rotate(wa + 0.3); pxRect(0, -r*0.5, r*2.2, r*0.6, col); CTX.restore();
+  pxRect(-r*0.65, -r*0.9, r*1.3, r*1.5, col2);
+  pxRect(-r*0.5, -r*1.5, r*0.38, r*0.65, col); pxRect(r*0.12, -r*1.5, r*0.38, r*0.65, col);
+  pxRect(-r*0.42, -r*0.35, r*0.32, r*0.32, eyeCol); pxRect(r*0.10, -r*0.35, r*0.32, r*0.32, eyeCol);
+}
+function drawPixelLich(r, flash) {
+  CTX.save(); CTX.translate(0, Math.sin(Date.now() / 300) * r * 0.1);
+  const col = flash ? '#fff' : '#8888cc', dark = flash ? '#ddd' : '#444488', eye = flash ? '#fff' : '#00ffcc';
+  pxRect(-r*0.7, -r*0.3, r*1.4, r*1.1, dark); pxRect(-r*0.55, -r*0.8, r*1.1, r*0.55, col);
+  pxRect(-r*0.45, -r*1.35, r*0.9, r*0.6, col);
+  pxRect(-r*0.38, -r*1.22, r*0.26, r*0.28, '#111'); pxRect(r*0.12, -r*1.22, r*0.26, r*0.28, '#111');
+  pxRect(-r*0.33, -r*1.18, r*0.16, r*0.18, eye); pxRect(r*0.17, -r*1.18, r*0.16, r*0.18, eye);
+  pxRect(-r*0.45, -r*1.65, r*0.9, r*0.32, '#cc9900'); pxRect(-r*0.42, -r*1.8, r*0.18, r*0.2, '#ffcc00');
+  pxRect(-r*0.06, -r*1.82, r*0.12, r*0.22, '#ffcc00'); pxRect(r*0.24, -r*1.8, r*0.18, r*0.2, '#ffcc00');
+  pxRect(r*0.55, -r*1.2, r*0.12, r*1.4, '#554433'); pxRect(r*0.45, -r*1.4, r*0.32, r*0.22, '#aa44ff');
+  CTX.restore();
+}
+function drawPixelGargoyle(r, flash) {
+  const col = flash ? '#fff' : '#666680', dark = flash ? '#ccc' : '#444458', eye = flash ? '#fff' : '#ff4400';
+  pxRect(-r*0.7, -r*0.3, r*1.4, r*1.1, dark); pxRect(-r*0.6, -r*0.75, r*1.2, r*0.5, col);
+  pxRect(-r*1.1, -r*0.6, r*0.5, r*0.8, dark); pxRect(r*0.6, -r*0.6, r*0.5, r*0.8, dark);
+  pxRect(-r*0.5, -r*1.2, r*1.0, r*0.5, col);
+  pxRect(-r*0.4, -r*1.5, r*0.18, r*0.35, dark); pxRect(r*0.22, -r*1.5, r*0.18, r*0.35, dark);
+  pxRect(-r*0.38, -r*1.1, r*0.28, r*0.25, eye); pxRect(r*0.10, -r*1.1, r*0.28, r*0.25, eye);
+  pxRect(-r*0.32, -r*0.78, r*0.16, r*0.2, '#eee'); pxRect(-r*0.06, -r*0.78, r*0.16, r*0.2, '#eee'); pxRect(r*0.20, -r*0.78, r*0.16, r*0.2, '#eee');
+}
+function drawPixelBoss3(r, flash) {
+  const pulse = 1 + Math.sin(Date.now() / 250) * 0.05; CTX.scale(pulse, pulse);
+  const col = flash ? '#fff' : '#1a0033', eye = flash ? '#fff' : '#aa00ff';
+  const t = Date.now()/500;
+  for(let i=0; i<3; i++) {
+     const a = t + i*Math.PI*2/3;
+     pxRect(Math.cos(a)*r*1.3 - r*0.25, Math.sin(a)*r*1.3 - r*0.25, r*0.5, r*0.5, '#110022');
+  }
+  pxRect(-r*0.9, -r*0.9, r*1.8, r*1.8, '#110022');
+  pxRect(-r*0.7, -r*0.7, r*1.4, r*1.4, col);
+  pxRect(-r*0.35, -r*0.25, r*0.7, r*0.5, '#000');
+  pxRect(-r*0.15, -r*0.1, r*0.3, r*0.2, eye);
+}
+function drawPixelBoss3Form2(r, flash) {
+  CTX.rotate(Math.sin(Date.now() / 50) * 0.1);
+  const col = flash ? '#fff' : '#880000', core = flash ? '#fff' : '#ffea00';
+  pxRect(-r*1.1, -r*0.5, r*2.2, r*1.0, col);
+  pxRect(-r*0.5, -r*1.1, r*1.0, r*2.2, col);
+  pxRect(-r*0.8, -r*0.8, r*1.6, r*1.6, '#440000');
+  pxRect(-r*0.5, -r*0.5, r*1.0, r*1.0, core);
+  pxRect(-r*0.3, -r*0.3, r*0.2, r*0.2, '#000');
+  pxRect(r*0.1, -r*0.3, r*0.2, r*0.2, '#000');
+  pxRect(-r*0.1, r*0.1, r*0.2, r*0.2, '#000');
+}
+
+function drawPixelPlayer(r, facing) {
+  CTX.fillStyle = 'rgba(0,0,0,0.35)'; CTX.beginPath(); CTX.ellipse(0, r*0.85, r*0.8, r*0.22, 0, 0, PI2); CTX.fill();
+  if (facing === -1) CTX.scale(-1, 1);
+  pxRect(-r*0.58, r*0.52, r*0.46, r*0.42, '#2a1a08'); pxRect(r*0.12, r*0.52, r*0.46, r*0.42, '#2a1a08');
+  pxRect(-r*0.58, r*0.52, r*0.46, r*0.1, '#3a2a18'); pxRect(r*0.12, r*0.52, r*0.46, r*0.1, '#3a2a18');
+  pxRect(-r*0.52, r*0.08, r*0.42, r*0.5, '#1a2232'); pxRect(r*0.10, r*0.08, r*0.42, r*0.5, '#1a2232');
+  pxRect(-r*0.58, -r*0.5, r*1.16, r*0.62, '#221428'); pxRect(-r*0.58, -r*0.5, r*0.14, r*0.62, '#301c38');
+  pxRect(-r*0.14, -r*0.5, r*0.28, r*0.28, '#120c18');
+  pxRect(-r*0.58, r*0.07, r*1.16, r*0.1, '#110a06'); pxRect(-r*0.1, r*0.07, r*0.2, r*0.1, '#b89010');
+  pxRect(-r*0.82, -r*0.4, r*0.26, r*0.58, '#1e1224'); pxRect(-r*0.7, r*0.16, r*0.22, r*0.22, '#c07050');
+  const armBob = Math.sin(Date.now() / 200) * r * 0.05;
+  pxRect(r*0.54, -r*0.38 + armBob, r*0.28, r*0.54, '#221428'); pxRect(r*0.62, r*0.16 + armBob, r*0.22, r*0.22, '#c07050');
+  pxRect(-r*0.14, -r*0.6, r*0.28, r*0.14, '#c07050');
+  pxRect(-r*0.42, -r*0.92, r*0.84, r*0.9, '#c89060'); pxRect(-r*0.38, -r*0.68, r*0.76, r*0.14, 'rgba(80,50,25,0.3)');
+  pxRect(-r*0.78, -r*1.0, r*1.56, r*0.14, '#141010');
+  pxRect(-r*0.44, -r*1.5, r*0.88, r*0.52, '#1c1414'); pxRect(-r*0.42, -r*1.48, r*0.84, r*0.5, '#201818');
+  pxRect(-r*0.44, -r*1.08, r*0.88, r*0.1, '#7a1800');
+  pxRect(r*0.06, -r*0.78, r*0.24, r*0.2, '#f0e0c8'); pxRect(r*0.12, -r*0.77, r*0.14, r*0.16, '#285a80');
+  pxRect(r*0.14, -r*0.76, r*0.08, r*0.1, '#080600'); pxRect(r*0.2, -r*0.79, r*0.05, r*0.05, '#fff');
+  pxRect(r*0.04, -r*0.88, r*0.28, r*0.08, '#4a2c10'); pxRect(r*0.06, -r*0.62, r*0.26, r*0.06, '#8a5030');
+}
+
+// ====== MAIN UPDATE ======
+function update(dt) {
+  if (game.state !== 'playing') return;
+  game.time += dt;
+  if (game.shakeTimer > 0) game.shakeTimer -= dt;
+
+  const dir = getInputDir();
+  if (dir.x !== 0) player.facing = dir.x > 0 ? 1 : -1;
+  const effSpeed = playerEffSpeed();
+  player.x += dir.x * effSpeed * dt; player.y += dir.y * effSpeed * dt;
+  cam.x = lerp(cam.x, player.x, 5 * dt); cam.y = lerp(cam.y, player.y, 5 * dt);
+  if (player.iFrames > 0) player.iFrames -= dt;
+
+  for (const w of player.weapons) {
+    const def = WEAPON_DEFS[w.type];
+    def.fire(w, dt); if (def.update) def.update(w, dt);
+  }
+
+  waveSystem.update(dt);
+  const qt = new QuadTree(cam.x - 1500, cam.y - 1500, 3000, 3000);
+  enemies.each(e => qt.insert(e));
+
+  bullets.each(b => {
+    if (b.type === 'bible') return;
+    b.timer -= dt; if (b.timer <= 0) { b.active = false; return; }
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    if (b.gravity) b.vy += b.gravity * dt;
+    if (b.type === 'axe' && b.spin) b._angle = (b._angle || 0) + b.spin * dt;
+
+    if (b.type === 'melee') {
+      const candidates = qt.query(b.mx, b.my, b.mw, b.mh, []);
+      for (const e of candidates) {
+        if (b.hitSet.has(e)) continue;
+        if (rectOverlap(b.mx, b.my, b.mw, b.mh, e.x - e.r, e.y - e.r, e.r * 2, e.r * 2)) {
+          b.hitSet.add(e); damageEnemy(e, b.dmg);
+        }
+      }
+    } else {
+      const candidates = qt.query(b.x - b.r, b.y - b.r, b.r * 2, b.r * 2, []);
+      for (const e of candidates) {
+        if (b.hitSet.has(e)) continue;
+        if (circleOverlap(b.x, b.y, b.r, e.x, e.y, e.r)) {
+          b.hitSet.add(e); damageEnemy(e, b.dmg);
+          if (b.type !== 'lightning') { b.pierce--; if (b.pierce <= 0) { b.active = false; return; } }
+        }
+      }
+    }
+    if (!onScreen(b.x, b.y, 250)) b.active = false;
+  });
+
+  bullets.each(b => {
+    if (b.type !== 'bible' || !b.active) return;
+    const candidates = qt.query(b.x - b.r, b.y - b.r, b.r * 2, b.r * 2, []);
+    for (const e of candidates) {
+      if (b.hitSet.has(e)) continue;
+      if (circleOverlap(b.x, b.y, b.r, e.x, e.y, e.r)) {
+        b.hitSet.add(e); damageEnemy(e, b.dmg);
+        const a = angleTo(player, e); e.kbx += Math.cos(a) * 80 * e.knockback; e.kby += Math.sin(a) * 80 * e.knockback;
+      }
+    }
+  });
+
+  enemies.each(e => {
+    const a = angleTo(e, player); e.x += Math.cos(a) * e.speed * dt; e.y += Math.sin(a) * e.speed * dt;
+    if (Math.abs(e.kbx) > 0.1 || Math.abs(e.kby) > 0.1) { e.x += e.kbx * dt * 5; e.y += e.kby * dt * 5; e.kbx *= 0.9; e.kby *= 0.9; }
+    e.hitTimer -= dt; e.flashTimer -= dt;
+
+    if (player.iFrames <= 0 && !player.invincible && circleOverlap(player.x, player.y, player.r, e.x, e.y, e.r)) {
+      const dmgTaken = e.dmg * (1 - (player.armor || 0)); player.hp -= dmgTaken; player.iFrames = 0.5;
+      spawnDmgText(player.x, player.y, Math.round(dmgTaken), '#f44'); game.shake(5, 0.15);
+      const pa = angleTo(e, player); player.x += Math.cos(pa) * 30; player.y += Math.sin(pa) * 30;
+      if (player.hp <= 0) {
+        player.hp = 0; player.alive = false;
+        game.state = (game.stage >= 2) ? 'gameover2' : 'gameover';
+      }
+    }
+    if (dist(player, e) > 1600) e.active = false;
+  });
+
+  pickups.each(p => {
+    const d = dist(player, p);
+    if (d < player.magnet * 3) {
+      const a = angleTo(p, player); const pullSpeed = 300 * (1 - d / (player.magnet * 3));
+      p.x += Math.cos(a) * pullSpeed * dt; p.y += Math.sin(a) * pullSpeed * dt;
+    }
+    if (d < player.magnet) {
+      p.active = false;
+      if (p.type === 'gem') addXP(p.value);
+      else if (p.type === 'chest') openChest();
+      else if (p.type === 'heal') { player.hp = Math.min(player.hp + p.value, player.maxHp); spawnDmgText(player.x, player.y, '+' + p.value, '#0f0'); }
+      else if (p.type === 'weaponChest') openWeaponChest();
+      else if (p.type === 'passiveChest') openPassiveChest();
+      else if (p.type === 'itemChest') openItemChest();
+    }
+  });
+
+  dmgTexts.each(t => { t.timer -= dt; t.y -= 40 * dt; if (t.timer <= 0) t.active = false; });
+  updateActiveEffects(dt);
+}
+
+function damageEnemy(e, dmg) {
+  const crit = Math.random() < (player.critChance || 0);
+  const defMult = player.defenseBreak ? 1.5 : 1.0;
+  let finalDmg = (crit ? dmg * 2 : dmg) * (player.mightMult || 1) * defMult;
+
+  // Boss 3 form 2 has damage reduction
+  if (e.type === 'boss3_form2') finalDmg *= 0.7;
+
+  e.hp -= finalDmg; e.flashTimer = 0.1;
+  spawnDmgText(e.x, e.y, (crit ? '★' : '') + Math.round(finalDmg), crit ? '#ffee00' : '#ff0');
+  const a = angleTo(player, e); e.kbx += Math.cos(a) * 40 * e.knockback; e.kby += Math.sin(a) * 40 * e.knockback;
+
+  // Boss 3 Stage 2 transformation
+  if (e.type === 'boss3' && e.hp <= e.maxHp * 0.1) {
+    e.type = 'boss3_form2';
+    e.hp = e.maxHp * 0.3; // Give 30% hp back as a shield
+    e.maxHp = e.hp;
+    e.speed = 65;
+    e.dmg = 55;
+    spawnDmgText(e.x, e.y - 80, '⚠ 終極覺醒！', '#ff0000');
+    game.shake(20, 1.0);
+  }
+
+  if (e.hp <= 0) {
+    e.active = false; player.kills++;
+    if (e.xp >= 100) spawnGem(e.x, e.y, 100); else if (e.xp >= 10) spawnGem(e.x, e.y, 10); else spawnGem(e.x, e.y, 1);
+    if (e.type === 'boss' || e.type === 'boss2' || e.type.startsWith('boss3')) spawnChest(e.x, e.y);
+    if (Math.random() < 0.02) spawnHeal(e.x, e.y);
+    
+    // Victory for Boss 3
+    if (e.type === 'boss3_form2') {
+      game.state = 'victory3';
+      enemies.items.forEach(en => en.active = false); // clear enemies
+    }
+  }
+}
+
+// ====== RENDER ======
+function render() {
+  _uiButtons.length = 0; CTX.imageSmoothingEnabled = false; CTX.save();
+
+  let sx = 0, sy = 0;
+  if (game.shakeTimer > 0) {
+    sx = Math.round(rand(-game.shakeIntensity, game.shakeIntensity));
+    sy = Math.round(rand(-game.shakeIntensity, game.shakeIntensity));
+    CTX.translate(sx, sy);
+  }
+
+  drawGround();
+
+  pickups.each(p => {
+    if (!onScreen(p.x, p.y)) return;
+    const s = toScreen(p.x, p.y);
+    if (p.type === 'gem') {
+      const gc = GEM_COLORS[p.value] || '#4466ff';
+      pxRect(s.x - p.r * 0.6, s.y - p.r, p.r * 1.2, p.r * 0.9, gc); pxRect(s.x - p.r * 0.9, s.y - p.r * 0.15, p.r * 1.8, p.r * 0.5, gc);
+      pxRect(s.x - p.r * 0.6, s.y + p.r * 0.32, p.r * 1.2, p.r * 0.6, gc + 'aa'); pxRect(s.x - p.r * 0.3, s.y - p.r * 0.85, p.r * 0.5, p.r * 0.4, 'rgba(255,255,255,0.5)');
+    } else if (p.type === 'chest') {
+      pxRect(s.x - 18, s.y - 12, 36, 24, '#c8880a'); pxRect(s.x - 18, s.y - 12, 36, 7, '#8a5800');
+      pxRect(s.x - 4, s.y - 4, 8, 8, '#ffe000'); pxRectOutline(s.x - 18, s.y - 12, 36, 24, '#ffa000', 2);
+    } else if (p.type === 'heal') {
+      pxRect(s.x - 3, s.y - 9, 6, 18, '#00ee44'); pxRect(s.x - 9, s.y - 3, 18, 6, '#00ee44');
+    } else if (p.type === 'weaponChest') {
+      const bob2 = Math.sin(Date.now() / 300 + p.x) * 2;
+      pxRect(s.x - 17, s.y - 14 + bob2, 34, 22, '#8a5800'); pxRect(s.x - 17, s.y - 14 + bob2, 34, 7, '#6a3e00'); pxRectOutline(s.x - 17, s.y - 14 + bob2, 34, 22, '#ffd700', 2);
+      pxRect(s.x - 3, s.y - 9 + bob2, 6, 6, '#ffd700');
+      CTX.save(); CTX.fillStyle = '#ffd700'; CTX.font = 'bold 9px "Cinzel",serif'; CTX.textAlign = 'center'; CTX.fillText('⚔', s.x, s.y - 17 + bob2); CTX.restore();
+    } else if (p.type === 'passiveChest') {
+      const bob3 = Math.sin(Date.now() / 350 + p.y) * 2;
+      pxRect(s.x - 17, s.y - 14 + bob3, 34, 22, '#1a5800'); pxRect(s.x - 17, s.y - 14 + bob3, 34, 7, '#0e3800'); pxRectOutline(s.x - 17, s.y - 14 + bob3, 34, 22, '#44ff88', 2);
+      pxRect(s.x - 3, s.y - 9 + bob3, 6, 6, '#44ff88');
+      CTX.save(); CTX.fillStyle = '#44ff88'; CTX.font = 'bold 9px "Cinzel",serif'; CTX.textAlign = 'center'; CTX.fillText('✦', s.x, s.y - 17 + bob3); CTX.restore();
+    } else if (p.type === 'itemChest') {
+      const bob4 = Math.sin(Date.now() / 280 + p.x * 0.01) * 3; const gA = 0.35 + Math.sin(Date.now() / 200) * 0.25;
+      CTX.save(); CTX.shadowColor = '#44ddff'; CTX.shadowBlur = 10 + 8 * gA;
+      pxRect(s.x - 17, s.y - 14 + bob4, 34, 22, '#001840'); pxRect(s.x - 17, s.y - 14 + bob4, 34, 7, '#000e28'); pxRectOutline(s.x - 17, s.y - 14 + bob4, 34, 22, '#44ddff', 2);
+      pxRect(s.x - 3, s.y - 9 + bob4, 6, 6, '#44ddff'); CTX.fillStyle = '#44ddff'; CTX.font = 'bold 10px serif'; CTX.textAlign = 'center'; CTX.fillText('🎁', s.x, s.y - 15 + bob4); CTX.restore();
+    }
+  });
+
+  enemies.each(e => {
+    if (!onScreen(e.x, e.y)) return;
+    const s = toScreen(e.x, e.y); const flash = e.flashTimer > 0;
+    CTX.save(); CTX.translate(s.x, s.y);
+    if (e.type === 'bat') drawPixelBat(e.r, flash); else if (e.type === 'skeleton') drawPixelSkeleton(e.r, flash);
+    else if (e.type === 'ghost') drawPixelGhost(e.r, flash); else if (e.type === 'zombie') drawPixelZombie(e.r, flash);
+    else if (e.type === 'boss') drawPixelBoss(e.r, flash); else if (e.type === 'reaper') drawPixelReaper(e.r, flash);
+    else if (e.type === 'darkbat') drawPixelDarkBat(e.r, flash); else if (e.type === 'lich') drawPixelLich(e.r, flash);
+    else if (e.type === 'gargoyle') drawPixelGargoyle(e.r, flash); else if (e.type === 'boss2') drawPixelBoss2(e.r, flash);
+    else if (e.type === 'boss3') drawPixelBoss3(e.r, flash); else if (e.type === 'boss3_form2') drawPixelBoss3Form2(e.r, flash);
+    else pxRect(-e.r, -e.r, e.r * 2, e.r * 2, flash ? '#fff' : e.color);
+    CTX.restore();
+
+    if (e.type === 'boss' || e.type === 'boss2' || e.type === 'reaper' || e.type.startsWith('boss3')) {
+      const ss = toScreen(e.x, e.y); const bw = e.r * 3.2;
+      pxRect(ss.x - bw/2 - 2, ss.y - e.r * 2 - 12, bw + 4, 12, 'rgba(0,0,0,0.8)'); pxRect(ss.x - bw/2, ss.y - e.r * 2 - 10, bw, 8, '#300');
+      let hpCol = '#ff4400';
+      if (e.type === 'reaper') hpCol = '#cc00ff'; else if (e.type === 'boss2') hpCol = '#ff0066'; else if (e.type.startsWith('boss3')) hpCol = '#aa00ff';
+      if (e.type === 'boss3_form2') hpCol = '#ff0000';
+      pxRect(ss.x - bw/2, ss.y - e.r * 2 - 10, bw * Math.max(0, e.hp / e.maxHp), 8, hpCol);
+      CTX.fillStyle = 'rgba(255,255,255,0.8)'; CTX.font = 'bold 10px "Cinzel", serif'; CTX.textAlign = 'center';
+      const labels = { 'boss2': '☠ 黑暗惡魔王', 'boss': '⚠ 惡魔王', 'reaper': '☠ 死神', 'boss3': '👁 終極黑暗', 'boss3_form2': '👁 狂亂黑暗' };
+      CTX.fillText(labels[e.type] || '', ss.x, ss.y - e.r * 2 - 13);
+    }
+  });
+
+  bullets.each(b => {
+    if (!onScreen(b.x, b.y)) return;
+    const s = toScreen(b.x, b.y); CTX.save();
+    if (b.type === 'melee') {
+      const ms = toScreen(b.mx + b.mw / 2, b.my + b.mh / 2); CTX.globalAlpha = 0.55; pxRect(ms.x - b.mw/2, ms.y - b.mh/2, b.mw, b.mh, '#ffff88'); CTX.globalAlpha = 1;
+    } else if (b.type === 'axe') {
+      CTX.translate(s.x, s.y); CTX.rotate(b._angle || 0); CTX.font = Math.max(20, b.r * 2.5) + 'px serif'; CTX.textAlign = 'center'; CTX.textBaseline = 'middle'; CTX.fillText('🪓', 0, 0);
+    } else if (b.type === 'bible') {
+      CTX.translate(s.x, s.y); CTX.font = Math.max(18, b.r * 2.2) + 'px serif'; CTX.textAlign = 'center'; CTX.textBaseline = 'middle'; CTX.fillText('📖', 0, 0);
+    } else if (b.type === 'fireball') {
+      CTX.translate(s.x, s.y); CTX.shadowColor = '#ff6600'; CTX.shadowBlur = 16; CTX.font = Math.max(18, b.r * 2.5) + 'px serif'; CTX.textAlign = 'center'; CTX.textBaseline = 'middle'; CTX.fillText('🔥', 0, 0);
+    } else if (b.type === 'lightning') {
+      if (b.lx2 !== undefined) {
+        const s2 = toScreen(b.lx2, b.ly2); CTX.strokeStyle = '#ccffff'; CTX.lineWidth = 4; CTX.globalAlpha = 0.9; CTX.shadowColor = '#44ffff'; CTX.shadowBlur = 12;
+        CTX.beginPath(); CTX.moveTo(s.x, s.y); CTX.lineTo(s2.x, s2.y); CTX.stroke(); CTX.shadowBlur = 0; CTX.globalAlpha = 1;
+      }
+    } else if (b.type === 'cross') {
+      pxRect(s.x - 2, s.y - b.r * 1.2, 4, b.r * 2.4, '#ffffcc'); pxRect(s.x - b.r * 0.8, s.y - 2, b.r * 1.6, 4, '#ffffcc');
+    } else if (b.type === 'shadow') {
+      CTX.globalAlpha = 0.85; pxRect(s.x - b.r, s.y - b.r, b.r * 2, b.r * 2, '#aa44ff'); pxRect(s.x - b.r + 2, s.y - b.r + 2, b.r * 2 - 4, b.r * 2 - 4, '#cc88ff');
+    } else {
+      pxRect(s.x - b.r, s.y - b.r, b.r * 2, b.r * 2, b.color); pxRect(s.x - b.r + 2, s.y - b.r + 2, b.r * 2 - 4, b.r * 2 - 4, '#ddeeff');
+    }
+    CTX.restore();
+  });
+
+  if (player.alive) {
+    const ps = toScreen(player.x, player.y); const blink = player.iFrames > 0 && Math.floor(player.iFrames * 14) % 2 === 0;
+    if (!blink) {
+      CTX.save(); CTX.translate(ps.x, ps.y); drawPixelPlayer(player.r, player.facing);
+      if (player.hp / player.maxHp < 0.3) {
+        const pulseA = 0.3 + Math.sin(Date.now() / 120) * 0.3; CTX.strokeStyle = 'rgba(255,0,0,' + pulseA + ')'; CTX.lineWidth = 3;
+        CTX.strokeRect(-player.r - 4, -player.r * 1.4, (player.r + 4) * 2, player.r * 2.6);
+      }
+      CTX.restore();
+    }
+  }
+
+  dmgTexts.each(t => {
+    if (!onScreen(t.x, t.y)) return;
+    const s = toScreen(t.x, t.y); CTX.save(); CTX.font = 'bold 13px "Cinzel", serif'; CTX.fillStyle = t.color;
+    CTX.shadowColor = t.color; CTX.shadowBlur = 5; CTX.globalAlpha = clamp(t.timer / 0.3, 0, 1); CTX.textAlign = 'center';
+    CTX.fillText(t.text, s.x, s.y); CTX.globalAlpha = 1; CTX.restore();
+  });
+
+  CTX.restore();
+
+  if (game.state === 'playing' || game.state === 'levelup') drawHUD();
+  if (game.state === 'title') drawTitle();
+  if (game.state === 'weaponSelect') drawWeaponSelect();
+  if (game.state === 'stage3Select') drawStage3Select();
+  if (game.state === 'levelup') drawLevelUp();
+  if (game.state === 'gameover') drawGameOver();
+  if (game.state === 'gameover2') drawGameOver2();
+  if (game.state === 'victory') drawVictory();
+  if (game.state === 'victory3') drawVictory3();
+
+  if (touchActive && game.state === 'playing') {
+    CTX.globalAlpha = 0.28; CTX.strokeStyle = '#fff'; CTX.lineWidth = 2;
+    CTX.beginPath(); CTX.arc(touchStartX, touchStartY, 50, 0, PI2); CTX.stroke();
+    CTX.beginPath(); CTX.arc(touchStartX + touchDX, touchStartY + touchDY, 20, 0, PI2); CTX.fillStyle = '#fff'; CTX.fill();
+    CTX.globalAlpha = 1;
+  }
+}
+
+// ====== HUD ======
+function drawHUD() {
+  const isMobile = W < 600;
+  const barW = W * (isMobile ? 0.5 : 0.55), barH = isMobile ? 10 : 14; const barX = (W - barW) / 2, barY = 8;
+  const xpRatio = player.xp / player.xpToNext;
+  pxRect(barX - 2, barY - 2, barW + 4, barH + 4, 'rgba(0,0,0,0.7)'); pxRect(barX, barY, barW, barH, '#1a0a2e');
+  if (xpRatio > 0) { pxRect(barX, barY, barW * xpRatio, barH, '#9b5de5'); pxRect(barX, barY, barW * xpRatio, barH / 2, 'rgba(200,150,255,0.25)'); }
+  pxRectOutline(barX, barY, barW, barH, 'rgba(180,100,255,0.6)', 1);
+  CTX.save(); CTX.shadowColor = '#b060ff'; CTX.shadowBlur = 6; CTX.fillStyle = '#e8d4ff'; CTX.font = `bold ${isMobile ? 9 : 11}px "Cinzel", serif`;
+  CTX.textAlign = 'center';
+  const stgLabel = game.stage === 3 ? ' ★最終關' : (game.stage === 2 ? ' ★第二關' : '');
+  CTX.fillText('LV ' + player.level + stgLabel, W / 2, barY + barH - 1); CTX.restore();
+
+  const hpW = isMobile ? Math.min(110, W * 0.28) : 140, hpH = isMobile ? 10 : 14; const hpX = 8, hpY = barY + barH + 6;
+  const hpRatio = player.hp / player.maxHp;
+  pxRect(hpX - 2, hpY - 2, hpW + 4, hpH + 4, 'rgba(0,0,0,0.7)'); pxRect(hpX, hpY, hpW, hpH, '#1a0005');
+  if (hpRatio > 0) { const hpCol = hpRatio > 0.5 ? '#e8102a' : hpRatio > 0.25 ? '#ff6600' : '#ff0000'; pxRect(hpX, hpY, hpW * hpRatio, hpH, hpCol); }
+  pxRectOutline(hpX, hpY, hpW, hpH, 'rgba(200,50,70,0.7)', 1);
+  CTX.save(); CTX.fillStyle = '#ffccd5'; CTX.font = `bold ${isMobile ? 8 : 10}px "Cinzel", serif`; CTX.textAlign = 'left';
+  CTX.fillText('❤ ' + Math.ceil(player.hp) + '/' + Math.ceil(player.maxHp), hpX + 2, hpY + hpH - 1); CTX.restore();
+
+  const mins = Math.floor(game.time / 60), secs = Math.floor(game.time % 60);
+  const timeStr = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+  CTX.save(); CTX.shadowColor = '#e8b84b'; CTX.shadowBlur = 8; CTX.font = `bold ${isMobile ? 14 : 18}px "Cinzel", serif`;
+  CTX.textAlign = 'right'; CTX.fillStyle = '#ffe066'; CTX.fillText('⏱ ' + timeStr, W - 8, barY + barH + 2);
+  CTX.shadowBlur = 4; CTX.font = `${isMobile ? 10 : 12}px "Cinzel", serif`; CTX.fillStyle = '#e8c87a';
+  CTX.fillText('☠ ' + player.kills, W - 8, barY + barH + (isMobile ? 16 : 20)); CTX.restore();
+
+  const slotSize = isMobile ? 36 : 44, slotPad = isMobile ? 4 : 6; const bottomY = H - slotSize - 8; let wx = 8;
+  for (const w of player.weapons) {
+    const def = WEAPON_DEFS[w.type]; pxRect(wx, bottomY, slotSize, slotSize, 'rgba(0,0,0,0.75)'); pxRectOutline(wx, bottomY, slotSize, slotSize, 'rgba(100,60,200,0.8)', 2);
+    CTX.font = `${isMobile ? 18 : 22}px serif`; CTX.textAlign = 'center'; CTX.fillText(def.icon, wx + slotSize / 2, bottomY + slotSize * 0.68);
+    pxRect(wx + slotSize - 12, bottomY - 1, 12, 10, '#9b5de5'); CTX.fillStyle = '#fff'; CTX.font = `bold ${isMobile ? 8 : 9}px "Cinzel", serif`; CTX.fillText(w.level, wx + slotSize - 6, bottomY + 8); wx += slotSize + slotPad;
+  }
+  let ppx = W - slotSize - 8;
+  for (const p of player.passives) {
+    const def = PASSIVE_DEFS[p.type]; pxRect(ppx, bottomY, slotSize, slotSize, 'rgba(0,0,0,0.75)'); pxRectOutline(ppx, bottomY, slotSize, slotSize, 'rgba(40,160,80,0.8)', 2);
+    CTX.font = `${isMobile ? 18 : 22}px serif`; CTX.textAlign = 'center'; CTX.fillText(def.icon, ppx + slotSize / 2, bottomY + slotSize * 0.68);
+    pxRect(ppx + slotSize - 12, bottomY - 1, 12, 10, '#2ecc71'); CTX.fillStyle = '#fff'; CTX.font = `bold ${isMobile ? 8 : 9}px "Cinzel", serif`; CTX.fillText(p.level, ppx + slotSize - 6, bottomY + 8); ppx -= slotSize + slotPad;
+  }
+
+  if (activeEffects.length > 0 && game.stage >= 2) {
+    const efW = isMobile ? 90 : 120, efH = isMobile ? 14 : 18; const efX = W / 2 - (activeEffects.length * (efW + 4)) / 2, efY = bottomY - efH - 6;
+    for (let i = 0; i < activeEffects.length; i++) {
+      const ef = activeEffects[i], x = efX + i * (efW + 4), ratio = ef.timer / ef.duration;
+      const cols = { mightBoost: '#ff6600', defenseBreak: '#ff88ff', invincible: '#44ddff' }; const col = cols[ef.type] || '#ffff00';
+      const labels = { mightBoost: '⚔×2', defenseBreak: '💥防碎', invincible: '🛡無敵' };
+      pxRect(x, efY, efW, efH, 'rgba(0,0,0,0.7)'); pxRect(x, efY, efW * ratio, efH, col + '99'); pxRectOutline(x, efY, efW, efH, col, 1);
+      CTX.save(); CTX.fillStyle = '#fff'; CTX.font = `bold ${isMobile ? 8 : 10}px "Cinzel",serif`; CTX.textAlign = 'center'; CTX.fillText((labels[ef.type] || ef.type) + ' ' + Math.ceil(ef.timer) + 's', x + efW / 2, efY + efH - 2); CTX.restore();
+    }
+  }
+}
+
+// ====== TITLE SCREEN ======
+function drawTitle() {
+  CTX.fillStyle = 'rgba(0,0,0,0.94)'; CTX.fillRect(0, 0, W, H);
+  const moonGrad = CTX.createRadialGradient(W/2, H/2 - 80, 0, W/2, H/2 - 80, 350);
+  moonGrad.addColorStop(0, 'rgba(180,10,30,0.22)'); moonGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  CTX.fillStyle = moonGrad; CTX.fillRect(0, 0, W, H); CTX.textAlign = 'center';
+
+  const titleSize = Math.min(52, rw(52));
+  CTX.save(); CTX.shadowColor = '#c0102a'; CTX.shadowBlur = 38; CTX.fillStyle = '#ff2040'; CTX.font = `bold ${titleSize}px "Cinzel Decorative", serif`; CTX.fillText('獵魔倖存者', W/2, H/2 - rh(65)); CTX.restore();
+  CTX.save(); CTX.shadowColor = '#e8b84b'; CTX.shadowBlur = 10; CTX.fillStyle = '#e8b84b'; CTX.font = `600 ${Math.min(18, rw(18))}px "Cinzel", serif`; CTX.fillText('DEMON HUNTER SURVIVORS', W/2, H/2 - rh(22)); CTX.restore();
+
+  const bx8 = W/2 - 42, by8 = H/2 - rh(14);
+  pxRect(bx8, by8, 84, 20, '#220044'); pxRectOutline(bx8, by8, 84, 20, '#aa44ff', 2);
+  CTX.fillStyle = '#cc88ff'; CTX.font = 'bold 11px "Cinzel", serif'; CTX.fillText('[ 8位元像素版 ]', W/2, by8 + 14);
+
+  CTX.fillStyle = 'rgba(200,180,220,0.6)'; CTX.font = `${Math.min(12, rw(12))}px "Cinzel", serif`; CTX.fillText('WASD / 方向鍵 移動  ·  自動攻擊', W/2, H/2 + rh(36));
+
+  const bw = Math.min(200, rw(200)), bh = Math.min(50, rh(50)); const bx = W/2 - bw/2, by = H/2 + rh(62);
+  pxRect(bx, by, bw, bh, '#6a000f'); pxRect(bx + 4, by + 4, bw - 8, bh - 8, '#c0102a'); pxRectOutline(bx, by, bw, bh, '#e8b84b', 2);
+  CTX.save(); CTX.shadowColor = '#ffe066'; CTX.shadowBlur = 8; CTX.fillStyle = '#ffe066'; CTX.font = `bold ${Math.min(19, rw(19))}px "Cinzel", serif`; CTX.fillText('⚔  開始遊戲  ⚔', W/2, by + bh * 0.65); CTX.restore();
+  registerBtn(bx, by, bw, bh, 'title', () => game.start());
+}
+
+const WEAPON_SELECT_OPTIONS_S1 = [
+  { type: 'whip', label: '皮鞭', subtitle: 'Whip', desc: '近距大範圍揮砍', color: '#c8a020', border: '#ffd040' },
+  { type: 'wand', label: '魔杖', subtitle: 'Magic Wand', desc: '鎖定最近敵人', color: '#4488ff', border: '#88aaff' },
+  { type: 'axe', label: '飛斧', subtitle: 'Axe', desc: '拋物線高傷害穿透', color: '#cc5500', border: '#ff8822' },
+  { type: 'bible', label: '聖經', subtitle: 'King Bible', desc: '繞身旋轉護盾', color: '#8844ff', border: '#bb88ff' },
+  { type: 'firewand', label: '火球', subtitle: 'Fire Wand', desc: '隨機鎖定火球', color: '#ff3300', border: '#ff6644' },
+];
+const WEAPON_SELECT_OPTIONS_S2 = [
+  { type: 'whip', label: '皮鞭', subtitle: 'Whip', desc: '近距大範圍揮砍', color: '#c8a020', border: '#ffd040' },
+  { type: 'wand', label: '魔杖', subtitle: 'Magic Wand', desc: '鎖定最近敵人', color: '#4488ff', border: '#88aaff' },
+  { type: 'firewand', label: '火球', subtitle: 'Fire Wand', desc: '隨機鎖定火球', color: '#ff3300', border: '#ff6644' },
+  { type: 'lightning', label: '閃電', subtitle: 'Lightning', desc: '連鎖電擊敵人', color: '#44ddff', border: '#aaeeff' },
+  { type: 'cross', label: '十字架', subtitle: 'Holy Cross', desc: '4方向貫穿射擊', color: '#eeeeaa', border: '#ffffdd' },
+  { type: 'shadow', label: '暗影刃', subtitle: 'Shadow Blade', desc: '扇形暗影斬', color: '#9944ff', border: '#cc88ff' },
+];
+
+function drawWeaponSelect() {
+  const opts = game.stage === 2 ? WEAPON_SELECT_OPTIONS_S2 : WEAPON_SELECT_OPTIONS_S1;
+  CTX.fillStyle = 'rgba(0,0,0,0.95)'; CTX.fillRect(0, 0, W, H);
+  const glow = CTX.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*0.6);
+  glow.addColorStop(0, 'rgba(80,20,120,0.22)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+  CTX.fillStyle = glow; CTX.fillRect(0, 0, W, H);
+
+  const PAD = 10, BTN_H = Math.max(36, Math.min(50, H * 0.07)), BTN_GAP = 10, TITLE_PAD_TOP = 10;
+  const titleFontSz = Math.max(16, Math.min(28, W * 0.055, H * 0.048)), subFontSz = Math.max(10, Math.min(13, W * 0.024));
+  const HEADER_H = TITLE_PAD_TOP + titleFontSz + 6 + subFontSz + 12;
+  const availH = H - HEADER_H - BTN_H - BTN_GAP - PAD; const numCards = opts.length; const isMobile = W < 600;
+  const cols = W < 420 ? 2 : (isMobile ? Math.min(numCards, 3) : numCards); const rows = Math.ceil(numCards / cols);
+  const GAP = Math.max(5, Math.min(10, W * 0.016));
+  const cardW = Math.floor((W - PAD * 2 - GAP * (cols - 1)) / cols), cardH = Math.max(70, Math.floor((availH - GAP * (rows - 1)) / rows));
+  const startX = PAD, startY = HEADER_H;
+
+  CTX.textAlign = 'center'; const titleY = TITLE_PAD_TOP + titleFontSz;
+  CTX.save(); CTX.shadowColor = '#cc88ff'; CTX.shadowBlur = 20; CTX.fillStyle = '#cc88ff'; CTX.font = 'bold ' + titleFontSz + 'px "Cinzel Decorative", serif';
+  CTX.fillText(game.stage === 2 ? '選擇第二關起始武器' : '選擇初始武器', W/2, titleY); CTX.restore();
+  CTX.fillStyle = 'rgba(200,180,230,0.5)'; CTX.font = subFontSz + 'px "Cinzel", serif'; CTX.fillText('Choose Your Starting Weapon', W/2, titleY + titleFontSz + 2);
+
+  for (let i = 0; i < numCards; i++) {
+    const opt = opts[i], col = i % cols, row = Math.floor(i / cols);
+    const cx = startX + col * (cardW + GAP), cy = startY + row * (cardH + GAP);
+    const isSelected = game.selectedWeapon === opt.type;
+    const isHover = !isMobile && mouse.x >= cx && mouse.x <= cx + cardW && mouse.y >= cy && mouse.y <= cy + cardH;
+    const hi = isSelected || isHover; const capI = i;
+    registerBtn(cx, cy, cardW, cardH, 'weaponSelect', () => { game.selectedWeapon = opts[capI].type; });
+
+    if (isSelected) { CTX.save(); CTX.shadowColor = opt.border; CTX.shadowBlur = 20; CTX.fillStyle = 'rgba(0,0,0,0)'; CTX.fillRect(cx - 3, cy - 3, cardW + 6, cardH + 6); CTX.restore(); }
+    const bgCol = isSelected ? '#3a1860' : (hi ? '#2a1248' : '#120a22');
+    pxRect(cx, cy, cardW, cardH, bgCol); pxRect(cx, cy, cardW, isSelected ? 4 : 2, opt.border); pxRectOutline(cx, cy, cardW, cardH, isSelected ? opt.border : (hi ? opt.color : 'rgba(80,60,100,0.55)'), isSelected ? 2 : 1);
+
+    const iconSize = Math.max(14, Math.min(cardW * 0.35, cardH * 0.3, 36)), iconY = cy + cardH * 0.38;
+    CTX.save(); if (isSelected) { CTX.shadowColor = opt.border; CTX.shadowBlur = 12; }
+    CTX.font = iconSize + 'px serif'; CTX.textAlign = 'center'; CTX.textBaseline = 'middle';
+    CTX.fillText({ whip:'🪢', wand:'🪄', axe:'🪓', bible:'📖', firewand:'🔥', lightning:'⚡', cross:'✝️', shadow:'🗡' }[opt.type] || '⚔', cx + cardW/2, iconY); CTX.restore(); CTX.textBaseline = 'alphabetic';
+
+    const nameFontSz = Math.max(9, Math.min(13, cardW * 0.1, cardH * 0.09));
+    CTX.fillStyle = isSelected ? opt.border : '#e8e0f8'; CTX.font = 'bold ' + nameFontSz + 'px "Cinzel", serif'; CTX.textAlign = 'center'; CTX.fillText(opt.label, cx + cardW/2, cy + cardH * 0.59);
+    if (cardH > 90) { CTX.fillStyle = opt.color; CTX.font = Math.max(7, Math.min(10, cardW * 0.075)) + 'px "Cinzel", serif'; CTX.fillText(opt.subtitle, cx + cardW/2, cy + cardH * 0.73); }
+    if (cardH > 118) { CTX.fillStyle = 'rgba(200,190,220,0.65)'; CTX.font = Math.max(7, Math.min(9, cardW * 0.062)) + 'px "Cinzel", serif'; CTX.fillText(opt.desc, cx + cardW/2, cy + cardH * 0.87); }
+    if (isSelected) { CTX.save(); CTX.fillStyle = opt.border; CTX.shadowColor = opt.border; CTX.shadowBlur = 6; CTX.font = 'bold ' + Math.max(7, Math.min(9, cardW * 0.062)) + 'px "Cinzel", serif'; CTX.fillText('✓ 已選擇', cx + cardW/2, cy + cardH - 7); CTX.restore(); }
+  }
+
+  const cardsBottom = startY + rows * cardH + (rows - 1) * GAP;
+  const btnW = Math.min(220, W - PAD * 2), btnX = W/2 - btnW/2, btnY = Math.min(cardsBottom + BTN_GAP, H - BTN_H - PAD);
+  pxRect(btnX, btnY, btnW, BTN_H, '#280a50'); pxRect(btnX + 3, btnY + 3, btnW - 6, BTN_H - 6, '#4a2080'); pxRectOutline(btnX, btnY, btnW, BTN_H, '#cc88ff', 2);
+  CTX.save(); CTX.shadowColor = '#eeccff'; CTX.shadowBlur = 8; CTX.fillStyle = '#eeccff'; CTX.font = 'bold ' + Math.max(13, Math.min(17, W * 0.034)) + 'px "Cinzel", serif'; CTX.textAlign = 'center'; CTX.fillText('⚔  出發冒險  ⚔', W/2, btnY + BTN_H * 0.67); CTX.restore();
+  registerBtn(btnX, btnY, btnW, BTN_H, 'weaponSelect', () => { game.reset(game.selectedWeapon, game.stage); });
+}
+
+// ====== STAGE 3 SELECT SCREEN (4 Weapons + 4 Passives) ======
+function drawStage3Select() {
+  CTX.fillStyle = 'rgba(10,0,20,0.98)'; CTX.fillRect(0, 0, W, H);
+  const glow = CTX.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*0.7);
+  glow.addColorStop(0, 'rgba(80,0,120,0.3)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+  CTX.fillStyle = glow; CTX.fillRect(0, 0, W, H);
+  CTX.textAlign = 'center';
+
+  CTX.save(); CTX.shadowColor = '#cc44ff'; CTX.shadowBlur = 20; CTX.fillStyle = '#cc44ff';
+  CTX.font = 'bold ' + Math.min(26, W * 0.06) + 'px "Cinzel Decorative", serif';
+  CTX.fillText('終局備戰：選擇4武器與4技能', W/2, 40); CTX.restore();
+  
+  const wps = getAvailableWeapons();
+  const psv = getAvailablePassives();
+  
+  const boxS = Math.min(48, W/6, H/12);
+  const pad = 8;
+  const startX = W/2 - ((wps.length/2)*boxS + (wps.length/2 - 1)*pad);
+  
+  CTX.fillStyle = '#fff'; CTX.font = '14px serif';
+  CTX.fillText(`武器 (${stage3Selections.weapons.length}/4)`, W/2, 80);
+  
+  // Render Weapons
+  let r = 0, c = 0;
+  for(let i=0; i<wps.length; i++) {
+    const t = wps[i];
+    const bx = W/2 - ((Math.min(4, wps.length))*boxS + (Math.min(4, wps.length)-1)*pad)/2 + c*(boxS+pad);
+    const by = 100 + r*(boxS+pad);
+    const sel = stage3Selections.weapons.includes(t);
+    
+    pxRect(bx, by, boxS, boxS, sel ? '#4a2080' : '#1a0033');
+    pxRectOutline(bx, by, boxS, boxS, sel ? '#cc88ff' : '#552288', 2);
+    CTX.font = (boxS*0.5) + 'px serif'; CTX.fillText(WEAPON_DEFS[t].icon, bx+boxS/2, by+boxS*0.65);
+    
+    registerBtn(bx, by, boxS, boxS, 'stage3Select', () => {
+      if(sel) stage3Selections.weapons = stage3Selections.weapons.filter(x => x !== t);
+      else if(stage3Selections.weapons.length < 4) stage3Selections.weapons.push(t);
+    });
+    
+    c++; if(c>=4){ c=0; r++; }
+  }
+
+  const psvStart = 100 + (r+1)*(boxS+pad) + 20;
+  CTX.fillStyle = '#fff'; CTX.font = '14px serif';
+  CTX.fillText(`技能 (${stage3Selections.passives.length}/4)`, W/2, psvStart - 10);
+  
+  // Render Passives
+  r = 0; c = 0;
+  for(let i=0; i<psv.length; i++) {
+    const t = psv[i];
+    const bx = W/2 - ((Math.min(5, psv.length))*boxS + (Math.min(5, psv.length)-1)*pad)/2 + c*(boxS+pad);
+    const by = psvStart + 10 + r*(boxS+pad);
+    const sel = stage3Selections.passives.includes(t);
+    
+    pxRect(bx, by, boxS, boxS, sel ? '#206030' : '#0a2211');
+    pxRectOutline(bx, by, boxS, boxS, sel ? '#44ff88' : '#228844', 2);
+    CTX.font = (boxS*0.5) + 'px serif'; CTX.fillText(PASSIVE_DEFS[t].icon, bx+boxS/2, by+boxS*0.65);
+    
+    registerBtn(bx, by, boxS, boxS, 'stage3Select', () => {
+      if(sel) stage3Selections.passives = stage3Selections.passives.filter(x => x !== t);
+      else if(stage3Selections.passives.length < 4) stage3Selections.passives.push(t);
+    });
+    
+    c++; if(c>=5){ c=0; r++; }
+  }
+
+  // Confirm Button
+  if (stage3Selections.weapons.length === 4 && stage3Selections.passives.length === 4) {
+    const btnW = 200, btnH = 50, bx = W/2 - btnW/2, by = H - 80;
+    pxRect(bx, by, btnW, btnH, '#3a0000'); pxRect(bx+3, by+3, btnW-6, btnH-6, '#6a0000');
+    pxRectOutline(bx, by, btnW, btnH, '#ff4444', 2);
+    CTX.save(); CTX.shadowColor = '#ff8888'; CTX.shadowBlur = 8; CTX.fillStyle = '#ff8888';
+    CTX.font = 'bold 18px "Cinzel", serif'; CTX.fillText('⚔ 進入隱藏關卡 ⚔', W/2, by + btnH * 0.65); CTX.restore();
+    registerBtn(bx, by, btnW, btnH, 'stage3Select', () => { game.reset(null, 3); });
+  }
+}
+
+// ====== LEVEL UP SCREEN ======
+function drawLevelUp() {
+  CTX.fillStyle = 'rgba(5,0,15,0.84)'; CTX.fillRect(0, 0, W, H);
+  const vig = CTX.createRadialGradient(W/2, H/2, 100, W/2, H/2, Math.max(W,H)*0.7);
+  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.6)');
+  CTX.fillStyle = vig; CTX.fillRect(0, 0, W, H); CTX.textAlign = 'center';
+
+  const isMobile = W < 600;
+  CTX.save(); CTX.shadowColor = '#ffe066'; CTX.shadowBlur = 28; CTX.fillStyle = '#ffe066'; CTX.font = `bold ${Math.min(40, rw(40))}px "Cinzel Decorative", serif`; CTX.fillText('⬆ LEVEL UP! ⬆', W/2, isMobile ? 48 : H/2 - 140); CTX.restore();
+  CTX.fillStyle = 'rgba(200,180,230,0.6)'; CTX.font = `${Math.min(13, rw(13))}px "Cinzel", serif`; CTX.fillText('點擊卡片選擇升級', W/2, isMobile ? 70 : H/2 - 100);
+
+  const maxCardW = isMobile ? Math.min(155, (W - 30) / 3 - 8) : 185;
+  const cardW = maxCardW, cardH = isMobile ? Math.min(185, H - 105) : 215; const gap = isMobile ? 8 : 20;
+  const totalW = levelUpChoices.length * cardW + (levelUpChoices.length - 1) * gap;
+  const startX = Math.max(4, (W - totalW) / 2), startY = isMobile ? 82 : H / 2 - 85;
+
+  for (let i = 0; i < levelUpChoices.length; i++) {
+    const c = levelUpChoices[i], cx = startX + i * (cardW + gap), cy = startY;
+    registerBtn(cx, cy, cardW, cardH, 'levelup', () => selectChoice(i));
+    const isWeapon = c.cat === 'weapon', def = isWeapon ? WEAPON_DEFS[c.type] : PASSIVE_DEFS[c.type];
+    const isHover = !isMobile && mouse.x >= cx && mouse.x <= cx + cardW && mouse.y >= cy && mouse.y <= cy + cardH;
+
+    pxRect(cx, cy, cardW, cardH, isWeapon ? (isHover ? '#2a1a5a' : '#1e1440') : (isHover ? '#0f3020' : '#0a2218'));
+    pxRect(cx, cy, cardW, 3, isWeapon ? '#9b5de5' : '#2ecc71');
+    pxRectOutline(cx, cy, cardW, cardH, isHover ? (isWeapon ? '#9b5de5' : '#2ecc71') : (isWeapon ? 'rgba(100,60,180,0.55)' : 'rgba(40,140,70,0.55)'), isHover ? 2 : 1);
+
+    const iconSize = Math.min(38, cardW * 0.21);
+    CTX.save(); if (isHover) { CTX.shadowColor = isWeapon ? '#cc88ff' : '#44ee88'; CTX.shadowBlur = 18; }
+    CTX.font = `${iconSize}px serif`; CTX.textAlign = 'center'; CTX.fillText(def.icon, cx + cardW/2, cy + cardH * 0.27); CTX.restore();
+
+    const nameFontSize = Math.min(12, cardW * 0.073); CTX.fillStyle = '#e8e0f8'; CTX.font = `bold ${nameFontSize}px "Cinzel", serif`;
+    let displayName = def.name; if (isMobile) displayName = def.name.split(' ')[0];
+    CTX.fillText(displayName, cx + cardW/2, cy + cardH * 0.43);
+
+    CTX.save(); CTX.shadowColor = '#ffe066'; CTX.shadowBlur = c.isNew ? 10 : 3; CTX.fillStyle = c.isNew ? '#ffe066' : '#c0a830';
+    CTX.font = `bold ${Math.min(11, cardW * 0.068)}px "Cinzel", serif`;
+    CTX.fillText(c.isNew ? '✦ NEW ✦' : `Lv${c.level-1}→${c.level}`, cx + cardW/2, cy + cardH * 0.56); CTX.restore();
+
+    CTX.fillStyle = isWeapon ? '#9b5de5' : '#2ecc71'; CTX.font = `${Math.min(11, cardW * 0.063)}px "Cinzel", serif`;
+    CTX.fillText(isWeapon ? '武器' : '被動', cx + cardW/2, cy + cardH * 0.68);
+
+    if (!isWeapon && cardH > 160) { CTX.fillStyle = 'rgba(200,230,200,0.75)'; CTX.font = `${Math.min(11, cardW * 0.062)}px "Cinzel", serif`; CTX.fillText(def.desc, cx + cardW/2, cy + cardH * 0.79); }
+    const tapHint = isMobile ? '點擊' : (isHover ? '點擊選擇' : '');
+    if (tapHint) { CTX.fillStyle = 'rgba(255,255,255,0.3)'; CTX.font = `${Math.min(10, cardW * 0.058)}px "Cinzel", serif`; CTX.fillText(tapHint, cx + cardW/2, cy + cardH - 10); }
+  }
+}
+
+// ====== GAME OVER UI HELPERS ======
+function drawPxBtn(label, x, y, w, h, bgDark, bgLight, borderCol, textCol, state, fn) {
+  pxRect(x, y, w, h, bgDark); pxRect(x+3, y+3, w-6, h-6, bgLight); pxRectOutline(x, y, w, h, borderCol, 2);
+  CTX.save(); CTX.shadowColor = textCol; CTX.shadowBlur = 6; CTX.fillStyle = textCol; CTX.font = `bold ${Math.min(14, rw(14))}px "Cinzel", serif`; CTX.textAlign = 'center'; CTX.fillText(label, x + w/2, y + h * 0.67); CTX.restore();
+  registerBtn(x, y, w, h, state, fn);
+}
+
+function drawGameOver() {
+  CTX.fillStyle = 'rgba(0,0,0,0.93)'; CTX.fillRect(0, 0, W, H);
+  const glow = CTX.createRadialGradient(W/2, H/2, 0, W/2, H/2, 400); glow.addColorStop(0, 'rgba(150,0,20,0.25)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+  CTX.fillStyle = glow; CTX.fillRect(0, 0, W, H); CTX.textAlign = 'center';
+
+  CTX.save(); CTX.shadowColor = '#ff0000'; CTX.shadowBlur = 48; CTX.fillStyle = '#cc1020'; CTX.font = `bold ${Math.min(58, rw(58))}px "Cinzel Decorative", serif`; CTX.fillText('GAME OVER', W/2, H/2 - rh(82)); CTX.restore();
+
+  const panW = Math.min(320, W - 40); pxRect(W/2 - panW/2, H/2 - rh(52), panW, rh(112), 'rgba(0,0,0,0.55)'); pxRectOutline(W/2 - panW/2, H/2 - rh(52), panW, rh(112), 'rgba(180,20,30,0.6)', 1);
+  const mins = Math.floor(game.time / 60), secs = Math.floor(game.time % 60);
+  CTX.fillStyle = '#e8d0d8'; CTX.font = `${Math.min(15, rw(15))}px "Cinzel", serif`;
+  CTX.fillText('\u23f1  \u5b58\u6d3b\u6642\u9593  ' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0'), W/2, H/2 - rh(20));
+  CTX.fillText('\u2620  \u7e3d\u64ca\u6bba    ' + player.kills, W/2, H/2 + rh(12));
+  CTX.fillText('\u2b06  \u9054\u5230\u7b49\u7d1a  ' + player.level, W/2, H/2 + rh(44));
+
+  const bw = Math.min(190, W - 40), bh = Math.min(46, rh(46)), bx = W/2 - bw/2, by = H/2 + rh(80);
+  drawPxBtn('\u21ba  \u91cd\u65b0\u958b\u59cb', bx, by, bw, bh, '#3a0008', '#6a0010', 'rgba(200,50,60,0.85)', '#ffcccc', 'gameover', () => game.startNewGame(1));
+}
+
+function drawGameOver2() {
+  CTX.fillStyle = 'rgba(0,0,0,0.82)'; CTX.fillRect(0, 0, W, H);
+  const glow = CTX.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*0.55); glow.addColorStop(0, 'rgba(120,0,180,0.2)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+  CTX.fillStyle = glow; CTX.fillRect(0, 0, W, H); CTX.textAlign = 'center';
+
+  const remaining = game.MAX_REVIVES - game.reviveCount; const isMobile = W < 600;
+
+  if (remaining > 0) {
+    CTX.save(); CTX.shadowColor = '#cc44ff'; CTX.shadowBlur = 36; CTX.fillStyle = '#dd66ff'; CTX.font = `bold ${Math.min(44, rw(44))}px "Cinzel Decorative", serif`; CTX.fillText('\u2620 \u9670\u4ea1 \u2620', W/2, H/2 - rh(110)); CTX.restore();
+    CTX.fillStyle = 'rgba(220,180,255,0.8)'; CTX.font = `${Math.min(14, rw(14))}px "Cinzel", serif`; CTX.fillText('是否消耗復活動力繼續戰鬥？', W/2, H/2 - rh(68));
+
+    const heartSize = isMobile ? 22 : 28, heartGap = isMobile ? 6 : 8; const totalHW = game.MAX_REVIVES * (heartSize + heartGap) - heartGap; const heartX0 = W/2 - totalHW/2, heartY = H/2 - rh(42);
+    for (let i = 0; i < game.MAX_REVIVES; i++) {
+      const hx = heartX0 + i * (heartSize + heartGap), used = i >= remaining;
+      CTX.font = heartSize + 'px serif'; CTX.globalAlpha = used ? 0.22 : 1.0; CTX.fillText(used ? '\u2661' : '\u2764', hx + heartSize/2, heartY + heartSize); CTX.globalAlpha = 1;
+    }
+    CTX.save(); CTX.fillStyle = 'rgba(200,160,240,0.6)'; CTX.font = `${Math.min(12, rw(12))}px "Cinzel", serif`; CTX.fillText('\u5269\u9918\u5fa9\u6d3b\u6a5f\u6703: ' + remaining + ' / ' + game.MAX_REVIVES, W/2, H/2 - rh(4)); CTX.restore();
+
+    const panW = Math.min(300, W - 40), panH = rh(60), panX = W/2 - panW/2, panY = H/2 + rh(4);
+    pxRect(panX, panY, panW, panH, 'rgba(20,0,40,0.7)'); pxRectOutline(panX, panY, panW, panH, 'rgba(140,60,200,0.5)', 1);
+    const mins = Math.floor(game.time / 60), secs = Math.floor(game.time % 60);
+    CTX.fillStyle = 'rgba(220,200,240,0.75)'; CTX.font = `${Math.min(13, rw(13))}px "Cinzel", serif`;
+    CTX.fillText('\u23f1 ' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0') + '   \u2620 ' + player.kills + '\u6bba   \u2b06 Lv.' + player.level, W/2, panY + panH * 0.6);
+
+    const btnW = Math.min(isMobile ? 140 : 170, (W - 50) / 2), btnH = Math.min(48, rh(48)), gap = 12, totalBW = btnW * 2 + gap, b1x = W/2 - totalBW/2, b2x = b1x + btnW + gap, bY = H/2 + rh(72);
+    drawPxBtn('\u2728 \u5fa9\u6d3b\u7e7c\u7e8c', b1x, bY, btnW, btnH, '#240048', '#4a0090', '#cc44ff', '#eeccff', 'gameover2', () => {
+      game.reviveCount++; player.hp = player.maxHp; player.alive = true; player.iFrames = 3.0;
+      enemies.each(e => { if (dist(player, e) < 200) { const ang = angleTo(player, e); e.x = player.x + Math.cos(ang) * 220; e.y = player.y + Math.sin(ang) * 220; } });
+      spawnDmgText(player.x, player.y - 30, '\u5fa9\u6d3b! HP\u6062\u5fa9', '#ee88ff'); game.shake(6, 0.3); game.state = 'playing';
+    });
+    drawPxBtn('\u2620 \u653e\u68c4\u904a\u6232', b2x, bY, btnW, btnH, '#3a0008', '#6a0010', 'rgba(200,50,60,0.85)', '#ffcccc', 'gameover2', () => { game.state = 'gameover'; });
+
+  } else {
+    CTX.save(); CTX.shadowColor = '#ff0000'; CTX.shadowBlur = 44; CTX.fillStyle = '#cc1020'; CTX.font = `bold ${Math.min(48, rw(48))}px "Cinzel Decorative", serif`; CTX.fillText('GAME OVER', W/2, H/2 - rh(105)); CTX.restore();
+    CTX.fillStyle = 'rgba(255,180,180,0.8)'; CTX.font = `${Math.min(14, rw(14))}px "Cinzel", serif`; CTX.fillText('\u5fa9\u6d3b\u6a5f\u6703\u5df2\u7528\u76e1', W/2, H/2 - rh(62));
+
+    const panW = Math.min(300, W - 40); pxRect(W/2 - panW/2, H/2 - rh(46), panW, rh(80), 'rgba(0,0,0,0.55)'); pxRectOutline(W/2 - panW/2, H/2 - rh(46), panW, rh(80), 'rgba(180,20,30,0.6)', 1);
+    const mins = Math.floor(game.time / 60), secs = Math.floor(game.time % 60);
+    CTX.fillStyle = '#e8d0d8'; CTX.font = `${Math.min(14, rw(14))}px "Cinzel", serif`;
+    CTX.fillText('\u23f1  \u5b58\u6d3b  ' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0') + '   \u2620  ' + player.kills + '\u6bba', W/2, H/2 - rh(14));
+
+    const btnW = Math.min(isMobile ? 140 : 170, (W - 50) / 2), btnH = Math.min(46, rh(46)), gap = 12, totalBW = btnW * 2 + gap, b1x = W/2 - totalBW/2, b2x = b1x + btnW + gap, bY = H/2 + rh(44);
+    drawPxBtn('\u21ba \u91cd\u6311\u672c\u95dc', b1x, bY, btnW, btnH, '#3a2800', '#6a5000', '#e8b84b', '#ffe066', 'gameover2', () => { game.reviveCount = 0; game.startNewGame(game.stage); });
+    drawPxBtn('\u25b6 \u56de\u7b2c\u4e00\u95dc', b2x, bY, btnW, btnH, '#3a0008', '#6a0010', 'rgba(200,50,60,0.85)', '#ffcccc', 'gameover2', () => { game.reviveCount = 0; game.startNewGame(1); });
+  }
+}
+
+function drawVictory() {
+  CTX.fillStyle = 'rgba(0,0,0,0.92)'; CTX.fillRect(0, 0, W, H);
+  const glow = CTX.createRadialGradient(W/2, H/2, 0, W/2, H/2, 400); glow.addColorStop(0, 'rgba(200,160,0,0.22)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+  CTX.fillStyle = glow; CTX.fillRect(0, 0, W, H); CTX.textAlign = 'center';
+
+  CTX.save(); CTX.shadowColor = '#ffe066'; CTX.shadowBlur = 46; CTX.fillStyle = '#e8b84b'; CTX.font = `bold ${Math.min(52, rw(52))}px "Cinzel Decorative", serif`;
+  CTX.fillText(game.stage === 1 ? '✦ 第一關通關! ✦' : '✦ 第二關通關! ✦', W/2, H/2 - rh(90)); CTX.restore();
+
+  CTX.fillStyle = 'rgba(255,240,150,0.7)'; CTX.font = `${Math.min(15, rw(15))}px "Cinzel", serif`;
+  CTX.fillText(game.stage === 1 ? '準備繼續挑戰第二關？' : '隱藏的黑暗正在蠢動...', W/2, H/2 - rh(44));
+
+  const panW = Math.min(320, W - 40); pxRect(W/2 - panW/2, H/2 - rh(20), panW, rh(90), 'rgba(0,0,0,0.55)'); pxRectOutline(W/2 - panW/2, H/2 - rh(20), panW, rh(90), 'rgba(232,184,75,0.5)', 1);
+  CTX.fillStyle = '#e8d8b0'; CTX.font = `${Math.min(14, rw(14))}px "Cinzel", serif`;
+  CTX.fillText('☠  總擊殺  ' + player.kills, W/2, H/2 + rh(12)); CTX.fillText('⬆  達到等級  ' + player.level, W/2, H/2 + rh(42));
+
+  const bw = Math.min(180, W/2 - 20), bh = Math.min(46, rh(46)), gap = 10, totalBtnW = bw * 2 + gap, bx1 = W/2 - totalBtnW/2, by1 = H/2 + rh(94), bx2 = bx1 + bw + gap;
+
+  if (game.stage === 1) {
+    drawPxBtn('⚔ 挑戰第二關', bx1, by1, bw, bh, '#3a2800', '#6a5000', '#e8b84b', '#ffe066', 'victory', () => { game.stage = 2; game.selectedWeapon = 'whip'; game.state = 'weaponSelect'; });
+  } else {
+    drawPxBtn('👁 挑戰隱藏關', bx1, by1, bw, bh, '#200040', '#400080', '#cc44ff', '#ee88ff', 'victory', () => { game.startNewGame(3); });
+  }
+  drawPxBtn('↺ 再來一局', bx2, by1, bw, bh, '#280008', '#550010', 'rgba(200,50,60,0.8)', '#ffcccc', 'victory', () => game.startNewGame(1));
+}
+
+function drawVictory3() {
+  CTX.fillStyle = 'rgba(0,0,0,0.95)'; CTX.fillRect(0, 0, W, H);
+  const glow = CTX.createRadialGradient(W/2, H/2, 0, W/2, H/2, 500);
+  glow.addColorStop(0, 'rgba(255,215,0,0.3)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+  CTX.fillStyle = glow; CTX.fillRect(0, 0, W, H); CTX.textAlign = 'center';
+
+  CTX.save(); CTX.shadowColor = '#ffd700'; CTX.shadowBlur = 50; CTX.fillStyle = '#ffd700';
+  CTX.font = `bold ${Math.min(40, rw(40))}px "Cinzel Decorative", serif`;
+  CTX.fillText('黑暗終究會過去', W/2, H/2 - rh(100));
+  CTX.fillText('世界因你恢復了和平', W/2, H/2 - rh(40));
+  CTX.restore();
+
+  const cw = Math.min(360, W - 40), ch = rh(120), cx = W/2 - cw/2, cy = H/2 + rh(20);
+  pxRect(cx, cy, cw, ch, 'rgba(0,0,0,0.6)'); pxRectOutline(cx, cy, cw, ch, '#aa8800', 1);
+  
+  CTX.fillStyle = '#ddcc88'; CTX.font = `${Math.min(14, rw(14))}px serif`;
+  CTX.fillText('遊戲設計: LinWei', W/2, cy + rh(30));
+  CTX.fillText('美術設計: LinWei', W/2, cy + rh(55));
+  CTX.fillText('關卡設計: LinWei', W/2, cy + rh(80));
+  CTX.fillText('程式設計: Claude Sonnet 4.6', W/2, cy + rh(105));
+
+  const btnW = 200, btnH = 46, bx = W/2 - btnW/2, by = cy + ch + rh(30);
+  drawPxBtn('↺ 返回標題', bx, by, btnW, btnH, '#3a2800', '#6a5000', '#e8b84b', '#ffe066', 'victory3', () => { game.state = 'title'; });
+}
+
+// ====== GAME LOOP ======
+let lastTime = 0;
+function loop(ts) {
+  const dt = Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts; update(dt); render(); requestAnimationFrame(loop);
+}
+requestAnimationFrame(ts => { lastTime = ts; requestAnimationFrame(loop); });
+</script>
+</body>
+</html>
