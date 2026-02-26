@@ -524,8 +524,8 @@ const ENEMY_DEFS = {
   gargoyle: { hp: 120,    dmg: 15, speed: 25,  r: 24,  color: '#666', xp: 5,   knockback: 0.8 },
   boss2:    { hp: 24000,  dmg: 30, speed: 50,  r: 48,  color: '#a00', xp: 200, knockback: 0.3 },
   // Stage 3 Boss (3× HP)
-  boss3:    { hp: 75000,  dmg: 45, speed: 38,  r: 65,  color: '#408', xp: 5000, knockback: 0.1 },
-  boss3_form2:{hp: 24000, dmg: 55, speed: 65,  r: 55,  color: '#f00', xp: 10000,knockback: 0   }
+  boss3:    { hp: 150000,  dmg: 45, speed: 38,  r: 65,  color: '#408', xp: 5000, knockback: 0.1 },
+  boss3_form2:{hp: 48000, dmg: 55, speed: 65,  r: 55,  color: '#f00', xp: 10000,knockback: 0   }
 };
 
 const enemies = new Pool(() => ({
@@ -2450,9 +2450,9 @@ function drawVictory3() {
   CTX.fillStyle = '#c8b870'; CTX.font = `bold ${cf}px "Cinzel", serif`;
   CTX.fillText('─── 製作群 ───', W/2, credY + credLineH * 0.7);
   CTX.fillStyle = '#d8c880'; CTX.font = `${cf}px "Cinzel", serif`;
-  CTX.fillText('遊戲設計 · 美術 · 關卡：LinWei', W/2, credY + credLineH * 1.7);
+  CTX.fillText('遊戲設計 · 美術 · 關卡：洪聆維', W/2, credY + credLineH * 1.7);
   CTX.fillStyle = '#aa8844'; CTX.font = `${cf - 1}px "Cinzel", serif`;
-  CTX.fillText('AI 程式輔助：Claude Sonnet 4.6 by Anthropic', W/2, credY + credLineH * 2.7);
+  CTX.fillText('AI 程式輔助：Claude Sonnet 4.6 by Anthropic & Google Gemini 3.1', W/2, credY + credLineH * 2.7);
   CTX.fillStyle = 'rgba(200,180,100,0.4)'; CTX.font = `${cf - 1}px "Cinzel", serif`;
   CTX.fillText('感謝您玩到了最後 — Thank you for playing!', W/2, credY + credLineH * 3.7);
 
