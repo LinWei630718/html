@@ -152,6 +152,222 @@ function onScreen(wx, wy, margin = 80) {
   return sx > -margin && sx < W + margin && sy > -margin && sy < H + margin;
 }
 
+// ====== BOSS3 EXPLOSION SYSTEM ======
+const bossExplosion = {
+  active: false,
+  phase: 0,        // 0=inactive, 1=pre-flash, 2=shockwave, 3=particle shower, 4=void collapse, 5=done
+  timer: 0,
+  bx: 0, by: 0,    // boss world position (captured at death)
+  particles: [],
+  shockwaves: [],
+  flashAlpha: 0,
+  screenShatter: [],
+  pulseRings: [],
+  done: false,
+
+  start(x, y) {
+    this.active = true; this.done = false; this.phase = 1; this.timer = 0;
+    this.bx = x; this.by = y;
+    this.flashAlpha = 0;
+    this.particles = [];
+    this.shockwaves = [];
+    this.screenShatter = [];
+    this.pulseRings = [];
+    // Pre-generate particle burst (300 particles)
+    for (let i = 0; i < 300; i++) {
+      const a = rand(0, Math.PI * 2);
+      const spd = rand(80, 600 + i * 2.5);
+      const size = rand(3, 18);
+      const life = rand(1.2, 4.5);
+      const hue = Math.random() < 0.5 ? rand(0, 40) : rand(280, 360); // red-orange or purple
+      const col = `hsl(${hue},100%,${rand(50,90)}%)`;
+      this.particles.push({ x, y, vx: Math.cos(a)*spd, vy: Math.sin(a)*spd, size, life, maxLife: life, col, gravity: rand(30,120), spin: rand(-8,8), alpha: 1 });
+    }
+    // Shockwave rings
+    for (let i = 0; i < 5; i++) {
+      this.shockwaves.push({ r: 0, maxR: 400 + i * 180, delay: i * 0.18, alpha: 1, col: i % 2 === 0 ? '#ff4400' : '#aa00ff' });
+    }
+    // Screen shatter lines (random cracks from center)
+    for (let i = 0; i < 24; i++) {
+      const a = rand(0, Math.PI * 2);
+      const len = rand(80, Math.max(W, H) * 0.7);
+      this.screenShatter.push({ a, len, alpha: 0, maxAlpha: rand(0.4, 0.9), col: Math.random() < 0.5 ? '#ff2200' : '#cc00ff', life: rand(0.8, 2.2) });
+    }
+    // Pulse rings for continuous ripple
+    for (let i = 0; i < 8; i++) {
+      this.pulseRings.push({ r: 0, delay: i * 0.25, speed: rand(300, 600), alpha: 0.9, col: i%3===0?'#fff':i%3===1?'#ff4400':'#aa00ff' });
+    }
+  },
+
+  update(dt) {
+    if (!this.active) return;
+    this.timer += dt;
+    const t = this.timer;
+
+    // Phase transitions
+    if (this.phase === 1 && t >= 0.15) { this.phase = 2; game.shake(40, 2.0); }
+    if (this.phase === 2 && t >= 0.6)  { this.phase = 3; }
+    if (this.phase === 3 && t >= 2.8)  { this.phase = 4; }
+    if (this.phase === 4 && t >= 5.2)  { this.phase = 5; this.done = true; }
+
+    // Flash alpha
+    if (this.phase === 1) this.flashAlpha = Math.min(1, t / 0.15);
+    else if (this.phase === 2) this.flashAlpha = Math.max(0, 1 - (t - 0.15) / 0.45);
+    else this.flashAlpha = 0;
+
+    // Update shockwaves
+    for (const sw of this.shockwaves) {
+      if (t < sw.delay) continue;
+      const age = t - sw.delay;
+      sw.r = age * 900;
+      sw.alpha = Math.max(0, 1 - sw.r / sw.maxR);
+    }
+
+    // Update particles
+    for (const p of this.particles) {
+      if (p.life <= 0) continue;
+      p.life -= dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vy += p.gravity * dt;
+      p.vx *= 0.98; p.vy *= 0.98;
+      p.alpha = Math.max(0, p.life / p.maxLife);
+    }
+
+    // Update screen shatter
+    for (const s of this.screenShatter) {
+      if (t < 0.1) continue;
+      const age = t - 0.1;
+      if (age < 0.3) s.alpha = Math.min(s.maxAlpha, age / 0.3 * s.maxAlpha);
+      else if (age > 0.6) s.alpha = Math.max(0, s.maxAlpha - (age - 0.6) / s.life * s.maxAlpha);
+    }
+
+    // Update pulse rings
+    for (const pr of this.pulseRings) {
+      if (t < pr.delay) continue;
+      pr.r += pr.speed * dt;
+      pr.alpha = Math.max(0, 0.9 - pr.r / 1200);
+    }
+
+    // Phase 4: void collapse — show state but keep particles fading
+    // After done, game transitions to victory3
+    if (this.done && game.state === 'playing') {
+      game.state = 'victory3';
+      bossExplosion.active = false;
+    }
+  },
+
+  render() {
+    if (!this.active) return;
+    const t = this.timer;
+    // Convert boss world pos to screen pos
+    const bsx = this.bx - cam.x + W / 2;
+    const bsy = this.by - cam.y + H / 2;
+
+    // Screen crack lines (behind everything)
+    CTX.save();
+    for (const s of this.screenShatter) {
+      if (s.alpha <= 0) continue;
+      CTX.globalAlpha = s.alpha;
+      CTX.strokeStyle = s.col;
+      CTX.lineWidth = 2;
+      CTX.shadowColor = s.col; CTX.shadowBlur = 8;
+      CTX.beginPath();
+      CTX.moveTo(bsx, bsy);
+      CTX.lineTo(bsx + Math.cos(s.a) * s.len, bsy + Math.sin(s.a) * s.len);
+      CTX.stroke();
+    }
+    CTX.restore();
+
+    // Shockwave rings
+    CTX.save();
+    for (const sw of this.shockwaves) {
+      if (sw.alpha <= 0 || sw.r <= 0) continue;
+      CTX.globalAlpha = sw.alpha * 0.7;
+      CTX.strokeStyle = sw.col;
+      CTX.lineWidth = Math.max(2, 12 * sw.alpha);
+      CTX.shadowColor = sw.col; CTX.shadowBlur = 20;
+      CTX.beginPath(); CTX.arc(bsx, bsy, sw.r, 0, Math.PI * 2); CTX.stroke();
+    }
+    CTX.restore();
+
+    // Pulse rings
+    CTX.save();
+    for (const pr of this.pulseRings) {
+      if (pr.alpha <= 0 || pr.r <= 0) continue;
+      CTX.globalAlpha = pr.alpha * 0.5;
+      CTX.strokeStyle = pr.col;
+      CTX.lineWidth = 3;
+      CTX.shadowColor = pr.col; CTX.shadowBlur = 12;
+      CTX.beginPath(); CTX.arc(bsx, bsy, pr.r, 0, Math.PI * 2); CTX.stroke();
+    }
+    CTX.restore();
+
+    // Particles
+    CTX.save();
+    for (const p of this.particles) {
+      if (p.alpha <= 0 || p.life <= 0) continue;
+      const ps = { x: p.x - cam.x + W/2, y: p.y - cam.y + H/2 };
+      CTX.globalAlpha = p.alpha;
+      CTX.fillStyle = p.col;
+      CTX.shadowColor = p.col; CTX.shadowBlur = p.size * 1.5;
+      const sz = p.size * p.alpha;
+      CTX.fillRect(Math.round(ps.x - sz/2), Math.round(ps.y - sz/2), Math.round(sz), Math.round(sz));
+    }
+    CTX.restore();
+
+    // Phase 4: void collapse — dark imploding circle with purple
+    if (this.phase >= 4) {
+      const age4 = t - 2.8;
+      const collapseR = Math.max(0, 300 - age4 * 120);
+      const colAlpha = Math.max(0, 1 - age4 / 2.4);
+      CTX.save();
+      const vg = CTX.createRadialGradient(bsx, bsy, 0, bsx, bsy, collapseR + 40);
+      vg.addColorStop(0, `rgba(0,0,0,${colAlpha})`);
+      vg.addColorStop(0.5, `rgba(80,0,120,${colAlpha * 0.6})`);
+      vg.addColorStop(1, 'rgba(0,0,0,0)');
+      CTX.fillStyle = vg; CTX.fillRect(0, 0, W, H);
+      // Inner glow ring
+      if (collapseR > 10) {
+        CTX.globalAlpha = colAlpha * 0.8;
+        CTX.strokeStyle = '#aa00ff';
+        CTX.lineWidth = 6;
+        CTX.shadowColor = '#aa00ff'; CTX.shadowBlur = 30;
+        CTX.beginPath(); CTX.arc(bsx, bsy, collapseR, 0, Math.PI * 2); CTX.stroke();
+      }
+      CTX.restore();
+    }
+
+    // Screen-wide flash (phases 1-2)
+    if (this.flashAlpha > 0) {
+      CTX.save();
+      CTX.globalAlpha = this.flashAlpha;
+      // White flash that transitions to orange-red
+      const flashPct = this.phase === 1 ? this.timer / 0.15 : 1 - (this.timer - 0.15) / 0.45;
+      const flashCol = flashPct > 0.5
+        ? `rgba(255,255,255,1)`
+        : `rgba(255,${Math.round(flashPct * 2 * 100)},0,1)`;
+      CTX.fillStyle = flashCol;
+      CTX.fillRect(0, 0, W, H);
+      CTX.restore();
+    }
+
+    // Phase 2 secondary explosion glow at boss position
+    if (this.phase === 2) {
+      const age2 = t - 0.15;
+      const glowR = age2 * 800;
+      const glowA = Math.max(0, 0.8 - age2 / 0.45);
+      CTX.save();
+      const eg = CTX.createRadialGradient(bsx, bsy, 0, bsx, bsy, glowR);
+      eg.addColorStop(0, `rgba(255,200,50,${glowA})`);
+      eg.addColorStop(0.3, `rgba(255,80,0,${glowA * 0.7})`);
+      eg.addColorStop(0.7, `rgba(150,0,200,${glowA * 0.4})`);
+      eg.addColorStop(1, 'rgba(0,0,0,0)');
+      CTX.fillStyle = eg; CTX.fillRect(0, 0, W, H);
+      CTX.restore();
+    }
+  }
+};
+
 // ====== DAMAGE TEXT ======
 const dmgTexts = new Pool(() => ({ active: false, x: 0, y: 0, text: '', timer: 0, color: '#fff' }), 500);
 function spawnDmgText(x, y, text, color = '#fff') {
@@ -301,15 +517,15 @@ const ENEMY_DEFS = {
   skeleton: { hp: 10,     dmg: 5,  speed: 55,  r: 15,  color: '#cca', xp: 1,   knockback: 1   },
   ghost:    { hp: 20,     dmg: 5,  speed: 35,  r: 18,  color: '#88f', xp: 10,  knockback: 0.2 },
   zombie:   { hp: 30,     dmg: 8,  speed: 30,  r: 21,  color: '#4a4', xp: 1,   knockback: 1   },
-  boss:     { hp: 3000,   dmg: 20, speed: 40,  r: 45,  color: '#f80', xp: 100, knockback: 0.3 },
+  boss:     { hp: 9000,   dmg: 20, speed: 40,  r: 45,  color: '#f80', xp: 100, knockback: 0.3 },
   reaper:   { hp: 999999, dmg: 9999, speed: 60, r: 30, color: '#000', xp: 0,   knockback: 0   },
   darkbat:  { hp: 15,     dmg: 4,  speed: 120, r: 12,  color: '#604', xp: 2,   knockback: 1   },
   lich:     { hp: 80,     dmg: 12, speed: 45,  r: 18,  color: '#88e', xp: 5,   knockback: 0.5 },
   gargoyle: { hp: 120,    dmg: 15, speed: 25,  r: 24,  color: '#666', xp: 5,   knockback: 0.8 },
-  boss2:    { hp: 8000,   dmg: 30, speed: 50,  r: 48,  color: '#a00', xp: 200, knockback: 0.3 },
-  // Stage 3 Boss
-  boss3:    { hp: 50000,  dmg: 45, speed: 38,  r: 65,  color: '#408', xp: 5000, knockback: 0.1 },
-  boss3_form2:{hp: 16000,  dmg: 55, speed: 65,  r: 55,  color: '#f00', xp: 10000,knockback: 0   }
+  boss2:    { hp: 24000,  dmg: 30, speed: 50,  r: 48,  color: '#a00', xp: 200, knockback: 0.3 },
+  // Stage 3 Boss (3× HP)
+  boss3:    { hp: 75000,  dmg: 45, speed: 38,  r: 65,  color: '#408', xp: 5000, knockback: 0.1 },
+  boss3_form2:{hp: 24000, dmg: 55, speed: 65,  r: 55,  color: '#f00', xp: 10000,knockback: 0   }
 };
 
 const enemies = new Pool(() => ({
@@ -749,6 +965,7 @@ const game = {
     player.kills = 0; player.facing = 1; player.iFrames = 0; player.alive = true;
     if (stage !== 2 && stage !== 3) this.reviveCount = 0; 
     _pendingLevelUps = 0; activeEffects.length = 0;
+    bossExplosion.active = false; bossExplosion.done = false; bossExplosion.phase = 0;
     player.mightMult = 1; player.defenseBreak = false; player.invincible = false;
     enemies.items.forEach(e => e.active = false); bullets.items.forEach(b => b.active = false);
     pickups.items.forEach(p => p.active = false); dmgTexts.items.forEach(t => t.active = false);
@@ -909,28 +1126,194 @@ function drawPixelGargoyle(r, flash) {
   pxRect(-r*0.32, -r*0.78, r*0.16, r*0.2, '#eee'); pxRect(-r*0.06, -r*0.78, r*0.16, r*0.2, '#eee'); pxRect(r*0.20, -r*0.78, r*0.16, r*0.2, '#eee');
 }
 function drawPixelBoss3(r, flash) {
-  const pulse = 1 + Math.sin(Date.now() / 250) * 0.05; CTX.scale(pulse, pulse);
-  const col = flash ? '#fff' : '#1a0033', eye = flash ? '#fff' : '#aa00ff';
-  const t = Date.now()/500;
-  for(let i=0; i<3; i++) {
-     const a = t + i*Math.PI*2/3;
-     pxRect(Math.cos(a)*r*1.3 - r*0.25, Math.sin(a)*r*1.3 - r*0.25, r*0.5, r*0.5, '#110022');
+  // ── 終極黑暗 ── Massive eldritch entity, Phase 1
+  const T = Date.now();
+  const pulse = 1 + Math.sin(T / 220) * 0.06;
+  CTX.scale(pulse, pulse);
+
+  const c0  = flash ? '#fff' : '#0d0022';   // void body
+  const c1  = flash ? '#eee' : '#1a0044';   // deep purple
+  const c2  = flash ? '#ddd' : '#330066';   // mid purple
+  const eye = flash ? '#fff' : '#cc00ff';   // eye glow
+  const vn  = flash ? '#ddd' : '#ff00cc';   // vein/accent
+
+  // Rotating outer chaos ring (3 large orbiting blobs)
+  const orbT = T / 400;
+  for (let i = 0; i < 4; i++) {
+    const a = orbT + i * Math.PI / 2;
+    const ox = Math.cos(a) * r * 1.55, oy = Math.sin(a) * r * 1.55;
+    pxRect(ox - r*0.38, oy - r*0.38, r*0.76, r*0.76, c0);
+    pxRect(ox - r*0.26, oy - r*0.26, r*0.52, r*0.52, c1);
+    pxRect(ox - r*0.12, oy - r*0.12, r*0.24, r*0.24, eye);
   }
-  pxRect(-r*0.9, -r*0.9, r*1.8, r*1.8, '#110022');
-  pxRect(-r*0.7, -r*0.7, r*1.4, r*1.4, col);
-  pxRect(-r*0.35, -r*0.25, r*0.7, r*0.5, '#000');
-  pxRect(-r*0.15, -r*0.1, r*0.3, r*0.2, eye);
+
+  // Wide shadow wings (flat pixel wings)
+  pxRect(-r*2.2, -r*0.55, r*1.4, r*0.4,  c0);   // left wing outer
+  pxRect(-r*1.9, -r*0.75, r*1.1, r*0.65, c1);   // left wing mid
+  pxRect(-r*1.6, -r*0.9,  r*0.7, r*0.85, c2);   // left wing inner
+  pxRect(r*0.8,  -r*0.55, r*1.4, r*0.4,  c0);   // right wing outer
+  pxRect(r*0.8,  -r*0.75, r*1.1, r*0.65, c1);
+  pxRect(r*0.9,  -r*0.9,  r*0.7, r*0.85, c2);
+
+  // Shoulder spikes (5 per side)
+  for (let s = -1; s <= 1; s += 2) {
+    for (let k = 0; k < 5; k++) {
+      const sx = s * (r*0.85 + k * r*0.22);
+      pxRect(sx - r*0.1, -r*(1.4 + k*0.18), r*0.2, r*(0.5 + k*0.12), c1);
+      pxRect(sx - r*0.05, -r*(1.55 + k*0.18), r*0.1, r*0.2, vn);
+    }
+  }
+
+  // Main giant body
+  pxRect(-r*1.05, -r*0.55, r*2.1, r*1.6,  c0);   // outer shadow
+  pxRect(-r*0.9,  -r*0.8,  r*1.8, r*1.7,  c1);   // core body
+  pxRect(-r*0.75, -r*0.95, r*1.5, r*1.5,  c2);   // highlight body
+
+  // Armored chest plates
+  pxRect(-r*0.7, -r*0.35, r*1.4, r*0.5, '#1a0033');
+  pxRect(-r*0.5, -r*0.6,  r*1.0, r*0.28, '#220044');
+  // Chest veins
+  pxRect(-r*0.05, -r*0.55, r*0.1, r*0.45, vn);
+  pxRect(-r*0.35, -r*0.42, r*0.7, r*0.06, vn);
+
+  // Face / head
+  pxRect(-r*0.65, -r*1.3, r*1.3, r*0.75, c1);
+  pxRect(-r*0.55, -r*1.45, r*1.1, r*0.55, c2);
+
+  // Crown of spikes (top of head)
+  for (let k = -2; k <= 2; k++) {
+    const h = r * (0.55 - Math.abs(k) * 0.1);
+    pxRect(k * r*0.22 - r*0.07, -r*1.45 - h, r*0.14, h, k===0 ? vn : c1);
+  }
+
+  // 3 eyes (main face)
+  const eyeT = Math.sin(T / 180);
+  pxRect(-r*0.44, -r*1.22, r*0.32, r*0.28, '#0a0018');  // left socket
+  pxRect(r*0.12,  -r*1.22, r*0.32, r*0.28, '#0a0018');  // right socket
+  pxRect(-r*0.15, -r*1.28, r*0.3,  r*0.22, '#0a0018');  // center socket
+  // Eye glow (pulsing)
+  const eA = 0.5 + eyeT * 0.5;
+  pxRect(-r*0.4,  -r*1.18, r*0.24, r*0.2, eye);
+  pxRect(r*0.16,  -r*1.18, r*0.24, r*0.2, eye);
+  pxRect(-r*0.1,  -r*1.24, r*0.2,  r*0.18, '#ffff00');  // center eye yellow
+  // Iris pupils
+  pxRect(-r*0.3,  -r*1.16, r*0.08, r*0.12, '#0a0018');
+  pxRect(r*0.22,  -r*1.16, r*0.08, r*0.12, '#0a0018');
+  pxRect(-r*0.02, -r*1.22, r*0.06, r*0.1,  '#0a0018');
+
+  // Massive gaping mouth
+  pxRect(-r*0.55, -r*0.82, r*1.1, r*0.38, '#000');
+  // Fang rows
+  for (let k = 0; k < 4; k++) {
+    pxRect(-r*0.48 + k*r*0.28, -r*0.82, r*0.14, r*0.22, '#e8e8f0'); // upper fangs
+    pxRect(-r*0.42 + k*r*0.28, -r*0.52, r*0.14, r*0.18, '#c8c8e0'); // lower fangs
+  }
+
+  // Arms (huge, clawed)
+  pxRect(-r*1.35, -r*0.2, r*0.5, r*0.9, c1);    // left upper arm
+  pxRect(-r*1.45, r*0.55, r*0.45, r*0.5, c2);   // left forearm
+  // Left claw fingers
+  for (let k = 0; k < 3; k++) pxRect(-r*1.55 + k*r*0.14, r*0.95, r*0.1, r*0.3, c1);
+  pxRect(r*0.85,  -r*0.2, r*0.5, r*0.9, c1);    // right upper arm
+  pxRect(r*1.0,   r*0.55, r*0.45, r*0.5, c2);   // right forearm
+  for (let k = 0; k < 3; k++) pxRect(r*1.0 + k*r*0.14, r*0.95, r*0.1, r*0.3, c1);
+
+  // Tentacles (lower body, 4 writhing)
+  const tT = T / 280;
+  for (let k = 0; k < 4; k++) {
+    const tx = (-r*0.6 + k * r*0.4);
+    const tw = Math.sin(tT + k * 1.2) * r * 0.18;
+    pxRect(tx + tw,        r*0.8,  r*0.2, r*0.5, c1);
+    pxRect(tx + tw*1.5,    r*1.2,  r*0.18, r*0.4, c2);
+    pxRect(tx + tw*2.0,    r*1.5,  r*0.14, r*0.3, vn);
+  }
+
+  // Aura / dark energy halo (outer ring)
+  const auraA = 0.12 + Math.sin(T / 150) * 0.06;
+  CTX.save();
+  CTX.shadowColor = '#aa00ff'; CTX.shadowBlur = 30;
+  pxRect(-r*1.05, -r*1.5, r*2.1, r*0.04, 'rgba(180,0,255,' + auraA + ')');
+  CTX.restore();
 }
+
 function drawPixelBoss3Form2(r, flash) {
-  CTX.rotate(Math.sin(Date.now() / 50) * 0.1);
-  const col = flash ? '#fff' : '#880000', core = flash ? '#fff' : '#ffea00';
-  pxRect(-r*1.1, -r*0.5, r*2.2, r*1.0, col);
-  pxRect(-r*0.5, -r*1.1, r*1.0, r*2.2, col);
-  pxRect(-r*0.8, -r*0.8, r*1.6, r*1.6, '#440000');
-  pxRect(-r*0.5, -r*0.5, r*1.0, r*1.0, core);
-  pxRect(-r*0.3, -r*0.3, r*0.2, r*0.2, '#000');
-  pxRect(r*0.1, -r*0.3, r*0.2, r*0.2, '#000');
-  pxRect(-r*0.1, r*0.1, r*0.2, r*0.2, '#000');
+  // ── 狂亂黑暗 ── Phase 2: faster, more chaotic, cracked & enraged
+  const T = Date.now();
+  CTX.rotate(Math.sin(T / 70) * 0.13);   // violent shake
+  const pulse = 1 + Math.sin(T / 120) * 0.08;
+  CTX.scale(pulse, pulse);
+
+  const col  = flash ? '#fff' : '#440000';
+  const crak = flash ? '#eee' : '#ff2200';  // cracked energy
+  const core = flash ? '#fff' : '#ff8800';  // molten core
+  const yel  = flash ? '#fff' : '#ffff00';  // eye/energy
+  const blk  = '#0a0000';
+
+  // Outer chaos shard ring (6 rotating blades)
+  const bT = T / 200;
+  for (let i = 0; i < 6; i++) {
+    const a = bT + i * Math.PI / 3;
+    const bx = Math.cos(a) * r * 1.6, by = Math.sin(a) * r * 1.6;
+    pxRect(bx - r*0.35, by - r*0.08, r*0.7, r*0.16, crak);   // horizontal blade
+    pxRect(bx - r*0.08, by - r*0.35, r*0.16, r*0.7, crak);   // vertical blade
+    pxRect(bx - r*0.15, by - r*0.15, r*0.3, r*0.3, '#ff4400');
+  }
+
+  // Cross energy beams (pulsing)
+  const beamA = 0.25 + Math.sin(T / 100) * 0.2;
+  pxRect(-r*1.6, -r*0.06, r*3.2, r*0.12, `rgba(255,80,0,${beamA})`);
+  pxRect(-r*0.06, -r*1.6, r*0.12, r*3.2, `rgba(255,80,0,${beamA})`);
+  pxRect(-r*1.15, -r*1.15, r*0.12, r*2.3, `rgba(255,200,0,${beamA*0.6})`);
+  pxRect(r*1.0,   -r*1.15, r*0.12, r*2.3, `rgba(255,200,0,${beamA*0.6})`);
+
+  // Body (shattered / fractured appearance)
+  pxRect(-r*1.0, -r*0.6,  r*2.0, r*1.2,  col);
+  pxRect(-r*0.6, -r*1.0,  r*1.2, r*2.0,  col);
+  pxRect(-r*0.85,-r*0.85, r*1.7, r*1.7,  '#330000');
+  pxRect(-r*0.6, -r*0.6,  r*1.2, r*1.2,  '#550000');
+  pxRect(-r*0.42,-r*0.42, r*0.84, r*0.84, '#770000');
+
+  // Crack lines across body
+  pxRect(-r*0.7, -r*0.05, r*1.4, r*0.04, crak);
+  pxRect(-r*0.05,-r*0.7,  r*0.04, r*1.4, crak);
+  pxRect(-r*0.5, -r*0.4,  r*0.04, r*0.8, '#ff4400');
+  pxRect(r*0.3,  -r*0.45, r*0.04, r*0.9, '#ff4400');
+  pxRect(-r*0.45,-r*0.35, r*0.9, r*0.04, '#ff2200');
+
+  // Molten core
+  pxRect(-r*0.32, -r*0.32, r*0.64, r*0.64, core);
+  pxRect(-r*0.2,  -r*0.2,  r*0.4,  r*0.4,  yel);
+  pxRect(-r*0.08, -r*0.08, r*0.16, r*0.16, '#ffffff');
+
+  // Rage eyes — 5 eyes in chaotic positions
+  const eyePos = [
+    [-r*0.52, -r*0.62, r*0.22, r*0.2],
+    [ r*0.28, -r*0.62, r*0.22, r*0.2],
+    [-r*0.12, -r*0.72, r*0.22, r*0.2],
+    [-r*0.65,  r*0.3,  r*0.18, r*0.16],
+    [ r*0.44,  r*0.3,  r*0.18, r*0.16],
+  ];
+  for (const [ex, ey, ew, eh] of eyePos) {
+    pxRect(ex, ey, ew, eh, blk);
+    const gA2 = 0.6 + Math.sin(T / 80 + ex) * 0.4;
+    CTX.save(); CTX.shadowColor = crak; CTX.shadowBlur = 8 * gA2;
+    pxRect(ex + ew*0.15, ey + eh*0.15, ew*0.7, eh*0.7, yel);
+    CTX.restore();
+  }
+
+  // Outer jagged spikes (8 directions)
+  for (let i = 0; i < 8; i++) {
+    const sa = (i / 8) * Math.PI * 2 + T / 600;
+    const sx = Math.cos(sa) * r * 1.05, sy = Math.sin(sa) * r * 1.05;
+    pxRect(sx - r*0.07, sy - r*0.07, r*0.14, r*0.14, crak);
+    pxRect(Math.cos(sa)*(r*1.25) - r*0.05, Math.sin(sa)*(r*1.25) - r*0.05, r*0.1, r*0.1, '#ff8800');
+  }
+
+  // Enrage aura
+  CTX.save();
+  CTX.shadowColor = '#ff2200'; CTX.shadowBlur = 24;
+  pxRect(-r*1.0, -r*0.02, r*2.0, r*0.04, `rgba(255,60,0,0.3)`);
+  CTX.restore();
 }
 
 function drawPixelPlayer(r, facing) {
@@ -974,6 +1357,7 @@ function update(dt) {
   }
 
   waveSystem.update(dt);
+  bossExplosion.update(dt);
   const qt = new QuadTree(cam.x - 1500, cam.y - 1500, 3000, 3000);
   enemies.each(e => qt.insert(e));
 
@@ -1070,11 +1454,13 @@ function damageEnemy(e, dmg) {
   // Boss 3 Stage 2 transformation
   if (e.type === 'boss3' && e.hp <= e.maxHp * 0.1) {
     e.type = 'boss3_form2';
-    e.hp = e.maxHp * 0.3; // Give 30% hp back as a shield
+    // Use ENEMY_DEFS hp so 3× multiplier applies correctly
+    e.hp   = ENEMY_DEFS['boss3_form2'].hp;
     e.maxHp = e.hp;
-    e.speed = 65;
-    e.dmg = 55;
-    spawnDmgText(e.x, e.y - 80, '⚠ 終極覺醒！', '#ff0000');
+    e.speed = ENEMY_DEFS['boss3_form2'].speed;
+    e.dmg   = ENEMY_DEFS['boss3_form2'].dmg;
+    e.r     = ENEMY_DEFS['boss3_form2'].r;
+    spawnDmgText(e.x, e.y - 80, '⚠ 終極覺醒！狂亂模式！', '#ff0000');
     game.shake(20, 1.0);
   }
 
@@ -1084,10 +1470,12 @@ function damageEnemy(e, dmg) {
     if (e.type === 'boss' || e.type === 'boss2' || e.type.startsWith('boss3')) spawnChest(e.x, e.y);
     if (Math.random() < 0.02) spawnHeal(e.x, e.y);
     
-    // Victory for Boss 3
+    // Victory for Boss 3 — trigger cinematic explosion first
     if (e.type === 'boss3_form2') {
-      game.state = 'victory3';
-      enemies.items.forEach(en => en.active = false); // clear enemies
+      enemies.items.forEach(en => en.active = false); // clear all enemies
+      bossExplosion.start(e.x, e.y);   // explosion handles state transition to victory3
+      game.shake(50, 3.0);             // massive screen shake
+      spawnDmgText(e.x, e.y - 60, '☠ 終極黑暗消滅！', '#ffd700');
     }
   }
 }
@@ -1206,9 +1594,11 @@ function render() {
     CTX.fillText(t.text, s.x, s.y); CTX.globalAlpha = 1; CTX.restore();
   });
 
+  // Boss explosion (world-space particles + screen effects)
   CTX.restore();
+  bossExplosion.render();
 
-  if (game.state === 'playing' || game.state === 'levelup') drawHUD();
+  if (game.state === 'playing' || game.state === 'levelup' || bossExplosion.active) drawHUD();
   if (game.state === 'title') drawTitle();
   if (game.state === 'weaponSelect') drawWeaponSelect();
   if (game.state === 'stage3Select') drawStage3Select();
@@ -1300,22 +1690,34 @@ function drawTitle() {
   pxRect(bx, by, bw, bh, '#6a000f'); pxRect(bx + 4, by + 4, bw - 8, bh - 8, '#c0102a'); pxRectOutline(bx, by, bw, bh, '#e8b84b', 2);
   CTX.save(); CTX.shadowColor = '#ffe066'; CTX.shadowBlur = 8; CTX.fillStyle = '#ffe066'; CTX.font = `bold ${Math.min(19, rw(19))}px "Cinzel", serif`; CTX.fillText('⚔  開始遊戲  ⚔', W/2, by + bh * 0.65); CTX.restore();
   registerBtn(bx, by, bw, bh, 'title', () => game.start());
+  if (!drawTitle._keyBound) { drawTitle._keyBound = true; window.addEventListener('keydown', function _tk(ev) { if (game.state === 'title') { game.start(); window.removeEventListener('keydown', _tk); drawTitle._keyBound = false; } }); }
 }
 
 const WEAPON_SELECT_OPTIONS_S1 = [
-  { type: 'whip', label: '皮鞭', subtitle: 'Whip', desc: '近距大範圍揮砍', color: '#c8a020', border: '#ffd040' },
-  { type: 'wand', label: '魔杖', subtitle: 'Magic Wand', desc: '鎖定最近敵人', color: '#4488ff', border: '#88aaff' },
-  { type: 'axe', label: '飛斧', subtitle: 'Axe', desc: '拋物線高傷害穿透', color: '#cc5500', border: '#ff8822' },
-  { type: 'bible', label: '聖經', subtitle: 'King Bible', desc: '繞身旋轉護盾', color: '#8844ff', border: '#bb88ff' },
-  { type: 'firewand', label: '火球', subtitle: 'Fire Wand', desc: '隨機鎖定火球', color: '#ff3300', border: '#ff6644' },
+  { type: 'whip',     label: '皮鞭',  subtitle: 'Whip',       desc: '近距大範圍揮砍',   color: '#c8a020', border: '#ffd040',
+    howto: '自動向前方扇形揮砍，範圍廣傷害穩定', stats: '傷害:10 | 冷卻:1.5s | 穿透:∞' },
+  { type: 'wand',     label: '魔杖',  subtitle: 'Magic Wand', desc: '鎖定最近敵人',     color: '#4488ff', border: '#88aaff',
+    howto: '自動瞄準最近敵人射出魔法彈，多級升可多發', stats: '傷害:15 | 冷卻:1.0s | 穿透:1' },
+  { type: 'axe',      label: '飛斧',  subtitle: 'Axe',        desc: '拋物線高傷害穿透', color: '#cc5500', border: '#ff8822',
+    howto: '向上拋出飛斧，受重力影響弧線飛行，可穿透多敵', stats: '傷害:20 | 冷卻:1.5s | 穿透:2' },
+  { type: 'bible',    label: '聖經',  subtitle: 'King Bible', desc: '繞身旋轉護盾',     color: '#8844ff', border: '#bb88ff',
+    howto: '召喚聖經繞玩家旋轉，持續碰觸傷害，升級增加數量', stats: '傷害:5/hit | 持續:3s | 初始:1本' },
+  { type: 'firewand', label: '火球',  subtitle: 'Fire Wand',  desc: '隨機鎖定火球',     color: '#ff3300', border: '#ff6644',
+    howto: '隨機鎖定範圍內敵人射出火球，射速快', stats: '傷害:30 | 冷卻:1.2s | 穿透:1' },
 ];
 const WEAPON_SELECT_OPTIONS_S2 = [
-  { type: 'whip', label: '皮鞭', subtitle: 'Whip', desc: '近距大範圍揮砍', color: '#c8a020', border: '#ffd040' },
-  { type: 'wand', label: '魔杖', subtitle: 'Magic Wand', desc: '鎖定最近敵人', color: '#4488ff', border: '#88aaff' },
-  { type: 'firewand', label: '火球', subtitle: 'Fire Wand', desc: '隨機鎖定火球', color: '#ff3300', border: '#ff6644' },
-  { type: 'lightning', label: '閃電', subtitle: 'Lightning', desc: '連鎖電擊敵人', color: '#44ddff', border: '#aaeeff' },
-  { type: 'cross', label: '十字架', subtitle: 'Holy Cross', desc: '4方向貫穿射擊', color: '#eeeeaa', border: '#ffffdd' },
-  { type: 'shadow', label: '暗影刃', subtitle: 'Shadow Blade', desc: '扇形暗影斬', color: '#9944ff', border: '#cc88ff' },
+  { type: 'whip',     label: '皮鞭',  subtitle: 'Whip',         desc: '近距大範圍揮砍', color: '#c8a020', border: '#ffd040',
+    howto: '自動向前方扇形揮砍，範圍廣傷害穩定', stats: '傷害:10 | 冷卻:1.5s | 穿透:∞' },
+  { type: 'wand',     label: '魔杖',  subtitle: 'Magic Wand',   desc: '鎖定最近敵人',   color: '#4488ff', border: '#88aaff',
+    howto: '自動瞄準最近敵人射出魔法彈，多級升可多發', stats: '傷害:15 | 冷卻:1.0s | 穿透:1' },
+  { type: 'firewand', label: '火球',  subtitle: 'Fire Wand',    desc: '隨機鎖定火球',   color: '#ff3300', border: '#ff6644',
+    howto: '隨機鎖定範圍內敵人射出火球，射速快', stats: '傷害:30 | 冷卻:1.2s | 穿透:1' },
+  { type: 'lightning',label: '閃電',  subtitle: 'Lightning',    desc: '連鎖電擊敵人',   color: '#44ddff', border: '#aaeeff',
+    howto: '打擊最近敵人並連鎖跳躍至附近其他敵人', stats: '傷害:40 | 冷卻:1.8s | 連鎖:2' },
+  { type: 'cross',    label: '十字架',subtitle: 'Holy Cross',   desc: '4方向貫穿射擊',  color: '#eeeeaa', border: '#ffffdd',
+    howto: '同時向上下左右4個方向射出十字光束', stats: '傷害:25 | 冷卻:2.0s | 穿透:5' },
+  { type: 'shadow',   label: '暗影刃',subtitle: 'Shadow Blade', desc: '扇形暗影斬',     color: '#9944ff', border: '#cc88ff',
+    howto: '鎖定最近敵人扇形噴射3道暗影刀刃', stats: '傷害:50 | 冷卻:2.5s | 3發' },
 ];
 
 function drawWeaponSelect() {
@@ -1325,52 +1727,126 @@ function drawWeaponSelect() {
   glow.addColorStop(0, 'rgba(80,20,120,0.22)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
   CTX.fillStyle = glow; CTX.fillRect(0, 0, W, H);
 
-  const PAD = 10, BTN_H = Math.max(36, Math.min(50, H * 0.07)), BTN_GAP = 10, TITLE_PAD_TOP = 10;
-  const titleFontSz = Math.max(16, Math.min(28, W * 0.055, H * 0.048)), subFontSz = Math.max(10, Math.min(13, W * 0.024));
+  const isMobile = W < 600;
+  const PAD = 10, BTN_GAP = 10, TITLE_PAD_TOP = 10;
+  const titleFontSz = Math.max(16, Math.min(28, W * 0.055, H * 0.048));
+  const subFontSz = Math.max(10, Math.min(13, W * 0.024));
   const HEADER_H = TITLE_PAD_TOP + titleFontSz + 6 + subFontSz + 12;
-  const availH = H - HEADER_H - BTN_H - BTN_GAP - PAD; const numCards = opts.length; const isMobile = W < 600;
-  const cols = W < 420 ? 2 : (isMobile ? Math.min(numCards, 3) : numCards); const rows = Math.ceil(numCards / cols);
+
+  // Detail panel height — shown below cards when card selected/hovered
+  const DETAIL_H = isMobile ? 62 : 72;
+  const BTN_H = Math.max(36, Math.min(50, H * 0.07));
+  const BOTTOM_RESERVED = DETAIL_H + BTN_GAP + BTN_H + PAD + 6;
+  const availH = H - HEADER_H - BOTTOM_RESERVED;
+
+  const numCards = opts.length;
+  const cols = W < 420 ? 2 : (isMobile ? Math.min(numCards, 3) : numCards);
+  const rows = Math.ceil(numCards / cols);
   const GAP = Math.max(5, Math.min(10, W * 0.016));
-  const cardW = Math.floor((W - PAD * 2 - GAP * (cols - 1)) / cols), cardH = Math.max(70, Math.floor((availH - GAP * (rows - 1)) / rows));
+  const cardW = Math.floor((W - PAD * 2 - GAP * (cols - 1)) / cols);
+  const cardH = Math.max(70, Math.floor((availH - GAP * (rows - 1)) / rows));
   const startX = PAD, startY = HEADER_H;
 
-  CTX.textAlign = 'center'; const titleY = TITLE_PAD_TOP + titleFontSz;
-  CTX.save(); CTX.shadowColor = '#cc88ff'; CTX.shadowBlur = 20; CTX.fillStyle = '#cc88ff'; CTX.font = 'bold ' + titleFontSz + 'px "Cinzel Decorative", serif';
+  // Title
+  CTX.textAlign = 'center';
+  const titleY = TITLE_PAD_TOP + titleFontSz;
+  CTX.save(); CTX.shadowColor = '#cc88ff'; CTX.shadowBlur = 20; CTX.fillStyle = '#cc88ff';
+  CTX.font = 'bold ' + titleFontSz + 'px "Cinzel Decorative", serif';
   CTX.fillText(game.stage === 2 ? '選擇第二關起始武器' : '選擇初始武器', W/2, titleY); CTX.restore();
-  CTX.fillStyle = 'rgba(200,180,230,0.5)'; CTX.font = subFontSz + 'px "Cinzel", serif'; CTX.fillText('Choose Your Starting Weapon', W/2, titleY + titleFontSz + 2);
+  CTX.fillStyle = 'rgba(200,180,230,0.5)'; CTX.font = subFontSz + 'px "Cinzel", serif';
+  CTX.fillText('Choose Your Starting Weapon', W/2, titleY + titleFontSz + 2);
+
+  // Track which card is hovered for detail panel
+  let hoveredOpt = null;
 
   for (let i = 0; i < numCards; i++) {
-    const opt = opts[i], col = i % cols, row = Math.floor(i / cols);
+    const opt = opts[i];
+    const col = i % cols, row = Math.floor(i / cols);
     const cx = startX + col * (cardW + GAP), cy = startY + row * (cardH + GAP);
     const isSelected = game.selectedWeapon === opt.type;
     const isHover = !isMobile && mouse.x >= cx && mouse.x <= cx + cardW && mouse.y >= cy && mouse.y <= cy + cardH;
-    const hi = isSelected || isHover; const capI = i;
+    const hi = isSelected || isHover;
+    if (isHover || isSelected) hoveredOpt = opt;
+    const capI = i;
     registerBtn(cx, cy, cardW, cardH, 'weaponSelect', () => { game.selectedWeapon = opts[capI].type; });
 
     if (isSelected) { CTX.save(); CTX.shadowColor = opt.border; CTX.shadowBlur = 20; CTX.fillStyle = 'rgba(0,0,0,0)'; CTX.fillRect(cx - 3, cy - 3, cardW + 6, cardH + 6); CTX.restore(); }
     const bgCol = isSelected ? '#3a1860' : (hi ? '#2a1248' : '#120a22');
-    pxRect(cx, cy, cardW, cardH, bgCol); pxRect(cx, cy, cardW, isSelected ? 4 : 2, opt.border); pxRectOutline(cx, cy, cardW, cardH, isSelected ? opt.border : (hi ? opt.color : 'rgba(80,60,100,0.55)'), isSelected ? 2 : 1);
+    pxRect(cx, cy, cardW, cardH, bgCol);
+    pxRect(cx, cy, cardW, isSelected ? 4 : 2, opt.border);
+    pxRectOutline(cx, cy, cardW, cardH, isSelected ? opt.border : (hi ? opt.color : 'rgba(80,60,100,0.55)'), isSelected ? 2 : 1);
 
-    const iconSize = Math.max(14, Math.min(cardW * 0.35, cardH * 0.3, 36)), iconY = cy + cardH * 0.38;
+    const iconSize = Math.max(14, Math.min(cardW * 0.35, cardH * 0.28, 36));
+    const iconY = cy + cardH * (cardH > 110 ? 0.35 : 0.38);
     CTX.save(); if (isSelected) { CTX.shadowColor = opt.border; CTX.shadowBlur = 12; }
     CTX.font = iconSize + 'px serif'; CTX.textAlign = 'center'; CTX.textBaseline = 'middle';
-    CTX.fillText({ whip:'🪢', wand:'🪄', axe:'🪓', bible:'📖', firewand:'🔥', lightning:'⚡', cross:'✝️', shadow:'🗡' }[opt.type] || '⚔', cx + cardW/2, iconY); CTX.restore(); CTX.textBaseline = 'alphabetic';
+    CTX.fillText({ whip:'🪢', wand:'🪄', axe:'🪓', bible:'📖', firewand:'🔥', lightning:'⚡', cross:'✝️', shadow:'🗡' }[opt.type] || '⚔', cx + cardW/2, iconY);
+    CTX.restore(); CTX.textBaseline = 'alphabetic';
 
     const nameFontSz = Math.max(9, Math.min(13, cardW * 0.1, cardH * 0.09));
-    CTX.fillStyle = isSelected ? opt.border : '#e8e0f8'; CTX.font = 'bold ' + nameFontSz + 'px "Cinzel", serif'; CTX.textAlign = 'center'; CTX.fillText(opt.label, cx + cardW/2, cy + cardH * 0.59);
-    if (cardH > 90) { CTX.fillStyle = opt.color; CTX.font = Math.max(7, Math.min(10, cardW * 0.075)) + 'px "Cinzel", serif'; CTX.fillText(opt.subtitle, cx + cardW/2, cy + cardH * 0.73); }
-    if (cardH > 118) { CTX.fillStyle = 'rgba(200,190,220,0.65)'; CTX.font = Math.max(7, Math.min(9, cardW * 0.062)) + 'px "Cinzel", serif'; CTX.fillText(opt.desc, cx + cardW/2, cy + cardH * 0.87); }
-    if (isSelected) { CTX.save(); CTX.fillStyle = opt.border; CTX.shadowColor = opt.border; CTX.shadowBlur = 6; CTX.font = 'bold ' + Math.max(7, Math.min(9, cardW * 0.062)) + 'px "Cinzel", serif'; CTX.fillText('✓ 已選擇', cx + cardW/2, cy + cardH - 7); CTX.restore(); }
+    CTX.fillStyle = isSelected ? opt.border : '#e8e0f8';
+    CTX.font = 'bold ' + nameFontSz + 'px "Cinzel", serif'; CTX.textAlign = 'center';
+    CTX.fillText(opt.label, cx + cardW/2, cy + cardH * 0.6);
+
+    if (cardH > 90) {
+      CTX.fillStyle = opt.color;
+      CTX.font = Math.max(7, Math.min(10, cardW * 0.075)) + 'px "Cinzel", serif';
+      CTX.fillText(opt.subtitle, cx + cardW/2, cy + cardH * 0.75);
+    }
+    if (isSelected) {
+      CTX.save(); CTX.fillStyle = opt.border; CTX.shadowColor = opt.border; CTX.shadowBlur = 6;
+      CTX.font = 'bold ' + Math.max(7, Math.min(9, cardW * 0.062)) + 'px "Cinzel", serif';
+      CTX.fillText('✓ 已選擇', cx + cardW/2, cy + cardH - 6); CTX.restore();
+    }
   }
 
+  // ── Detail panel: show for selected weapon (fallback to hovered) ──
+  const selectedOpt = opts.find(o => o.type === game.selectedWeapon) || hoveredOpt;
   const cardsBottom = startY + rows * cardH + (rows - 1) * GAP;
-  const btnW = Math.min(220, W - PAD * 2), btnX = W/2 - btnW/2, btnY = Math.min(cardsBottom + BTN_GAP, H - BTN_H - PAD);
-  pxRect(btnX, btnY, btnW, BTN_H, '#280a50'); pxRect(btnX + 3, btnY + 3, btnW - 6, BTN_H - 6, '#4a2080'); pxRectOutline(btnX, btnY, btnW, BTN_H, '#cc88ff', 2);
-  CTX.save(); CTX.shadowColor = '#eeccff'; CTX.shadowBlur = 8; CTX.fillStyle = '#eeccff'; CTX.font = 'bold ' + Math.max(13, Math.min(17, W * 0.034)) + 'px "Cinzel", serif'; CTX.textAlign = 'center'; CTX.fillText('⚔  出發冒險  ⚔', W/2, btnY + BTN_H * 0.67); CTX.restore();
+  const detailY = cardsBottom + BTN_GAP;
+  const detailW = Math.min(W - PAD * 2, 600), detailX = W/2 - detailW/2;
+
+  if (selectedOpt) {
+    pxRect(detailX, detailY, detailW, DETAIL_H, 'rgba(10,0,25,0.85)');
+    pxRectOutline(detailX, detailY, detailW, DETAIL_H, selectedOpt.border, 1);
+    pxRect(detailX, detailY, detailW, 3, selectedOpt.border);
+
+    CTX.textAlign = 'left';
+    const dPad = 10, lineH = isMobile ? 13 : 15;
+    const fSz = isMobile ? 10 : 12;
+
+    // Weapon name
+    CTX.save(); CTX.fillStyle = selectedOpt.border; CTX.shadowColor = selectedOpt.border; CTX.shadowBlur = 6;
+    CTX.font = 'bold ' + (fSz + 2) + 'px "Cinzel", serif';
+    CTX.fillText(selectedOpt.label + '  ' + selectedOpt.subtitle, detailX + dPad, detailY + lineH + 2);
+    CTX.restore();
+
+    // Attack method
+    CTX.fillStyle = '#e8d8ff';
+    CTX.font = fSz + 'px "Cinzel", serif';
+    CTX.fillText('⚔ 攻擊方式：' + (selectedOpt.howto || selectedOpt.desc), detailX + dPad, detailY + lineH * 2 + 4);
+
+    // Stats
+    CTX.fillStyle = selectedOpt.color;
+    CTX.font = fSz + 'px "Cinzel", serif';
+    CTX.fillText('📊 ' + (selectedOpt.stats || ''), detailX + dPad, detailY + lineH * 3 + 6);
+  }
+
+  // ── Confirm button ──
+  const btnW = Math.min(220, W - PAD * 2), btnX = W/2 - btnW/2;
+  const btnY = Math.min(detailY + DETAIL_H + BTN_GAP, H - BTN_H - PAD);
+  pxRect(btnX, btnY, btnW, BTN_H, '#280a50'); pxRect(btnX + 3, btnY + 3, btnW - 6, BTN_H - 6, '#4a2080');
+  pxRectOutline(btnX, btnY, btnW, BTN_H, '#cc88ff', 2);
+  CTX.save(); CTX.shadowColor = '#eeccff'; CTX.shadowBlur = 8; CTX.fillStyle = '#eeccff';
+  CTX.font = 'bold ' + Math.max(13, Math.min(17, W * 0.034)) + 'px "Cinzel", serif';
+  CTX.textAlign = 'center'; CTX.fillText('⚔  出發冒險  ⚔', W/2, btnY + BTN_H * 0.67); CTX.restore();
   registerBtn(btnX, btnY, btnW, BTN_H, 'weaponSelect', () => { game.reset(game.selectedWeapon, game.stage); });
 }
 
-// ====== STAGE 3 SELECT SCREEN (4 Weapons + 4 Passives) ======
+// ====== STAGE 3 SELECT SCREEN (4 Weapons + 4 Passives) — Card layout with descriptions ======
+// Hover state for detail display
+const _s3Hover = { type: null, cat: null };
+
 function drawStage3Select() {
   CTX.fillStyle = 'rgba(10,0,20,0.98)'; CTX.fillRect(0, 0, W, H);
   const glow = CTX.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*0.7);
@@ -1378,73 +1854,187 @@ function drawStage3Select() {
   CTX.fillStyle = glow; CTX.fillRect(0, 0, W, H);
   CTX.textAlign = 'center';
 
-  CTX.save(); CTX.shadowColor = '#cc44ff'; CTX.shadowBlur = 20; CTX.fillStyle = '#cc44ff';
-  CTX.font = 'bold ' + Math.min(26, W * 0.06) + 'px "Cinzel Decorative", serif';
-  CTX.fillText('終局備戰：選擇4武器與4技能', W/2, 40); CTX.restore();
-  
-  const wps = getAvailableWeapons();
-  const psv = getAvailablePassives();
-  
-  const boxS = Math.min(48, W/6, H/12);
-  const pad = 8;
-  const startX = W/2 - ((wps.length/2)*boxS + (wps.length/2 - 1)*pad);
-  
-  CTX.fillStyle = '#fff'; CTX.font = '14px serif';
-  CTX.fillText(`武器 (${stage3Selections.weapons.length}/4)`, W/2, 80);
-  
-  // Render Weapons
-  let r = 0, c = 0;
-  for(let i=0; i<wps.length; i++) {
+  const isMobile = W < 600;
+  const fTitle = Math.min(22, W * 0.055);
+
+  CTX.save(); CTX.shadowColor = '#cc44ff'; CTX.shadowBlur = 24; CTX.fillStyle = '#cc44ff';
+  CTX.font = 'bold ' + fTitle + 'px "Cinzel Decorative", serif';
+  CTX.fillText('終局備戰：選擇4武器與4技能', W/2, fTitle + 8); CTX.restore();
+
+  const wps = getAvailableWeapons();  // all available weapon types
+  const psv = getAvailablePassives(); // all available passive types
+
+  // Card dimensions
+  const PAD = 8;
+  const COLS_W = isMobile ? 4 : Math.min(8, wps.length);
+  const COLS_P = isMobile ? 5 : Math.min(10, psv.length);
+  const GAP = 6;
+  const cardW = Math.floor((W - PAD*2 - GAP*(COLS_W-1)) / COLS_W);
+  const cardH = Math.max(56, Math.min(80, cardW * 1.3));
+
+  // Section Y positions
+  const WPN_LABEL_Y = fTitle + 28;
+  const WPN_Y = WPN_LABEL_Y + 18;
+  const wRows = Math.ceil(wps.length / COLS_W);
+  const PSV_LABEL_Y = WPN_Y + wRows*(cardH+GAP) + 10;
+  const PSV_Y = PSV_LABEL_Y + 18;
+
+  // Weapon section label
+  const wSel = stage3Selections.weapons.length;
+  CTX.fillStyle = wSel === 4 ? '#44ff88' : '#cc88ff';
+  CTX.font = 'bold ' + Math.min(13, W*0.03) + 'px "Cinzel", serif';
+  CTX.fillText(`⚔ 武器 (${wSel}/4)  — 選擇4種初始武器`, W/2, WPN_LABEL_Y);
+
+  // Weapon cards
+  _s3Hover.type = null;
+  for (let i = 0; i < wps.length; i++) {
     const t = wps[i];
-    const bx = W/2 - ((Math.min(4, wps.length))*boxS + (Math.min(4, wps.length)-1)*pad)/2 + c*(boxS+pad);
-    const by = 100 + r*(boxS+pad);
+    const col = i % COLS_W, row = Math.floor(i / COLS_W);
+    const cx = PAD + col * (cardW + GAP);
+    const cy = WPN_Y + row * (cardH + GAP);
     const sel = stage3Selections.weapons.includes(t);
-    
-    pxRect(bx, by, boxS, boxS, sel ? '#4a2080' : '#1a0033');
-    pxRectOutline(bx, by, boxS, boxS, sel ? '#cc88ff' : '#552288', 2);
-    CTX.font = (boxS*0.5) + 'px serif'; CTX.fillText(WEAPON_DEFS[t].icon, bx+boxS/2, by+boxS*0.65);
-    
-    registerBtn(bx, by, boxS, boxS, 'stage3Select', () => {
-      if(sel) stage3Selections.weapons = stage3Selections.weapons.filter(x => x !== t);
-      else if(stage3Selections.weapons.length < 4) stage3Selections.weapons.push(t);
+    const isHov = !isMobile && mouse.x >= cx && mouse.x <= cx+cardW && mouse.y >= cy && mouse.y <= cy+cardH;
+    if (isHov) { _s3Hover.type = t; _s3Hover.cat = 'weapon'; }
+
+    // Card bg
+    pxRect(cx, cy, cardW, cardH, sel ? '#2a1060' : (isHov ? '#1e0848' : '#0e0420'));
+    pxRect(cx, cy, cardW, 3, sel ? '#cc88ff' : (isHov ? '#9955cc' : '#441188'));
+    pxRectOutline(cx, cy, cardW, cardH, sel ? '#cc88ff' : (isHov ? '#9955cc' : '#330066'), sel ? 2 : 1);
+
+    // Icon
+    const iconSz = Math.max(16, Math.min(cardW * 0.45, cardH * 0.4, 28));
+    CTX.save(); if (sel) { CTX.shadowColor = '#cc88ff'; CTX.shadowBlur = 10; }
+    CTX.font = iconSz + 'px serif'; CTX.textBaseline = 'middle';
+    CTX.fillText(WEAPON_DEFS[t].icon, cx + cardW/2, cy + cardH * 0.36); CTX.restore();
+    CTX.textBaseline = 'alphabetic';
+
+    // Name
+    const nameArr = WEAPON_DEFS[t].name.split(' ');
+    const chName = nameArr[0];
+    CTX.fillStyle = sel ? '#ffd700' : (isHov ? '#e8e0f8' : '#c0b0d8');
+    CTX.font = 'bold ' + Math.max(7, Math.min(10, cardW*0.13)) + 'px "Cinzel", serif';
+    CTX.fillText(chName, cx + cardW/2, cy + cardH * 0.72);
+
+    // Selected check
+    if (sel) {
+      CTX.fillStyle = '#44ff88'; CTX.font = 'bold ' + Math.max(7, Math.min(9, cardW*0.1)) + 'px "Cinzel", serif';
+      CTX.fillText('✓', cx + cardW - 8, cy + 10);
+    }
+
+    registerBtn(cx, cy, cardW, cardH, 'stage3Select', () => {
+      if (sel) stage3Selections.weapons = stage3Selections.weapons.filter(x => x !== t);
+      else if (stage3Selections.weapons.length < 4) stage3Selections.weapons.push(t);
     });
-    
-    c++; if(c>=4){ c=0; r++; }
   }
 
-  const psvStart = 100 + (r+1)*(boxS+pad) + 20;
-  CTX.fillStyle = '#fff'; CTX.font = '14px serif';
-  CTX.fillText(`技能 (${stage3Selections.passives.length}/4)`, W/2, psvStart - 10);
-  
-  // Render Passives
-  r = 0; c = 0;
-  for(let i=0; i<psv.length; i++) {
+  // Passive section label
+  const pSel = stage3Selections.passives.length;
+  CTX.fillStyle = pSel === 4 ? '#44ff88' : '#44ddff';
+  CTX.font = 'bold ' + Math.min(13, W*0.03) + 'px "Cinzel", serif';
+  CTX.textAlign = 'center';
+  CTX.fillText(`✦ 技能 (${pSel}/4)  — 選擇4種被動技能`, W/2, PSV_LABEL_Y);
+
+  // Passive cards
+  const pCardW = Math.floor((W - PAD*2 - GAP*(COLS_P-1)) / COLS_P);
+  const pCardH = Math.max(52, Math.min(72, pCardW * 1.25));
+  for (let i = 0; i < psv.length; i++) {
     const t = psv[i];
-    const bx = W/2 - ((Math.min(5, psv.length))*boxS + (Math.min(5, psv.length)-1)*pad)/2 + c*(boxS+pad);
-    const by = psvStart + 10 + r*(boxS+pad);
+    const col = i % COLS_P, row = Math.floor(i / COLS_P);
+    const cx = PAD + col * (pCardW + GAP);
+    const cy = PSV_Y + row * (pCardH + GAP);
     const sel = stage3Selections.passives.includes(t);
-    
-    pxRect(bx, by, boxS, boxS, sel ? '#206030' : '#0a2211');
-    pxRectOutline(bx, by, boxS, boxS, sel ? '#44ff88' : '#228844', 2);
-    CTX.font = (boxS*0.5) + 'px serif'; CTX.fillText(PASSIVE_DEFS[t].icon, bx+boxS/2, by+boxS*0.65);
-    
-    registerBtn(bx, by, boxS, boxS, 'stage3Select', () => {
-      if(sel) stage3Selections.passives = stage3Selections.passives.filter(x => x !== t);
-      else if(stage3Selections.passives.length < 4) stage3Selections.passives.push(t);
+    const isHov = !isMobile && mouse.x >= cx && mouse.x <= cx+pCardW && mouse.y >= cy && mouse.y <= cy+pCardH;
+    if (isHov) { _s3Hover.type = t; _s3Hover.cat = 'passive'; }
+
+    pxRect(cx, cy, pCardW, pCardH, sel ? '#0a2818' : (isHov ? '#0d3520' : '#051208'));
+    pxRect(cx, cy, pCardW, 3, sel ? '#44ff88' : (isHov ? '#22aa55' : '#115522'));
+    pxRectOutline(cx, cy, pCardW, pCardH, sel ? '#44ff88' : (isHov ? '#22aa55' : '#114422'), sel ? 2 : 1);
+
+    const iconSz2 = Math.max(14, Math.min(pCardW * 0.45, pCardH * 0.4, 24));
+    CTX.save(); if (sel) { CTX.shadowColor = '#44ff88'; CTX.shadowBlur = 8; }
+    CTX.font = iconSz2 + 'px serif'; CTX.textBaseline = 'middle';
+    CTX.fillText(PASSIVE_DEFS[t].icon, cx + pCardW/2, cy + pCardH * 0.36); CTX.restore();
+    CTX.textBaseline = 'alphabetic';
+
+    const pNameArr = PASSIVE_DEFS[t].name.split(' ');
+    const pChName = pNameArr[0];
+    CTX.fillStyle = sel ? '#44ff88' : (isHov ? '#e8f8e8' : '#b0d0b8');
+    CTX.font = 'bold ' + Math.max(6, Math.min(9, pCardW*0.13)) + 'px "Cinzel", serif';
+    CTX.fillText(pChName, cx + pCardW/2, cy + pCardH * 0.72);
+
+    if (sel) {
+      CTX.fillStyle = '#44ff88'; CTX.font = 'bold ' + Math.max(7, Math.min(9, pCardW*0.1)) + 'px "Cinzel", serif';
+      CTX.fillText('✓', cx + pCardW - 8, cy + 10);
+    }
+
+    registerBtn(cx, cy, pCardW, pCardH, 'stage3Select', () => {
+      if (sel) stage3Selections.passives = stage3Selections.passives.filter(x => x !== t);
+      else if (stage3Selections.passives.length < 4) stage3Selections.passives.push(t);
     });
-    
-    c++; if(c>=5){ c=0; r++; }
   }
 
-  // Confirm Button
-  if (stage3Selections.weapons.length === 4 && stage3Selections.passives.length === 4) {
-    const btnW = 200, btnH = 50, bx = W/2 - btnW/2, by = H - 80;
-    pxRect(bx, by, btnW, btnH, '#3a0000'); pxRect(bx+3, by+3, btnW-6, btnH-6, '#6a0000');
-    pxRectOutline(bx, by, btnW, btnH, '#ff4444', 2);
-    CTX.save(); CTX.shadowColor = '#ff8888'; CTX.shadowBlur = 8; CTX.fillStyle = '#ff8888';
-    CTX.font = 'bold 18px "Cinzel", serif'; CTX.fillText('⚔ 進入隱藏關卡 ⚔', W/2, by + btnH * 0.65); CTX.restore();
-    registerBtn(bx, by, btnW, btnH, 'stage3Select', () => { game.reset(null, 3); });
+  // ── Detail panel: show description of hovered or one selected item ──
+  const pRows = Math.ceil(psv.length / COLS_P);
+  const psvBottom = PSV_Y + pRows * (pCardH + GAP);
+  const detailY = psvBottom + 8;
+  const detailH = isMobile ? 52 : 60;
+  const detailW = Math.min(W - PAD*2, 560), detailX = W/2 - detailW/2;
+
+  // Pick: hovered item, else first selected weapon, else first selected passive
+  let detailDef = null, detailCat = null;
+  if (_s3Hover.type) {
+    detailDef = _s3Hover.cat === 'weapon' ? WEAPON_DEFS[_s3Hover.type] : PASSIVE_DEFS[_s3Hover.type];
+    detailCat = _s3Hover.cat;
+  } else if (stage3Selections.weapons.length > 0) {
+    const lt = stage3Selections.weapons[stage3Selections.weapons.length - 1];
+    detailDef = WEAPON_DEFS[lt]; detailCat = 'weapon';
+  } else if (stage3Selections.passives.length > 0) {
+    const lt = stage3Selections.passives[stage3Selections.passives.length - 1];
+    detailDef = PASSIVE_DEFS[lt]; detailCat = 'passive';
   }
+
+  if (detailDef) {
+    const dcol = detailCat === 'weapon' ? '#cc88ff' : '#44ff88';
+    pxRect(detailX, detailY, detailW, detailH, 'rgba(8,0,20,0.9)');
+    pxRect(detailX, detailY, detailW, 3, dcol);
+    pxRectOutline(detailX, detailY, detailW, detailH, dcol + '88', 1);
+    const fSz = isMobile ? 9 : 11;
+    const dPad = 10, lH = fSz + 4;
+    CTX.textAlign = 'left';
+    CTX.save(); CTX.fillStyle = dcol; CTX.shadowColor = dcol; CTX.shadowBlur = 4;
+    CTX.font = 'bold ' + (fSz+2) + 'px "Cinzel", serif';
+    CTX.fillText(detailDef.name, detailX + dPad, detailY + lH + 2); CTX.restore();
+    CTX.fillStyle = '#d8d0f0'; CTX.font = fSz + 'px "Cinzel", serif';
+    if (detailCat === 'weapon') {
+      // Find matching weapon option for howto/stats
+      // Combine both option arrays to find the matching weapon option (has howto+stats)
+      const _allWOpts = [...WEAPON_SELECT_OPTIONS_S1, ...WEAPON_SELECT_OPTIONS_S2];
+      const _targetType = _s3Hover.type || (stage3Selections.weapons.length > 0 ? stage3Selections.weapons[stage3Selections.weapons.length - 1] : null);
+      const wOptMatch = _allWOpts.find(o => o.type === _targetType);
+      CTX.fillText('⚔ ' + (wOptMatch ? wOptMatch.howto : detailDef.name), detailX + dPad, detailY + lH*2 + 2);
+      CTX.fillStyle = '#c0a8e8';
+      CTX.fillText('📊 ' + (wOptMatch ? wOptMatch.stats : ''), detailX + dPad, detailY + lH*3 + 2);
+    } else {
+      CTX.fillText('✦ 效果：' + detailDef.desc, detailX + dPad, detailY + lH*2 + 2);
+      CTX.fillStyle = '#a0c8a0';
+      CTX.fillText('📈 每升1級增加效果，最高5級', detailX + dPad, detailY + lH*3 + 2);
+    }
+    CTX.textAlign = 'center';
+  }
+
+  // ── Confirm Button ──
+  const allReady = stage3Selections.weapons.length === 4 && stage3Selections.passives.length === 4;
+  const btnW = Math.min(240, W - PAD*2), btnH = Math.min(48, rh(48));
+  const bx = W/2 - btnW/2, by = H - btnH - 8;
+  pxRect(bx, by, btnW, btnH, allReady ? '#3a0000' : '#1a1030');
+  pxRect(bx+3, by+3, btnW-6, btnH-6, allReady ? '#6a0000' : '#2a1a50');
+  pxRectOutline(bx, by, btnW, btnH, allReady ? '#ff4444' : '#443366', 2);
+  CTX.save(); CTX.fillStyle = allReady ? '#ff8888' : '#665588';
+  if (allReady) { CTX.shadowColor = '#ff8888'; CTX.shadowBlur = 8; }
+  CTX.font = 'bold ' + Math.min(16, W*0.035) + 'px "Cinzel", serif';
+  CTX.fillText(allReady ? '⚔ 進入隱藏關卡 ⚔' : `尚需選擇 ${4 - stage3Selections.weapons.length} 武器 / ${4 - stage3Selections.passives.length} 技能`, W/2, by + btnH * 0.65);
+  CTX.restore();
+  if (allReady) registerBtn(bx, by, btnW, btnH, 'stage3Select', () => { game.reset(null, 3); });
 }
 
 // ====== LEVEL UP SCREEN ======
@@ -1517,6 +2107,11 @@ function drawGameOver() {
 
   const bw = Math.min(190, W - 40), bh = Math.min(46, rh(46)), bx = W/2 - bw/2, by = H/2 + rh(80);
   drawPxBtn('\u21ba  \u91cd\u65b0\u958b\u59cb', bx, by, bw, bh, '#3a0008', '#6a0010', 'rgba(200,50,60,0.85)', '#ffcccc', 'gameover', () => game.startNewGame(1));
+  if (!drawGameOver._keyBound) {
+    drawGameOver._keyBound = true;
+    function _goKey(ev) { if (game.state === 'gameover') { game.startNewGame(1); window.removeEventListener('keydown', _goKey); } }
+    window.addEventListener('keydown', _goKey);
+  }
 }
 
 function drawGameOver2() {
@@ -1567,53 +2162,315 @@ function drawGameOver2() {
 }
 
 function drawVictory() {
-  CTX.fillStyle = 'rgba(0,0,0,0.92)'; CTX.fillRect(0, 0, W, H);
-  const glow = CTX.createRadialGradient(W/2, H/2, 0, W/2, H/2, 400); glow.addColorStop(0, 'rgba(200,160,0,0.22)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
-  CTX.fillStyle = glow; CTX.fillRect(0, 0, W, H); CTX.textAlign = 'center';
+  const T = Date.now();
+  const isMobile = W < 600;
+  const isS1 = game.stage === 1;
 
-  CTX.save(); CTX.shadowColor = '#ffe066'; CTX.shadowBlur = 46; CTX.fillStyle = '#e8b84b'; CTX.font = `bold ${Math.min(52, rw(52))}px "Cinzel Decorative", serif`;
-  CTX.fillText(game.stage === 1 ? '✦ 第一關通關! ✦' : '✦ 第二關通關! ✦', W/2, H/2 - rh(90)); CTX.restore();
+  // ── Background: animated rays of light ──
+  CTX.fillStyle = 'rgba(0,0,0,0.96)'; CTX.fillRect(0, 0, W, H);
 
-  CTX.fillStyle = 'rgba(255,240,150,0.7)'; CTX.font = `${Math.min(15, rw(15))}px "Cinzel", serif`;
-  CTX.fillText(game.stage === 1 ? '準備繼續挑戰第二關？' : '隱藏的黑暗正在蠢動...', W/2, H/2 - rh(44));
-
-  const panW = Math.min(320, W - 40); pxRect(W/2 - panW/2, H/2 - rh(20), panW, rh(90), 'rgba(0,0,0,0.55)'); pxRectOutline(W/2 - panW/2, H/2 - rh(20), panW, rh(90), 'rgba(232,184,75,0.5)', 1);
-  CTX.fillStyle = '#e8d8b0'; CTX.font = `${Math.min(14, rw(14))}px "Cinzel", serif`;
-  CTX.fillText('☠  總擊殺  ' + player.kills, W/2, H/2 + rh(12)); CTX.fillText('⬆  達到等級  ' + player.level, W/2, H/2 + rh(42));
-
-  const bw = Math.min(180, W/2 - 20), bh = Math.min(46, rh(46)), gap = 10, totalBtnW = bw * 2 + gap, bx1 = W/2 - totalBtnW/2, by1 = H/2 + rh(94), bx2 = bx1 + bw + gap;
-
-  if (game.stage === 1) {
-    drawPxBtn('⚔ 挑戰第二關', bx1, by1, bw, bh, '#3a2800', '#6a5000', '#e8b84b', '#ffe066', 'victory', () => { game.stage = 2; game.selectedWeapon = 'whip'; game.state = 'weaponSelect'; });
-  } else {
-    drawPxBtn('👁 挑戰隱藏關', bx1, by1, bw, bh, '#200040', '#400080', '#cc44ff', '#ee88ff', 'victory', () => { game.startNewGame(3); });
+  // Rotating light rays
+  CTX.save();
+  CTX.translate(W/2, H/2);
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2 + T / 4000;
+    const rayLen = Math.max(W, H) * 0.8;
+    CTX.save();
+    CTX.rotate(a);
+    const rayGrad = CTX.createLinearGradient(0, 0, rayLen, 0);
+    rayGrad.addColorStop(0, isS1 ? 'rgba(232,184,75,0.12)' : 'rgba(180,80,255,0.12)');
+    rayGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    CTX.fillStyle = rayGrad;
+    CTX.beginPath(); CTX.moveTo(0, 0); CTX.lineTo(rayLen, -30); CTX.lineTo(rayLen, 30); CTX.closePath(); CTX.fill();
+    CTX.restore();
   }
-  drawPxBtn('↺ 再來一局', bx2, by1, bw, bh, '#280008', '#550010', 'rgba(200,50,60,0.8)', '#ffcccc', 'victory', () => game.startNewGame(1));
+  CTX.restore();
+
+  // Center radial glow
+  const mainCol  = isS1 ? [232, 184, 75]  : [180, 80, 255];
+  const mainCol2 = isS1 ? [255, 120, 0]   : [100, 0, 220];
+  const glow = CTX.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H) * 0.55);
+  glow.addColorStop(0, `rgba(${mainCol.join(',')},0.18)`);
+  glow.addColorStop(0.5, `rgba(${mainCol2.join(',')},0.08)`);
+  glow.addColorStop(1, 'rgba(0,0,0,0)');
+  CTX.fillStyle = glow; CTX.fillRect(0, 0, W, H);
+
+  CTX.textAlign = 'center';
+
+  // ── Floating star particles ──
+  for (let i = 0; i < 30; i++) {
+    const px = ((i * 137 + T * 0.015) % W);
+    const py = ((i * 89  + T * 0.008) % H);
+    const alpha = (Math.sin(T / 600 + i) * 0.5 + 0.5) * 0.6;
+    CTX.save(); CTX.globalAlpha = alpha;
+    CTX.fillStyle = isS1 ? '#ffe066' : '#cc88ff';
+    CTX.shadowColor = isS1 ? '#ffe066' : '#cc88ff'; CTX.shadowBlur = 6;
+    CTX.fillRect(Math.round(px), Math.round(py), 2, 2);
+    CTX.restore();
+  }
+
+  // ── Stage badge ──
+  const badgeY = H/2 - rh(isMobile ? 115 : 130);
+  const badgeW = Math.min(200, W * 0.45), badgeH = isMobile ? 22 : 28;
+  pxRect(W/2 - badgeW/2, badgeY - badgeH/2, badgeW, badgeH,
+    isS1 ? 'rgba(100,70,0,0.7)' : 'rgba(60,0,100,0.7)');
+  pxRectOutline(W/2 - badgeW/2, badgeY - badgeH/2, badgeW, badgeH,
+    isS1 ? '#ffd700' : '#cc44ff', 2);
+  CTX.save(); CTX.fillStyle = isS1 ? '#ffd700' : '#cc88ff';
+  CTX.font = `bold ${isMobile ? 10 : 12}px "Cinzel", serif`;
+  CTX.fillText(isS1 ? 'STAGE 1 COMPLETE' : 'STAGE 2 COMPLETE', W/2, badgeY + (isMobile ? 4 : 5));
+  CTX.restore();
+
+  // ── Main title ──
+  const titleY = badgeY + (isMobile ? 40 : 55);
+  CTX.save();
+  CTX.shadowColor = isS1 ? '#ffe066' : '#cc44ff'; CTX.shadowBlur = 40 + Math.sin(T/500)*10;
+  CTX.fillStyle = isS1 ? '#ffe066' : '#dd88ff';
+  CTX.font = `bold ${Math.min(isMobile ? 32 : 44, rw(44))}px "Cinzel Decorative", serif`;
+  CTX.fillText(isS1 ? '✦ 第一關通關 ✦' : '✦ 第二關通關 ✦', W/2, titleY);
+  CTX.restore();
+
+  // Subtitle
+  CTX.fillStyle = isS1 ? 'rgba(255,240,150,0.7)' : 'rgba(200,150,255,0.7)';
+  CTX.font = `${Math.min(13, rw(13))}px "Cinzel", serif`;
+  CTX.fillText(isS1 ? '準備繼續挑戰第二關！' : '隱藏的黑暗正在蠢動...', W/2, titleY + (isMobile ? 22 : 30));
+
+  // ── Stats panel ──
+  const panY = titleY + (isMobile ? 46 : 60);
+  const panW = Math.min(340, W - 40), panH = isMobile ? 80 : 100;
+  // Panel bg with gradient border
+  pxRect(W/2 - panW/2, panY, panW, panH, 'rgba(5,0,15,0.8)');
+  pxRect(W/2 - panW/2, panY, panW, 3, isS1 ? '#ffd700' : '#cc44ff');
+  pxRect(W/2 - panW/2, panY + panH - 3, panW, 3, isS1 ? '#ffd700' : '#cc44ff');
+  pxRectOutline(W/2 - panW/2, panY, panW, panH, isS1 ? 'rgba(232,184,75,0.3)' : 'rgba(180,80,255,0.3)', 1);
+
+  const statFsz = Math.min(isMobile ? 11 : 14, rw(14));
+  const statColor = isS1 ? '#e8d8a0' : '#e0c8ff';
+  CTX.fillStyle = statColor; CTX.font = `${statFsz}px "Cinzel", serif`;
+
+  const statY1 = panY + panH * 0.35, statY2 = panY + panH * 0.67;
+  const halfW = panW / 2;
+
+  // Row 1: kills + time
+  const mins = Math.floor(game.time / 60), secs = Math.floor(game.time % 60);
+  CTX.textAlign = 'center';
+  CTX.fillStyle = isS1 ? '#ffd700' : '#cc88ff';
+  CTX.font = `bold ${statFsz + 1}px "Cinzel", serif`;
+  CTX.fillText('☠ ' + player.kills + '  擊殺', W/2 - halfW * 0.5, statY1);
+  CTX.fillText('⏱ ' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0') + '  時間', W/2 + halfW * 0.5, statY1);
+  // Row 2: level + weapons
+  CTX.fillStyle = statColor; CTX.font = `${statFsz}px "Cinzel", serif`;
+  CTX.fillText('⬆ LV.' + player.level + '  等級', W/2 - halfW * 0.5, statY2);
+  CTX.fillText('⚔ ' + player.weapons.length + '  武器', W/2 + halfW * 0.5, statY2);
+
+  // Weapon icons row
+  const iconY = panY + panH + 12;
+  const iconSz = isMobile ? 18 : 22;
+  const iconGap = iconSz + 8;
+  const iconStart = W/2 - (player.weapons.length * iconGap) / 2 + iconGap / 2;
+  CTX.font = `${iconSz}px serif`; CTX.textAlign = 'center';
+  for (let i = 0; i < player.weapons.length; i++) {
+    const w = player.weapons[i];
+    const ix = iconStart + i * iconGap;
+    pxRect(ix - iconSz/2 - 2, iconY - iconSz/2 - 2, iconSz + 4, iconSz + 4, 'rgba(0,0,0,0.6)');
+    pxRectOutline(ix - iconSz/2 - 2, iconY - iconSz/2 - 2, iconSz + 4, iconSz + 4,
+      isS1 ? 'rgba(255,215,0,0.5)' : 'rgba(180,80,255,0.5)', 1);
+    CTX.fillText(WEAPON_DEFS[w.type].icon, ix, iconY + iconSz * 0.45);
+    CTX.fillStyle = isS1 ? '#ffd700' : '#cc88ff';
+    CTX.font = `bold ${isMobile ? 8 : 9}px "Cinzel", serif`;
+    CTX.fillText('Lv' + w.level, ix, iconY + iconSz * 0.9 + 10);
+    CTX.font = `${iconSz}px serif`;
+  }
+
+  // ── Buttons ──
+  const btnAreaY = iconY + iconSz + (isMobile ? 26 : 34);
+  const bw = Math.min(180, (W - 60) / 2), bh = Math.min(48, rh(48));
+  const gap = 12, totalBtnW = bw * 2 + gap;
+  const bx1 = W/2 - totalBtnW/2, bx2 = bx1 + bw + gap;
+
+  if (isS1) {
+    drawPxBtn('⚔ 挑戰第二關', bx1, btnAreaY, bw, bh, '#3a2000', '#704000', '#e8b84b', '#ffe066', 'victory', () => {
+      game.stage = 2; game.selectedWeapon = 'whip'; game.state = 'weaponSelect';
+    });
+  } else {
+    drawPxBtn('👁 挑戰隱藏關', bx1, btnAreaY, bw, bh, '#1a0030', '#3a0070', '#cc44ff', '#ee88ff', 'victory', () => {
+      game.startNewGame(3);
+    });
+  }
+  drawPxBtn('↺ 再來一局', bx2, btnAreaY, bw, bh, '#280008', '#550010', 'rgba(200,50,60,0.85)', '#ffcccc', 'victory', () => game.startNewGame(1));
 }
 
 function drawVictory3() {
-  CTX.fillStyle = 'rgba(0,0,0,0.95)'; CTX.fillRect(0, 0, W, H);
-  const glow = CTX.createRadialGradient(W/2, H/2, 0, W/2, H/2, 500);
-  glow.addColorStop(0, 'rgba(255,215,0,0.3)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
-  CTX.fillStyle = glow; CTX.fillRect(0, 0, W, H); CTX.textAlign = 'center';
+  const T = Date.now();
+  const isMobile = W < 600;
 
-  CTX.save(); CTX.shadowColor = '#ffd700'; CTX.shadowBlur = 50; CTX.fillStyle = '#ffd700';
-  CTX.font = `bold ${Math.min(40, rw(40))}px "Cinzel Decorative", serif`;
-  CTX.fillText('黑暗終究會過去', W/2, H/2 - rh(100));
-  CTX.fillText('世界因你恢復了和平', W/2, H/2 - rh(40));
+  // ── Deep space background with star field ──
+  CTX.fillStyle = '#000005'; CTX.fillRect(0, 0, W, H);
+
+  // Slowly drifting stars (3 layers)
+  for (let layer = 0; layer < 3; layer++) {
+    const speed = (layer + 1) * 0.003;
+    const starCount = 40 + layer * 20;
+    const starSz = layer + 1;
+    for (let i = 0; i < starCount; i++) {
+      const px = ((i * (137 + layer * 17) + T * speed) % W + W) % W;
+      const py = ((i * (89  + layer * 23) + T * speed * 0.4) % H + H) % H;
+      const twinkle = Math.sin(T / (400 + i * 17) + i) * 0.4 + 0.6;
+      CTX.save(); CTX.globalAlpha = twinkle * (0.4 + layer * 0.2);
+      CTX.fillStyle = layer === 2 ? '#ffd700' : '#ffffff';
+      CTX.shadowColor = layer === 2 ? '#ffd700' : '#aaaaff'; CTX.shadowBlur = 3;
+      CTX.fillRect(Math.round(px), Math.round(py), starSz, starSz);
+      CTX.restore();
+    }
+  }
+
+  // ── Massive multi-layer radial aurora ──
+  const auroraColors = [
+    [255, 215, 0, 0.14],    // gold
+    [180, 80, 255, 0.10],   // purple
+    [255, 120, 0,  0.08],   // orange
+    [0,   200, 255, 0.06],  // cyan accent
+  ];
+  for (let i = 0; i < auroraColors.length; i++) {
+    const [r, g, b, a] = auroraColors[i];
+    const offset = Math.sin(T / (800 + i * 200)) * 60;
+    const ag = CTX.createRadialGradient(W/2 + offset, H/2, 0, W/2, H/2, Math.max(W, H) * (0.55 + i * 0.12));
+    ag.addColorStop(0, `rgba(${r},${g},${b},${a})`);
+    ag.addColorStop(1, 'rgba(0,0,0,0)');
+    CTX.fillStyle = ag; CTX.fillRect(0, 0, W, H);
+  }
+
+  // Slow rotating light beams from center
+  CTX.save(); CTX.translate(W/2, H * 0.38);
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2 + T / 8000;
+    const len = Math.max(W, H) * 0.9;
+    const alpha = (Math.sin(T / 1200 + i * 0.8) * 0.5 + 0.5) * 0.06;
+    CTX.save(); CTX.rotate(a);
+    const rg = CTX.createLinearGradient(0, 0, len, 0);
+    rg.addColorStop(0, `rgba(255,215,0,${alpha})`);
+    rg.addColorStop(1, 'rgba(0,0,0,0)');
+    CTX.fillStyle = rg;
+    CTX.beginPath(); CTX.moveTo(0,0); CTX.lineTo(len,-40); CTX.lineTo(len,40); CTX.closePath(); CTX.fill();
+    CTX.restore();
+  }
   CTX.restore();
 
-  const cw = Math.min(360, W - 40), ch = rh(120), cx = W/2 - cw/2, cy = H/2 + rh(20);
-  pxRect(cx, cy, cw, ch, 'rgba(0,0,0,0.6)'); pxRectOutline(cx, cy, cw, ch, '#aa8800', 1);
-  
-  CTX.fillStyle = '#ddcc88'; CTX.font = `${Math.min(14, rw(14))}px serif`;
-  CTX.fillText('遊戲設計: LinWei', W/2, cy + rh(30));
-  CTX.fillText('美術設計: LinWei', W/2, cy + rh(55));
-  CTX.fillText('關卡設計: LinWei', W/2, cy + rh(80));
-  CTX.fillText('程式設計: Claude Sonnet 4.6', W/2, cy + rh(105));
+  CTX.textAlign = 'center';
+  const vCenterY = H * 0.36;
 
-  const btnW = 200, btnH = 46, bx = W/2 - btnW/2, by = cy + ch + rh(30);
-  drawPxBtn('↺ 返回標題', bx, by, btnW, btnH, '#3a2800', '#6a5000', '#e8b84b', '#ffe066', 'victory3', () => { game.state = 'title'; });
+  // ── ALL CLEAR badge ──
+  const badgeW = Math.min(260, W * 0.6), badgeH = isMobile ? 26 : 32;
+  const badgeY = vCenterY - rh(isMobile ? 145 : 170);
+  const badgePulse = Math.sin(T / 600) * 0.3 + 0.7;
+  CTX.save();
+  CTX.shadowColor = '#ffd700'; CTX.shadowBlur = 20 * badgePulse;
+  pxRect(W/2 - badgeW/2, badgeY, badgeW, badgeH, 'rgba(60,40,0,0.85)');
+  pxRect(W/2 - badgeW/2, badgeY, badgeW, 3, '#ffd700');
+  pxRect(W/2 - badgeW/2, badgeY + badgeH - 3, badgeW, 3, '#ffd700');
+  CTX.fillStyle = '#ffd700'; CTX.font = `bold ${isMobile ? 11 : 14}px "Cinzel", serif`;
+  CTX.fillText('✦  ALL CLEAR  ✦  HIDDEN STAGE COMPLETE  ✦', W/2, badgeY + badgeH * 0.72);
+  CTX.restore();
+
+  // ── Main title — two lines with glow ──
+  const t1Y = badgeY + badgeH + (isMobile ? 30 : 44);
+  const t1Sz = Math.min(isMobile ? 26 : 38, rw(38));
+  CTX.save();
+  CTX.shadowColor = '#ffd700'; CTX.shadowBlur = 50 + Math.sin(T/700)*15;
+  CTX.fillStyle = '#ffe566';
+  CTX.font = `bold ${t1Sz}px "Cinzel Decorative", serif`;
+  CTX.fillText('黑暗終究會過去', W/2, t1Y);
+  CTX.restore();
+  const t2Sz = Math.min(isMobile ? 20 : 30, rw(30));
+  CTX.save();
+  CTX.shadowColor = '#cc88ff'; CTX.shadowBlur = 35 + Math.sin(T/600+1)*10;
+  CTX.fillStyle = '#e8ccff';
+  CTX.font = `bold ${t2Sz}px "Cinzel Decorative", serif`;
+  CTX.fillText('世界因你恢復了和平', W/2, t1Y + t1Sz + (isMobile ? 10 : 16));
+  CTX.restore();
+
+  // Decorative divider
+  const divY = t1Y + t1Sz + (isMobile ? 34 : 54);
+  const divW = Math.min(320, W - 60);
+  pxRect(W/2 - divW/2, divY, divW, 1, 'rgba(255,215,0,0.4)');
+  CTX.fillStyle = '#ffd700'; CTX.font = `${isMobile ? 16 : 20}px serif`;
+  CTX.fillText('✦', W/2, divY + (isMobile ? 12 : 14));
+  pxRect(W/2 - divW/2, divY + (isMobile ? 17 : 20), divW, 1, 'rgba(255,215,0,0.4)');
+
+  // ── Stats panel ──
+  const statPanY = divY + (isMobile ? 24 : 34);
+  const statPanW = Math.min(380, W - 30), statPanH = isMobile ? 88 : 110;
+  pxRect(W/2 - statPanW/2, statPanY, statPanW, statPanH, 'rgba(4,0,12,0.85)');
+  pxRect(W/2 - statPanW/2, statPanY, statPanW, 3, '#ffd700');
+  pxRectOutline(W/2 - statPanW/2, statPanY, statPanW, statPanH, 'rgba(255,215,0,0.25)', 1);
+
+  const sf = Math.min(isMobile ? 10 : 13, rw(13));
+  const hPan = statPanW / 2;
+  const sRow1 = statPanY + statPanH * 0.28, sRow2 = statPanY + statPanH * 0.58, sRow3 = statPanY + statPanH * 0.85;
+  const mins3 = Math.floor(game.time / 60), secs3 = Math.floor(game.time % 60);
+
+  CTX.font = `bold ${sf + 1}px "Cinzel", serif`;
+  CTX.fillStyle = '#ffd700';
+  CTX.fillText('☠  擊殺：' + player.kills, W/2 - hPan * 0.5, sRow1);
+  CTX.fillText('⏱  ' + String(mins3).padStart(2,'0') + ':' + String(secs3).padStart(2,'0'), W/2 + hPan * 0.5, sRow1);
+  CTX.fillStyle = '#e8d0ff';
+  CTX.font = `${sf}px "Cinzel", serif`;
+  CTX.fillText('⬆  等級：LV.' + player.level, W/2 - hPan * 0.5, sRow2);
+  CTX.fillText('⚔  武器：' + player.weapons.length + ' 把', W/2 + hPan * 0.5, sRow2);
+  CTX.fillStyle = '#c0b870';
+  CTX.fillText('✦  技能：' + player.passives.length + ' 項', W/2, sRow3);
+
+  // Weapon icons
+  const wIconY = statPanY + statPanH + (isMobile ? 8 : 12);
+  const wIconSz = isMobile ? 18 : 22;
+  const wIconGap = wIconSz + 8;
+  const wStart = W/2 - (player.weapons.length * wIconGap) / 2 + wIconGap / 2;
+  CTX.font = `${wIconSz}px serif`; CTX.textAlign = 'center';
+  for (let i = 0; i < player.weapons.length; i++) {
+    const w = player.weapons[i];
+    const ix = wStart + i * wIconGap;
+    pxRect(ix - wIconSz/2 - 2, wIconY - wIconSz/2 - 2, wIconSz+4, wIconSz+4, 'rgba(0,0,0,0.7)');
+    pxRectOutline(ix - wIconSz/2 - 2, wIconY - wIconSz/2 - 2, wIconSz+4, wIconSz+4, 'rgba(255,215,0,0.5)', 1);
+    CTX.fillText(WEAPON_DEFS[w.type].icon, ix, wIconY + wIconSz * 0.45);
+    CTX.fillStyle = '#ffd700'; CTX.font = `bold ${isMobile ? 8 : 9}px "Cinzel", serif`;
+    CTX.fillText('Lv' + w.level, ix, wIconY + wIconSz * 0.9 + 9);
+    CTX.font = `${wIconSz}px serif`;
+  }
+
+  // ── Credits panel ──
+  const credY = wIconY + wIconSz + (isMobile ? 16 : 22);
+  const credW = Math.min(340, W - 40), credH = isMobile ? 78 : 96;
+  pxRect(W/2 - credW/2, credY, credW, credH, 'rgba(3,0,10,0.85)');
+  pxRect(W/2 - credW/2, credY, credW, 2, '#aa8800');
+  pxRect(W/2 - credW/2, credY + credH - 2, credW, 2, '#aa8800');
+  pxRectOutline(W/2 - credW/2, credY, credW, credH, 'rgba(180,140,0,0.25)', 1);
+
+  const cf = Math.min(isMobile ? 10 : 12, rw(12));
+  const credLineH = isMobile ? (credH / 4.5) : (credH / 4.2);
+  CTX.fillStyle = '#c8b870'; CTX.font = `bold ${cf}px "Cinzel", serif`;
+  CTX.fillText('─── 製作群 ───', W/2, credY + credLineH * 0.7);
+  CTX.fillStyle = '#d8c880'; CTX.font = `${cf}px "Cinzel", serif`;
+  CTX.fillText('遊戲設計 · 美術 · 關卡：LinWei', W/2, credY + credLineH * 1.7);
+  CTX.fillStyle = '#aa8844'; CTX.font = `${cf - 1}px "Cinzel", serif`;
+  CTX.fillText('AI 程式輔助：Claude Sonnet 4.6 by Anthropic', W/2, credY + credLineH * 2.7);
+  CTX.fillStyle = 'rgba(200,180,100,0.4)'; CTX.font = `${cf - 1}px "Cinzel", serif`;
+  CTX.fillText('感謝您玩到了最後 — Thank you for playing!', W/2, credY + credLineH * 3.7);
+
+  // ── Button ──
+  const btnAreaY = credY + credH + (isMobile ? 14 : 20);
+  const btnW = Math.min(240, W - 40), btnH = Math.min(50, rh(50));
+  const bx = W/2 - btnW/2;
+  // Pulse border
+  const btnPulse = Math.sin(T / 700) * 0.5 + 0.5;
+  CTX.save();
+  CTX.shadowColor = '#ffd700'; CTX.shadowBlur = 15 * btnPulse;
+  pxRect(bx, btnAreaY, btnW, btnH, '#3a2800');
+  pxRect(bx+3, btnAreaY+3, btnW-6, btnH-6, '#6a5000');
+  pxRectOutline(bx, btnAreaY, btnW, btnH, '#ffd700', 2);
+  CTX.fillStyle = '#ffe066'; CTX.font = `bold ${Math.min(16, W*0.035)}px "Cinzel", serif`;
+  CTX.fillText('↺  返回主畫面', W/2, btnAreaY + btnH * 0.67);
+  CTX.restore();
+  registerBtn(bx, btnAreaY, btnW, btnH, 'victory3', () => { game.state = 'title'; });
 }
 
 // ====== GAME LOOP ======
