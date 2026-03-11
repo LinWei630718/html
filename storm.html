@@ -4,9 +4,20 @@
 <meta charset="UTF-8">
 <title>暴風突擊隊</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-#gameCanvas { display: block; image-rendering: pixelated; }
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100vw; height: 100vh;
+  background: #000;
+  overflow: hidden;
+  display: flex; justify-content: center; align-items: center;
+}
+#gameCanvas {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  /* transform-based scaling — JS will set transform:scale() */
+  transform-origin: center center;
+}
 #muteBtn {
   position: fixed; top: 10px; right: 10px; z-index: 100;
   background: rgba(0,20,40,0.85); border: 1px solid #2266aa;
@@ -21,12 +32,36 @@ body { background: #000; display: flex; justify-content: center; align-items: ce
 <canvas id="gameCanvas"></canvas>
 <button id="muteBtn">🔊 SOUND</button>
 <script>
-const W=960,H=640;
 const canvas=document.getElementById('gameCanvas');
 const ctx=canvas.getContext('2d');
-canvas.width=W; canvas.height=H;
-function resize(){ const s=Math.min(window.innerWidth/W,window.innerHeight/H); canvas.style.width=W*s+'px'; canvas.style.height=H*s+'px'; }
-window.addEventListener('resize',resize); resize();
+
+// Dynamic canvas sizing - canvas fills viewport exactly
+// We keep H fixed at 640 and adjust W to match screen aspect ratio
+// All game coords use W,H which update on resize
+let W=960, H=640;
+
+function resize(){
+  const vw = window.innerWidth  || document.documentElement.clientWidth  || 960;
+  const vh = window.innerHeight || document.documentElement.clientHeight || 640;
+
+  // Scale canvas to exactly fill the viewport
+  W = Math.round(vw * (640 / vh));  // keep H=640, scale W to match aspect ratio
+  H = 640;
+
+  canvas.width  = W;
+  canvas.height = H;
+  canvas.style.width  = vw + 'px';
+  canvas.style.height = vh + 'px';
+
+  // muteBtn always top-right
+  const btn = document.getElementById('muteBtn');
+  if(btn){ btn.style.right = '10px'; btn.style.top = '10px'; }
+}
+window.addEventListener('resize', resize);
+// Also respond to orientation changes and layout shifts
+window.addEventListener('orientationchange', ()=>setTimeout(resize,100));
+// Initial sizing
+resize();
 
 // ══════════════════════════════════════════════════════
 //  WEB AUDIO ENGINE
@@ -393,7 +428,13 @@ function startBossMusic(){
 //  INPUT
 // ══════════════════════════════════════════════════════
 const keys={},keyPressed={},keyReleased={};
-window.addEventListener('keydown',e=>{ if(!keys[e.code]) keyPressed[e.code]=true; keys[e.code]=true; if(!audioStarted) startAudio(); e.preventDefault(); });
+const GAME_KEYS = new Set(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyX','KeyZ','KeyP','Space','Enter','Escape']);
+window.addEventListener('keydown',e=>{
+  if(!keys[e.code]) keyPressed[e.code]=true;
+  keys[e.code]=true;
+  if(!audioStarted) startAudio();
+  if(GAME_KEYS.has(e.code)) e.preventDefault();
+});
 window.addEventListener('keyup',e=>{ keys[e.code]=false; keyReleased[e.code]=true; });
 function clearFrameKeys(){ for(let k in keyPressed) delete keyPressed[k]; for(let k in keyReleased) delete keyReleased[k]; }
 
@@ -966,7 +1007,7 @@ function hitPlayer(){
   player.lives--; player.invincible=DC().invincTime; player.flashTimer=0;
   triggerShake(10,0.5); playHit(); resetCombo();
   spawnParticles(player.x,player.y,50,{speedMin:80,speedMax:300,rMin:2,rMax:6,decayMin:0.02,decayMax:0.05,color:'#4499ff',color2:'#aaffff'});
-  if(player.lives<=0){ player.alive=false; stopLaserLoop(); gameState='gameover'; }
+  if(player.lives<=0){ player.alive=false; stopLaserLoop(); saveHiScore(player.score); gameState='gameover'; }
 }
 
 // ══════════════════════════════════════════════════════
@@ -1127,7 +1168,14 @@ const STAGE_CONFIGS=[
 // ══════════════════════════════════════════════════════
 let hiScore=0;
 try{ hiScore=parseInt(localStorage.getItem('stormStriker_hi')||'0'); }catch(e){}
-function saveHiScore(s){ if(s>hiScore){ hiScore=s; try{localStorage.setItem('stormStriker_hi',String(s));}catch(e){} } }
+function saveHiScore(s){
+  if(s>hiScore){
+    hiScore=s;
+    try{ localStorage.setItem('stormStriker_hi',String(s)); }catch(e){}
+    return true; // new record
+  }
+  return false;
+}
 
 // ══════════════════════════════════════════════════════
 //  BOSS DIALOGUE SYSTEM
@@ -1346,6 +1394,7 @@ const MID_BOSS_TIME   = 120;   // 2:00
 const FINAL_BOSS_TIME = 240;   // re-trigger 2 min after mid-boss reset
 
 function updateStageLogic(dt){
+  // Only advance time during non-boss play phases
   if(stagePhase==='play'||stagePhase==='midboss_dead'){
     stageTime+=dt;
     if(!midBossSpawned&&stageTime>=MID_BOSS_TIME){
@@ -1376,6 +1425,7 @@ let clearTimer=0,transAlpha=0,transDir=0,inTransition=false;
 function startStageClear(){
   clearTimer=0; inTransition=true; transAlpha=0; transDir=1;
   triggerShake(20,3); playStageClear();
+  if(stageNum===3) saveHiScore(player.score); // final clear
   for(let i=0;i<8;i++) setTimeout(()=>{ spawnParticles(rnd(100,W-100),rnd(50,H-50),30,{speedMin:60,speedMax:300,rMin:3,rMax:8,decayMin:0.008,decayMax:0.02,color:'#ffcc00',color2:'#ffffff'}); },i*300);
 }
 function updateTransition(dt){
@@ -1398,6 +1448,7 @@ function advanceStage(){
   if(stageNum>=3){ gameState='cleared'; inTransition=false; return; }
   stageNum++; stageTime=0; stagePhase='play'; midBossSpawned=false; finalBossSpawned=false;
   currentBoss=null; enemies.length=0; enemyBullets.length=0; playerBullets.length=0;
+  clearTimer=0; transAlpha=0; inTransition=false;
   initBgForStage(); startMusic();
 }
 
@@ -1585,10 +1636,10 @@ let diffSelectIdx=1; // default: 一般
 let diffSelectPulse=0;
 let diffSelectEnterCooldown=0;
 
-function drawTitle(){
+function drawTitle(dt){
   ctx.save(); ctx.fillStyle='#00000f'; ctx.fillRect(0,0,W,H);
-  for(const s of titleStars){ s.x-=s.spd*0.016; if(s.x<0) s.x=W; ctx.save(); ctx.globalAlpha=s.bright; ctx.fillStyle='#aaccff'; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); ctx.restore(); }
-  titlePulse+=0.016;
+  for(const s of titleStars){ s.x-=s.spd*dt; if(s.x<0) s.x=W; ctx.save(); ctx.globalAlpha=s.bright; ctx.fillStyle='#aaccff'; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); ctx.restore(); }
+  titlePulse+=dt;
   const pulse=(Math.sin(titlePulse*3)*0.5+0.5);
   ctx.textAlign='center'; ctx.textBaseline='middle';
 
@@ -1705,8 +1756,8 @@ function drawDifficultySelect(){
   ctx.restore();
 }
 
-function updateDifficultySelect(){
-  diffSelectEnterCooldown=Math.max(0,diffSelectEnterCooldown-0.016);
+function updateDifficultySelect(dt){
+  diffSelectEnterCooldown=Math.max(0,diffSelectEnterCooldown-dt);
   if(keyPressed['ArrowUp']){
     diffSelectIdx=(diffSelectIdx+3)%4;
   }
@@ -1787,8 +1838,14 @@ function togglePause(){
   paused=!paused;
   playPause();
   if(audioCtx){
-    if(paused) masterGain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);
-    else       masterGain.gain.linearRampToValueAtTime(muted?0:0.85,audioCtx.currentTime+0.2);
+    masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
+    if(paused){
+      masterGain.gain.setValueAtTime(masterGain.gain.value, audioCtx.currentTime);
+      masterGain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime+0.15);
+    } else {
+      masterGain.gain.setValueAtTime(masterGain.gain.value, audioCtx.currentTime);
+      masterGain.gain.linearRampToValueAtTime(muted?0:0.85, audioCtx.currentTime+0.2);
+    }
   }
 }
 function drawPause(){
@@ -1845,16 +1902,17 @@ function initGame(){
 // ══════════════════════════════════════════════════════
 //  MAIN LOOP
 // ══════════════════════════════════════════════════════
-let lastTime=0;
+let lastTime=null;
 function loop(ts){
+  if(lastTime===null) lastTime=ts;
   const dt=Math.min((ts-lastTime)/1000,0.05); lastTime=ts;
   ctx.save(); ctx.translate(shakeOX,shakeOY);
 
   if(gameState==='title'){
-    drawTitle();
+    drawTitle(dt);
     if(diffSelectActive){
       // Draw diff select on top of title
-      updateDifficultySelect();
+      updateDifficultySelect(dt);
       drawDifficultySelect();
     } else {
       if(Object.keys(keyPressed).length>0){
@@ -1873,7 +1931,6 @@ function loop(ts){
       // Still listen for resume/retry while paused
       if(keyPressed['KeyP']||keyPressed['Escape']) togglePause();
       if(keyPressed['KeyX']){ paused=false; stopMusic(); initGame(); }
-      pausePulse+=0.04;
     }
     drawBackground(); drawLaserBeam(); drawBullets();
     for(const e of enemies) e.draw();
@@ -1883,13 +1940,10 @@ function loop(ts){
     if(paused) drawPause();
   } else if(gameState==='gameover'){
     drawBackground(); drawParticles(); drawGameOver();
-    saveHiScore(player.score);
-    // X = retry same difficulty, ESC = back to title
     if(keyPressed['KeyX']){ stopMusic(); initGame(); }
     if(keyPressed['Escape']){ stopMusic(); gameState='title'; diffSelectActive=false; }
   } else if(gameState==='cleared'){
     drawBackground(); drawParticles(); drawCleared();
-    saveHiScore(player.score);
     if(keyPressed['KeyX']){ stopMusic(); initGame(); }
     if(keyPressed['Escape']){ stopMusic(); gameState='title'; diffSelectActive=false; }
   }
@@ -1897,7 +1951,7 @@ function loop(ts){
   ctx.restore(); clearFrameKeys();
   requestAnimationFrame(loop);
 }
-requestAnimationFrame(ts=>{ lastTime=ts; requestAnimationFrame(loop); });
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
