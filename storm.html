@@ -202,6 +202,32 @@ function playStageClear(){
     });
   });
 }
+function playLifeUp(){
+  sfx(()=>{
+    const t=audioCtx.currentTime;
+    // Ascending arpeggio with warm sine
+    [0,0.08,0.16,0.26].forEach((delay,i)=>{
+      const osc=audioCtx.createOscillator(), g=audioCtx.createGain();
+      osc.type='sine'; osc.frequency.value=[523,659,784,1047][i];
+      g.gain.setValueAtTime(0.22,t+delay); g.gain.exponentialRampToValueAtTime(0.001,t+delay+0.3);
+      osc.connect(g); g.connect(sfxGain); osc.start(t+delay); osc.stop(t+delay+0.35);
+    });
+    // Shimmer sparkle layer
+    const osc2=audioCtx.createOscillator(), g2=audioCtx.createGain();
+    osc2.type='triangle'; osc2.frequency.setValueAtTime(2000,t+0.1); osc2.frequency.exponentialRampToValueAtTime(4000,t+0.5);
+    g2.gain.setValueAtTime(0.08,t+0.1); g2.gain.exponentialRampToValueAtTime(0.001,t+0.55);
+    osc2.connect(g2); g2.connect(sfxGain); osc2.start(t+0.1); osc2.stop(t+0.6);
+  });
+}
+function playPause(){
+  sfx(()=>{
+    const t=audioCtx.currentTime;
+    const osc=audioCtx.createOscillator(), g=audioCtx.createGain();
+    osc.type='square'; osc.frequency.setValueAtTime(400,t); osc.frequency.setValueAtTime(300,t+0.05);
+    g.gain.setValueAtTime(0.15,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+    osc.connect(g); g.connect(sfxGain); osc.start(t); osc.stop(t+0.15);
+  });
+}
 function makeDistCurve(amount){
   const n=256, curve=new Float32Array(n);
   for(let i=0;i<n;i++){ const x=i*2/n-1; curve[i]=(Math.PI+amount)*x/(Math.PI+amount*Math.abs(x)); }
@@ -587,13 +613,19 @@ function updatePlayer(dt){
     if(player.subWeapon===SUB_WEAPON.MISSILE) fireMissile(); else fireHoming();
   }
   if(keyPressed['KeyZ']&&player.bombs>0){ player.bombs--; triggerBomb(); }
+  // Pause
+  if(keyPressed['KeyP']||keyPressed['Escape']) togglePause();
 }
 function addCombo(){
   player.combo++; player.comboTimer=3.0;
   if(player.combo>player.maxCombo) player.maxCombo=player.combo;
-  if(player.combo%10===0&&player.combo>0) showPickupText(player.x,player.y-40,`${player.combo} COMBO!`,'#ffcc00');
+  if(player.combo%10===0&&player.combo>0)
+    showPickupText(player.x,player.y-50,`${player.combo} COMBO!!`,'#ffcc00','big');
 }
-function resetCombo(){ if(player.combo>4) showPickupText(player.x,player.y-30,`COMBO x${player.combo}`,'#888888'); player.combo=0; }
+function resetCombo(){
+  if(player.combo>4) showPickupText(player.x,player.y-30,`COMBO ×${player.combo}`,'#667788','normal');
+  player.combo=0;
+}
 
 function drawLaserBeam(){
   if(!player.laserBeams.length||player.weapon!==WEAPON.LASER) return;
@@ -681,27 +713,65 @@ function updatePickups(dt){
 }
 function collectPickup(pu){
   playPickup();
-  spawnParticles(pu.x,pu.y,20,{speedMin:60,speedMax:200,rMin:2,rMax:5,decayMin:0.04,decayMax:0.09,color:pu.type==='bomb'?'#ff7700':'#ffffff',color2:'#ffffaa'});
-  if(pu.type==='bomb'){ player.bombs=Math.min(7,player.bombs+1); showPickupText(pu.x,pu.y,'BOMB +1','#ff8833'); return; }
+  spawnParticles(pu.x,pu.y,20,{speedMin:60,speedMax:200,rMin:2,rMax:5,decayMin:0.04,decayMax:0.09,
+    color:pu.type==='bomb'?'#ff7700':pu.type==='life'?'#ff44aa':'#ffffff',color2:'#ffffaa'});
+  if(pu.type==='life'){
+    const maxLives=7;
+    if(player.lives<maxLives){
+      player.lives++;
+      playLifeUp();
+      // Big sparkle burst
+      spawnParticles(pu.x,pu.y,50,{speedMin:60,speedMax:280,rMin:2,rMax:7,decayMin:0.012,decayMax:0.03,color:'#ff66bb',color2:'#ffddff'});
+      showPickupText(pu.x,pu.y,'★ LIFE UP! ★','#ff44aa','lifeup');
+    } else {
+      // Already max lives → convert to score bonus
+      player.score+=5000;
+      showPickupText(pu.x,pu.y,'+5000','#ffddaa','big');
+    }
+    return;
+  }
+  if(pu.type==='bomb'){ player.bombs=Math.min(7,player.bombs+1); showPickupText(pu.x,pu.y,'BOMB +1','#ff8833','normal'); return; }
   if(pu.type==='weapon'){
     const col=getWeaponPickupColor(pu);
     if((col==='red'&&player.weapon===WEAPON.VULCAN)||(col==='blue'&&player.weapon===WEAPON.LASER)){
-      player.weaponLevel=Math.min(8,player.weaponLevel+1); showPickupText(pu.x,pu.y,`Lv.${player.weaponLevel}`,col==='red'?'#ff3322':'#3388ff');
+      player.weaponLevel=Math.min(8,player.weaponLevel+1); showPickupText(pu.x,pu.y,`武器 Lv.${player.weaponLevel}`,col==='red'?'#ff3322':'#3388ff','normal');
     } else {
       player.weapon=col==='red'?WEAPON.VULCAN:WEAPON.LASER; player.weaponLevel=1;
-      showPickupText(pu.x,pu.y,col==='red'?'火神砲!':'雷射!',col==='red'?'#ff3322':'#3388ff');
+      showPickupText(pu.x,pu.y,col==='red'?'火神砲!':'雷射!',col==='red'?'#ff3322':'#3388ff','big');
     }
     return;
   }
   if(pu.type==='subWeapon'){
     const type=pu.subLabel==='M'?SUB_WEAPON.MISSILE:SUB_WEAPON.HOMING;
-    if(player.subWeapon===type){ player.subLevel=Math.min(4,player.subLevel+1); showPickupText(pu.x,pu.y,`${pu.subLabel} Lv.${player.subLevel}`,pu.subLabel==='M'?'#ffcc00':'#44ff88'); }
-    else { player.subWeapon=type; player.subLevel=1; showPickupText(pu.x,pu.y,pu.subLabel==='M'?'核彈裝備!':'追蹤彈裝備!',pu.subLabel==='M'?'#ffcc00':'#44ff88'); }
+    if(player.subWeapon===type){ player.subLevel=Math.min(4,player.subLevel+1); showPickupText(pu.x,pu.y,`${pu.subLabel} Lv.${player.subLevel}`,pu.subLabel==='M'?'#ffcc00':'#44ff88','normal'); }
+    else { player.subWeapon=type; player.subLevel=1; showPickupText(pu.x,pu.y,pu.subLabel==='M'?'核彈裝備!':'追蹤彈裝備!',pu.subLabel==='M'?'#ffcc00':'#44ff88','big'); }
   }
 }
 function drawPickups(){
   for(const pu of pickups){
     ctx.save();
+    // Life pickup — special pink heart design
+    if(pu.type==='life'){
+      const pulse=Math.sin(pu.bobPhase*2)*0.15+0.85;
+      ctx.save(); ctx.translate(pu.x,pu.y); ctx.scale(pulse,pulse);
+      glow('#ff44aa',24);
+      // Heart shape
+      ctx.fillStyle='#ff44aa';
+      ctx.beginPath();
+      ctx.moveTo(0,4);
+      ctx.bezierCurveTo(0,0,-14,-8,-14,-2);
+      ctx.bezierCurveTo(-14,6,0,14,0,18);
+      ctx.bezierCurveTo(0,14,14,6,14,-2);
+      ctx.bezierCurveTo(14,-8,0,0,0,4);
+      ctx.closePath(); ctx.fill();
+      // Outer ring
+      ctx.strokeStyle='#ffaacc'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(0,0,18,0,Math.PI*2); ctx.stroke();
+      ctx.fillStyle='#ffffff'; ctx.font='bold 9px "Courier New"'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('1UP',0,2);
+      noGlow(); ctx.restore();
+      ctx.restore(); continue;
+    }
     const col=pu.type==='weapon'?getWeaponPickupColor(pu):pu.type==='subWeapon'?(pu.subLabel==='M'?'yellow':'green'):'orange';
     const hex=col==='red'?'#ff3322':col==='blue'?'#3388ff':col==='yellow'?'#ffcc00':col==='green'?'#44ff88':'#ff8833';
     glow(hex,20);
@@ -715,15 +785,58 @@ function drawPickups(){
 }
 
 // ══════════════════════════════════════════════════════
-//  FLOAT TEXTS
+//  FLOAT TEXTS  (升級版：支援大小/樣式/縮放動畫)
 // ══════════════════════════════════════════════════════
 const floatTexts=[];
-function showPickupText(x,y,text,color='#ffffff'){ floatTexts.push({x,y,text,color,life:1}); }
-function updateFloatTexts(dt){ for(let i=floatTexts.length-1;i>=0;i--){ floatTexts[i].y-=60*dt; floatTexts[i].life-=dt*1.2; if(floatTexts[i].life<=0) floatTexts.splice(i,1); } }
+// style: 'normal' | 'big' | 'score' | 'combo' | 'lifeup'
+function showPickupText(x,y,text,color='#ffffff',style='normal'){
+  floatTexts.push({x,y,text,color,style,life:1,age:0,
+    speed: style==='big'||style==='lifeup'?45:60,
+    decay: style==='big'||style==='lifeup'?0.55:style==='score'?1.0:1.2,
+    vy: style==='score'?-1:0  // score texts drift slightly upward
+  });
+}
+function showScoreText(x,y,score,combo){
+  const mult=1+Math.floor(combo/5)*0.1;
+  const dispScore=Math.round(score*(1+Math.floor(combo/5)*0.1));
+  const col=combo>=20?'#ff4444':combo>=10?'#ffcc00':combo>=5?'#44ffcc':'#ffffff';
+  showPickupText(x,y-20,`+${dispScore}`,col,'score');
+}
+function updateFloatTexts(dt){
+  for(let i=floatTexts.length-1;i>=0;i--){
+    const ft=floatTexts[i];
+    ft.age+=dt; ft.y-=ft.speed*dt; ft.life-=ft.decay*dt;
+    if(ft.life<=0) floatTexts.splice(i,1);
+  }
+}
 function drawFloatTexts(){
   for(const ft of floatTexts){
-    ctx.save(); ctx.globalAlpha=Math.max(0,ft.life); ctx.fillStyle=ft.color; glow(ft.color,15);
-    ctx.font='bold 18px "Courier New"'; ctx.textAlign='center'; ctx.fillText(ft.text,ft.x,ft.y); noGlow(); ctx.restore();
+    ctx.save();
+    const alpha=Math.max(0,ft.life);
+    ctx.globalAlpha=alpha;
+    // Scale pop-in for big / lifeup
+    const scale=(ft.style==='big'||ft.style==='lifeup')
+      ? Math.min(1.2,0.4+ft.age*6) : 1;
+    ctx.translate(ft.x,ft.y);
+    if(scale!==1) ctx.scale(scale,scale);
+    ctx.translate(-ft.x,-ft.y);
+    glow(ft.color,ft.style==='big'||ft.style==='lifeup'?25:ft.style==='score'?10:15);
+    let fontSize;
+    switch(ft.style){
+      case 'lifeup': fontSize=28; break;
+      case 'big':    fontSize=24; break;
+      case 'score':  fontSize=15; break;
+      default:       fontSize=18;
+    }
+    ctx.font=`bold ${fontSize}px "Courier New"`;
+    ctx.fillStyle=ft.color; ctx.textAlign='center';
+    // Outline for lifeup
+    if(ft.style==='lifeup'){
+      ctx.strokeStyle='rgba(0,0,0,0.8)'; ctx.lineWidth=3;
+      ctx.strokeText(ft.text,ft.x,ft.y);
+    }
+    ctx.fillText(ft.text,ft.x,ft.y);
+    noGlow(); ctx.restore();
   }
 }
 
@@ -794,24 +907,52 @@ class Enemy{
   }
 }
 function killEnemy(e){
-  if(!e.alive) return; e.alive=false; player.score+=e.score*(1+Math.floor(player.combo/5)*0.1);
+  if(!e.alive) return; e.alive=false;
+  const scoreGained=Math.round(e.score*(1+Math.floor(player.combo/5)*0.1));
+  player.score+=scoreGained;
   addCombo();
+  // Score float text
+  showScoreText(e.x,e.y,e.score,player.combo);
   triggerShake(e.r>20?6:3,e.r>20?0.3:0.15);
   playExplosion(e.r>20?1.5:0.8);
   spawnParticles(e.x,e.y,e.r>20?60:30,{speedMin:60,speedMax:350,rMin:1.5,rMax:e.r>20?6:4,decayMin:0.012,decayMax:0.035,color:'#ff6622',color2:'#ffcc00'});
+  // Drop logic — Life pickup is rare (5%), reduced on Easy, impossible on Hell (use extra lives instead)
   const roll=Math.random();
-  if(roll<0.25) spawnPickup(e.x,e.y,'weapon');
-  else if(roll<0.35) spawnPickup(e.x,e.y,'subWeapon');
-  else if(roll<0.40) spawnPickup(e.x,e.y,'bomb');
+  const lifeDropChance=difficulty===0?0.08:difficulty===1?0.05:difficulty===2?0.03:0; // 8/5/3/0%
+  if(roll<lifeDropChance) spawnPickup(e.x,e.y,'life');
+  else if(roll<lifeDropChance+0.25) spawnPickup(e.x,e.y,'weapon');
+  else if(roll<lifeDropChance+0.35) spawnPickup(e.x,e.y,'subWeapon');
+  else if(roll<lifeDropChance+0.40) spawnPickup(e.x,e.y,'bomb');
 }
 function updateEnemies(dt){
   if(!currentBoss||!currentBoss.alive){
     enemySpawnTimer-=dt;
     if(enemySpawnTimer<=0){
       const [sMin,sMax]=DC().spawnInterval;
-      enemySpawnTimer=Math.max(0.35,rnd(sMin,sMax)-stageNum*0.05);
-      const types=['fighter','fighter','fighter','bomber'];
-      enemies.push(new Enemy(W+40,rnd(40,H-40),types[rndInt(0,types.length-1)]));
+      // Dynamic pressure: spawn interval shrinks as time passes (max 60% faster at stage end)
+      // Only applies during play phases, not during boss fights
+      const pressPhase=(stagePhase==='play'||stagePhase==='midboss_dead');
+      const timeProgress=pressPhase ? Math.min(1, stageTime / MID_BOSS_TIME) : 0;
+      const pressureMult=pressPhase ? (1 - timeProgress*0.55) : 1; // up to 55% faster
+      enemySpawnTimer=Math.max(0.22, rnd(sMin,sMax) * pressureMult - stageNum*0.04);
+
+      // Progressive enemy composition: more carriers & bombers later
+      let types;
+      if(timeProgress<0.3)       types=['fighter','fighter','fighter','fighter','bomber'];
+      else if(timeProgress<0.6)  types=['fighter','fighter','fighter','bomber','bomber'];
+      else if(timeProgress<0.85) types=['fighter','fighter','bomber','bomber','carrier'];
+      else                       types=['fighter','bomber','bomber','carrier','carrier']; // final push
+      // Occasionally spawn formation (2 fighters at once in late game)
+      if(pressPhase && timeProgress>0.7 && Math.random()<0.25){
+        enemies.push(new Enemy(W+40, rnd(80,H/2-40), 'fighter'));
+        enemies.push(new Enemy(W+40, rnd(H/2+40,H-80), 'fighter'));
+      } else {
+        enemies.push(new Enemy(W+40, rnd(40,H-40), types[rndInt(0,types.length-1)]));
+      }
+      // Alert player about incoming pressure
+      if(pressPhase && timeProgress>0.85 && Math.random()<0.04){
+        showPickupText(W/2,80,'⚠ 敵方緊急增援 ⚠','#ff4422','big');
+      }
     }
   }
   for(let i=enemies.length-1;i>=0;i--){ if(!enemies[i].alive){enemies.splice(i,1);continue;} enemies[i].update(dt); }
@@ -855,14 +996,15 @@ class Boss{
     this.age+=dt; this.rot+=dt*(this.type==='final'?0.6:0.8); this.hitFlash=Math.max(0,this.hitFlash-dt*5);
     if(!this.entered){
       this.x+=(this.targetX-this.x)*dt*2.5;
-      if(Math.abs(this.x-this.targetX)<5){ this.x=this.targetX; this.entered=true; if(!this.warningPlayed){ this.warningPlayed=true; playBossWarning(); } }
+      if(Math.abs(this.x-this.targetX)<5){ this.x=this.targetX; this.entered=true; if(!this.warningPlayed){ this.warningPlayed=true; playBossWarning(); triggerDlg(this.stageN,this.type,'enter'); } }
       return;
     }
     // Phase 2 transition
     if(!this.phase2&&this.hp/this.maxHp<0.5){
       this.phase2=true; triggerShake(8,0.5);
-      showPickupText(this.x,this.y-80,'PHASE 2!!','#ff2244');
+      showPickupText(this.x,this.y-80,'PHASE 2!!','#ff2244','big');
       spawnParticles(this.x,this.y,40,{speedMin:60,speedMax:200,rMin:2,rMax:5,color:this.glow,color2:'#ffffff'});
+      triggerDlg(this.stageN,this.type,'p2');
     }
     this.y+=Math.sin(this.age*0.7)*0.8; this.y=clamp(this.y,80,H-80);
     this.attackTimer-=dt;
@@ -921,6 +1063,7 @@ class Boss{
   }
   die(){
     this.alive=false; stopLaserLoop();
+    triggerDlg(this.stageN,this.type,'die');
     triggerShake(this.type==='final'?20:12,this.type==='final'?2.5:1.2);
     this.type==='final'?playBigExplosion():playExplosion(2);
     const cnt=this.type==='final'?120:70;
@@ -978,6 +1121,195 @@ const STAGE_CONFIGS=[
   {name:'STAGE 2 - 雪山峽谷',bgFn:null,enemyColor:'#004488',enemyAccent:'#44aaff',enemyGlow:'#0088ff',bulletColor:'#44aaff',bossColor:'#002255',bossAccent:'#4488ff',bossGlow:'#2266ff'},
   {name:'STAGE 3 - 深空邊境',bgFn:null,enemyColor:'#440088',enemyAccent:'#cc44ff',enemyGlow:'#aa00ff',bulletColor:'#ee44ff',bossColor:'#220044',bossAccent:'#dd22ff',bossGlow:'#cc00ff'},
 ];
+
+// ══════════════════════════════════════════════════════
+//  HIGH SCORE (localStorage)
+// ══════════════════════════════════════════════════════
+let hiScore=0;
+try{ hiScore=parseInt(localStorage.getItem('stormStriker_hi')||'0'); }catch(e){}
+function saveHiScore(s){ if(s>hiScore){ hiScore=s; try{localStorage.setItem('stormStriker_hi',String(s));}catch(e){} } }
+
+// ══════════════════════════════════════════════════════
+//  BOSS DIALOGUE SYSTEM
+// ══════════════════════════════════════════════════════
+const BOSS_LINES={
+  '1_mid_enter': ['入侵者偵測…防衛協定 α-01 啟動！','你的飛行記錄，到此為止。'],
+  '1_mid_p2':    ['核心受損 53%！切換緊急戰鬥模式！','你以為這樣就能贏嗎！？'],
+  '1_mid_die':   ['…系統…崩潰…'],
+  '1_final_enter':['…終於輪到我出場了。','這座城市的秩序由我守護。小蟲，準備被碾碎。'],
+  '1_final_p2':  ['不可能……我怎麼可能受傷！','所有武裝全力輸出！'],
+  '1_final_die': ['…即使是廢墟……也是……我守護的……'],
+  '2_mid_enter': ['氣溫 -42°C。此區域禁止通行。','凍結吧——永遠沉眠於白雪之中。'],
+  '2_mid_p2':    ['冰核過載！全速輸出！','就算化為碎片，也要拉你陪葬！'],
+  '2_mid_die':   ['…寒冬……終究……不敵……'],
+  '2_final_enter':['…很久沒有人能走到這裡了。','可惜你選擇了一條死路。山，不允許入侵者。'],
+  '2_final_p2':  ['你……傷了我。數百年來沒人做到過。','感受真正的冬之憤怒！'],
+  '2_final_die': ['…雪……會……記住……你……'],
+  '3_mid_enter': ['渺小的生命體。你已跨越了不該踏入的邊界。','虛空吞噬一切，包括你的希望。'],
+  '3_mid_p2':    ['量子屏障崩潰！覺醒——混沌維度協議！','你迫使我釋放最原始的力量！'],
+  '3_mid_die':   ['…維度……在……收縮……'],
+  '3_final_enter':['……你還活著。有趣。','歡迎來到宇宙的終點。時間與空間都是我的武器。'],
+  '3_final_p2':  ['奇點不穩定！！','這宇宙的力量要反噬我自身！MAXIMUM OVERDRIVE！！'],
+  '3_final_die': ['…如果我要消亡……就讓一切……與我同……歸……'],
+};
+const BOSS_NAMES={
+  '1_mid':'鋼鐵哨兵 MK-I','1_final':'都市守護神 ATLAS',
+  '2_mid':'冰刃巡邏機 GLACIUS','2_final':'雪峰要塞 PERMAFROST',
+  '3_mid':'虛空遊弋者 VOIDSEEKER','3_final':'星核毀滅者 SINGULARITY',
+};
+const BOSS_DLG_COLORS={
+  '1_mid':'#ff5533','1_final':'#ff3300',
+  '2_mid':'#44aaff','2_final':'#2266ff',
+  '3_mid':'#cc44ff','3_final':'#ee22ff',
+};
+let dlg=null;
+const DLG_CHAR_SPD=0.038, DLG_HOLD=1.5, DLG_LIFETIME=12;
+
+function triggerDlg(stageN,bossType,event){
+  const key=`${stageN}_${bossType}_${event}`;
+  const lines=BOSS_LINES[key]; if(!lines) return;
+  const bk=`${stageN}_${bossType}`;
+  dlg={lines,lineIdx:0,charIdx:0,charTimer:0,holdTimer:0,
+    color:BOSS_DLG_COLORS[bk]||'#00ffcc',name:BOSS_NAMES[bk]||'???',
+    portraitKey:bk,totalAge:0,scanY:0};
+}
+
+function updateDlg(dt){
+  if(!dlg) return;
+  dlg.totalAge+=dt; dlg.scanY=(dlg.scanY+dt*60)%6;
+  if(dlg.totalAge>DLG_LIFETIME){dlg=null;return;}
+  const line=dlg.lines[dlg.lineIdx];
+  if(dlg.charIdx<line.length){
+    dlg.charTimer+=dt;
+    while(dlg.charTimer>=DLG_CHAR_SPD&&dlg.charIdx<line.length){dlg.charTimer-=DLG_CHAR_SPD;dlg.charIdx++;}
+  } else {
+    dlg.holdTimer+=dt;
+    if(dlg.holdTimer>=DLG_HOLD){dlg.holdTimer=0;dlg.lineIdx++;dlg.charIdx=0;if(dlg.lineIdx>=dlg.lines.length){dlg=null;return;}}
+  }
+}
+
+function drawBossPortrait(key,cx,cy,t,color){
+  ctx.save(); ctx.translate(cx,cy); const spin=t*0.9; glow(color,14);
+  ctx.strokeStyle=color; ctx.lineWidth=2;
+  switch(key){
+    case '1_mid':
+      for(let i=0;i<4;i++){const a=i/4*Math.PI*2+spin;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(a)*22,Math.sin(a)*22);ctx.stroke();}
+      ctx.fillStyle=color;ctx.beginPath();ctx.arc(0,0,7,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,3,0,Math.PI*2);ctx.fill(); break;
+    case '1_final':
+      ctx.beginPath();
+      for(let i=0;i<6;i++){const a=i/6*Math.PI*2+spin*0.4;i===0?ctx.moveTo(Math.cos(a)*26,Math.sin(a)*26):ctx.lineTo(Math.cos(a)*26,Math.sin(a)*26);}
+      ctx.closePath();ctx.stroke();
+      ctx.fillStyle=color+'88';ctx.beginPath();ctx.arc(0,0,12,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,4,0,Math.PI*2);ctx.fill(); break;
+    case '2_mid':
+      for(let i=0;i<6;i++){const a=i/6*Math.PI*2+spin*0.5;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(a)*22,Math.sin(a)*22);ctx.stroke();ctx.beginPath();ctx.moveTo(Math.cos(a)*11,Math.sin(a)*11);ctx.lineTo(Math.cos(a+0.45)*17,Math.sin(a+0.45)*17);ctx.stroke();}
+      ctx.fillStyle=color;ctx.beginPath();ctx.arc(0,0,5,0,Math.PI*2);ctx.fill(); break;
+    case '2_final':
+      ctx.fillStyle=color+'cc';ctx.fillRect(-4,-26,8,52);ctx.fillRect(-26,-4,52,8);
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,5,0,Math.PI*2);ctx.fill(); break;
+    case '3_mid':
+      ctx.beginPath();ctx.arc(0,0,22,0,Math.PI*2);ctx.stroke();
+      ctx.strokeStyle=color+'88';ctx.beginPath();ctx.arc(0,0,14,spin,spin+Math.PI*1.5);ctx.stroke();
+      ctx.fillStyle=color;ctx.beginPath();ctx.arc(0,0,4,0,Math.PI*2);ctx.fill(); break;
+    case '3_final':
+      for(let i=0;i<3;i++){const a=i/3*Math.PI*2+spin;ctx.strokeStyle=[color,'#fff',color+'77'][i];ctx.beginPath();for(let r2=2;r2<26;r2+=2){const ra=a+r2*0.28;r2===2?ctx.moveTo(Math.cos(ra)*r2,Math.sin(ra)*r2):ctx.lineTo(Math.cos(ra)*r2,Math.sin(ra)*r2);}ctx.stroke();}
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,3,0,Math.PI*2);ctx.fill(); break;
+    default:
+      ctx.beginPath();ctx.arc(0,0,18,0,Math.PI*2);ctx.stroke();
+  }
+  noGlow(); ctx.restore();
+}
+
+function drawDlg(){
+  if(!dlg) return;
+  const t=dlg.totalAge;
+  const PW=600,PH=118,PX=(W-PW)/2,PY=H-PH-18;
+  const slideIn=Math.min(1,t*7), alpha=Math.min(1,t*6);
+  const oy=(1-slideIn)*36;
+
+  ctx.save(); ctx.translate(0,oy); ctx.globalAlpha=alpha;
+
+  // Panel bg
+  ctx.fillStyle='rgba(0,4,20,0.94)';
+  ctx.beginPath(); ctx.roundRect(PX,PY,PW,PH,10); ctx.fill();
+
+  // Border glow
+  glow(dlg.color,16+Math.sin(t*4)*5);
+  ctx.strokeStyle=dlg.color+'88'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.roundRect(PX,PY,PW,PH,10); ctx.stroke();
+  ctx.strokeStyle=dlg.color; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.roundRect(PX+2,PY+2,PW-4,PH-4,8); ctx.stroke();
+  noGlow();
+
+  // Scanlines
+  ctx.save();
+  ctx.beginPath(); ctx.roundRect(PX,PY,PW,PH,10); ctx.clip();
+  ctx.globalAlpha=0.05; ctx.fillStyle='#00ffcc';
+  for(let sy=dlg.scanY;sy<PH;sy+=6) ctx.fillRect(PX,PY+sy,PW,1);
+  ctx.restore(); ctx.globalAlpha=alpha;
+
+  // Corner brackets
+  glow(dlg.color,8); ctx.strokeStyle=dlg.color; ctx.lineWidth=2;
+  [[PX,PY,1,1],[PX+PW,PY,-1,1],[PX,PY+PH,1,-1],[PX+PW,PY+PH,-1,-1]].forEach(([cx,cy,dx,dy])=>{
+    ctx.beginPath();ctx.moveTo(cx+dx*13,cy);ctx.lineTo(cx,cy);ctx.lineTo(cx,cy+dy*13);ctx.stroke();
+  }); noGlow();
+
+  // Portrait box
+  const PORTW=76,PORTH=PH-14,PORTX=PX+8,PORTY=PY+7;
+  ctx.fillStyle='rgba(0,0,0,0.55)';
+  ctx.beginPath();ctx.roundRect(PORTX,PORTY,PORTW,PORTH,6);ctx.fill();
+  glow(dlg.color,12);ctx.strokeStyle=dlg.color;ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(PORTX,PORTY,PORTW,PORTH,6);ctx.stroke();
+  drawBossPortrait(dlg.portraitKey,PORTX+PORTW/2,PORTY+PORTH/2,t,dlg.color);
+  noGlow();
+
+  // Separator
+  ctx.strokeStyle=dlg.color+'44';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(PORTX+PORTW+7,PY+8);ctx.lineTo(PORTX+PORTW+7,PY+PH-8);ctx.stroke();
+
+  // Speaker name
+  const TX=PORTX+PORTW+16;
+  glow(dlg.color,8);ctx.fillStyle=dlg.color;ctx.font='bold 12px "Courier New"';
+  ctx.textAlign='left';ctx.textBaseline='top';
+  ctx.fillText('▸ '+dlg.name,TX,PY+8);
+
+  // Label top-right
+  noGlow();ctx.globalAlpha*=0.45;
+  ctx.fillStyle=dlg.color;ctx.font='9px "Courier New"';ctx.textAlign='right';
+  ctx.fillText('[ INCOMING TRANSMISSION ]',PX+PW-10,PY+8);
+  ctx.globalAlpha=alpha;
+
+  // Text (typewriter)
+  const line=dlg.lines[dlg.lineIdx].substring(0,dlg.charIdx);
+  noGlow();ctx.fillStyle='#d8eeff';ctx.font='15px serif';
+  ctx.textAlign='left';ctx.textBaseline='top';
+  // soft wrap: split on punctuation or every 26 chars
+  let row='',rowY=PY+28;
+  for(let ci=0;ci<line.length;ci++){
+    row+=line[ci];
+    const isEnd=ci===line.length-1;
+    const isPunct='，。！？'.includes(line[ci]);
+    const isFull=row.length>=26;
+    if(isEnd||isPunct&&row.length>=10||isFull){
+      ctx.fillText(row,TX,rowY);
+      row='';rowY+=22;
+    }
+  }
+
+  // Blinking cursor
+  if(dlg.charIdx<dlg.lines[dlg.lineIdx].length&&Math.floor(Date.now()/300)%2===0){
+    ctx.fillStyle=dlg.color;
+    ctx.fillRect(TX+ctx.measureText(row).width+2,rowY-20,6,14);
+  }
+
+  // Line progress dots
+  for(let li=0;li<dlg.lines.length;li++){
+    ctx.fillStyle=li===dlg.lineIdx?dlg.color:dlg.color+'44';
+    ctx.beginPath();ctx.arc(PX+PW-14,PY+PH/2+(li-dlg.lines.length/2+0.5)*10,3,0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
+}
 
 // ══════════════════════════════════════════════════════
 //  DIFFICULTY SYSTEM
@@ -1152,6 +1484,13 @@ function drawHUD(){
   // Score
   glow('#00ffcc',10); ctx.fillStyle='#00ffcc'; ctx.textAlign='right';
   ctx.fillText(`SCORE: ${player.score.toString().padStart(8,'0')}`,W-16,12);
+  // Hi-Score
+  if(hiScore>0){
+    const hiCol=player.score>=hiScore?'#ffcc00':'#446677';
+    glow(hiCol,6); ctx.fillStyle=hiCol; ctx.font='bold 12px "Courier New"';
+    ctx.fillText(`BEST: ${hiScore.toString().padStart(8,'0')}`,W-16,30);
+    ctx.font='bold 16px "Courier New"';
+  }
   // Combo
   if(player.combo>=3){
     const cAlpha=Math.min(1,player.comboTimer/0.5);
@@ -1200,7 +1539,7 @@ function drawHUD(){
   }
   // Controls
   ctx.globalAlpha=0.4; ctx.fillStyle='#8899aa'; noGlow(); ctx.font='12px "Courier New"'; ctx.textAlign='right';
-  ctx.fillText('X:射擊  Z:炸彈  方向鍵:移動',W-16,H-20);
+  ctx.fillText('X:射擊  Z:炸彈  方向鍵:移動  P:暫停',W-16,H-20);
   // Difficulty badge (left side, row 3)
   ctx.globalAlpha=1; ctx.font='bold 12px serif'; ctx.textAlign='left'; ctx.textBaseline='top';
   glow(DIFF_GLOW[difficulty],8); ctx.fillStyle=DIFF_COLORS[difficulty];
@@ -1215,6 +1554,20 @@ function drawHUD(){
     ctx.globalAlpha=1; glow(timeCol,8); ctx.fillStyle=timeCol;
     ctx.font='bold 13px "Courier New"'; ctx.textAlign='center';
     ctx.fillText(`${mm}:${ss}`,W/2,30);
+    // Pressure bar (thin strip under timer)
+    const pressProgress=(stagePhase==='play'||stagePhase==='midboss_dead')
+      ? Math.min(1,stageTime/MID_BOSS_TIME) : 0;
+    if(pressProgress>0.1){
+      const barW=120, barH=3, barX=W/2-60, barY=44;
+      ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(barX,barY,barW,barH);
+      const pCol=pressProgress>0.85?'#ff3333':pressProgress>0.6?'#ff8833':'#ffcc00';
+      ctx.fillStyle=pCol; ctx.fillRect(barX,barY,barW*pressProgress,barH);
+      if(pressProgress>0.85&&Math.floor(Date.now()/400)%2===0){
+        glow('#ff2200',12); ctx.fillStyle='#ff4422';
+        ctx.font='bold 11px "Courier New"';
+        ctx.fillText('DANGER!',W/2,56);
+      }
+    }
   }
   noGlow(); ctx.restore();
 }
@@ -1261,7 +1614,13 @@ function drawTitle(){
 
   // ── Version tag
   ctx.font='13px "Courier New"'; ctx.fillStyle='rgba(100,150,180,0.7)'; noGlow();
-  ctx.fillText('STORM STRIKER  v3.0',W/2,H/2+38);
+  ctx.fillText('STORM STRIKER',W/2,H/2+38);
+  // Hi-Score on title
+  if(hiScore>0){
+    glow('#ffcc00',8); ctx.fillStyle='#ffcc00'; ctx.font='bold 14px "Courier New"';
+    ctx.fillText(`BEST: ${hiScore.toString().padStart(8,'0')}`,W/2,H/2+64);
+    noGlow();
+  }
 
   if(!diffSelectActive){
     // Blink "press any key"
@@ -1371,6 +1730,12 @@ function drawGameOver(){
   ctx.fillText('GAME OVER',W/2,H/2-90);
   ctx.font='26px "Courier New"'; ctx.fillStyle='#00ffcc'; glow('#00ffcc',15);
   ctx.fillText(`SCORE: ${player.score.toString().padStart(8,'0')}`,W/2,H/2-22);
+  if(hiScore>0){
+    const newHi=player.score>=hiScore;
+    const hiCol=newHi?'#ffcc00':'#446688';
+    glow(hiCol,newHi?12:6); ctx.fillStyle=hiCol; ctx.font=`${newHi?'bold ':' '}18px "Courier New"`;
+    ctx.fillText(newHi?`★ 新紀錄！${hiScore.toString().padStart(8,'0')} ★`:`最高紀錄: ${hiScore.toString().padStart(8,'0')}`,W/2,H/2+2);
+  }
   ctx.fillStyle='#aaddff'; ctx.font='18px "Courier New"'; glow('#aaddff',8);
   ctx.fillText(`第 ${stageNum} 關到達  最高COMBO: ${player.maxCombo}`,W/2,H/2+22);
   // Difficulty badge
@@ -1396,6 +1761,12 @@ function drawCleared(){
   ctx.fillText('恭喜完成全3關！',W/2,H/2-28);
   ctx.font='28px "Courier New"'; ctx.fillStyle='#ffffff'; glow('#ffffff',12);
   ctx.fillText(`FINAL SCORE: ${player.score.toString().padStart(8,'0')}`,W/2,H/2+22);
+  if(hiScore>0){
+    const newHi=player.score>=hiScore;
+    const hiCol=newHi?'#ffcc00':'#446688';
+    glow(hiCol,newHi?14:6); ctx.fillStyle=hiCol; ctx.font=`${newHi?'bold ':' '}18px "Courier New"`;
+    ctx.fillText(newHi?`★ 新紀錄！★`:`最高紀錄: ${hiScore.toString().padStart(8,'0')}`,W/2,H/2+52);
+  }
   ctx.font='18px "Courier New"'; ctx.fillStyle='#ffcc88'; glow('#ffcc88',8);
   ctx.fillText(`最高COMBO: ${player.maxCombo}`,W/2,H/2+58);
   glow(DIFF_GLOW[difficulty],15);
@@ -1409,7 +1780,51 @@ function drawCleared(){
 }
 
 // ══════════════════════════════════════════════════════
-//  HUD — difficulty badge appended inline (see drawHUD below)
+//  PAUSE SYSTEM
+// ══════════════════════════════════════════════════════
+let paused=false, pausePulse=0;
+function togglePause(){
+  paused=!paused;
+  playPause();
+  if(audioCtx){
+    if(paused) masterGain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);
+    else       masterGain.gain.linearRampToValueAtTime(muted?0:0.85,audioCtx.currentTime+0.2);
+  }
+}
+function drawPause(){
+  pausePulse+=0.04;
+  ctx.save();
+  // Blurred overlay
+  ctx.fillStyle='rgba(0,5,20,0.78)'; ctx.fillRect(0,0,W,H);
+  // Panel
+  const pw=480, ph=260, px=(W-pw)/2, py=(H-ph)/2;
+  ctx.fillStyle='rgba(0,10,35,0.95)';
+  ctx.beginPath(); ctx.roundRect(px,py,pw,ph,18); ctx.fill();
+  const pulse=Math.sin(pausePulse*2)*0.5+0.5;
+  glow('#00ffcc',20+pulse*15);
+  ctx.strokeStyle='#00ffcc'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.roundRect(px,py,pw,ph,18); ctx.stroke();
+  // PAUSE title
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font='bold 52px serif'; ctx.fillStyle='#00ffcc';
+  ctx.fillText('⏸ 暫　停',W/2,py+74);
+  // Divider
+  ctx.strokeStyle='rgba(0,255,200,0.2)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(px+40,py+108); ctx.lineTo(px+pw-40,py+108); ctx.stroke();
+  // Instructions
+  noGlow(); ctx.globalAlpha=0.8;
+  const lines=[['P / ESC','繼續遊戲'],['X','重新開始（同難度）'],['方向鍵','切換選項']];
+  ctx.font='15px "Courier New"';
+  lines.forEach(([k,v],i)=>{
+    ctx.fillStyle='#4488aa'; ctx.textAlign='right'; ctx.fillText(k,W/2-8,py+136+i*26);
+    ctx.fillStyle='#aaddcc'; ctx.textAlign='left';  ctx.fillText(v,W/2+8,py+136+i*26);
+  });
+  // Score reminder
+  ctx.globalAlpha=0.5; ctx.textAlign='center';
+  ctx.fillStyle='#88aacc'; ctx.font='13px "Courier New"';
+  ctx.fillText(`當前分數：${player.score.toString().padStart(8,'0')}`,W/2,py+ph-22);
+  noGlow(); ctx.restore();
+}
 
 // ══════════════════════════════════════════════════════
 //  INIT / RESET
@@ -1423,7 +1838,7 @@ function initGame(){
   stageNum=1; stageTime=0; stagePhase='play'; midBossSpawned=false; finalBossSpawned=false;
   currentBoss=null; laserNode=null;
   [enemies,playerBullets,enemyBullets,particles,pickups,floatTexts,activeBombs].forEach(a=>a.length=0);
-  enemySpawnTimer=1; inTransition=false; transAlpha=0;
+  enemySpawnTimer=1; inTransition=false; transAlpha=0; paused=false; dlg=null;
   initBgForStage(); startMusic(); gameState='playing';
 }
 
@@ -1450,21 +1865,31 @@ function loop(ts){
       }
     }
   } else if(gameState==='playing'){
-    updateBackground(dt); updateShake(dt);
-    updateStageLogic(dt); updatePlayer(dt); updateEnemies(dt); updateBullets(dt);
-    updateBombs(dt); updateParticles(dt); updatePickups(dt); updateFloatTexts(dt); updateTransition(dt);
+    if(!paused){
+      updateBackground(dt); updateShake(dt);
+      updateStageLogic(dt); updatePlayer(dt); updateEnemies(dt); updateBullets(dt);
+      updateBombs(dt); updateParticles(dt); updatePickups(dt); updateFloatTexts(dt); updateTransition(dt); updateDlg(dt);
+    } else {
+      // Still listen for resume/retry while paused
+      if(keyPressed['KeyP']||keyPressed['Escape']) togglePause();
+      if(keyPressed['KeyX']){ paused=false; stopMusic(); initGame(); }
+      pausePulse+=0.04;
+    }
     drawBackground(); drawLaserBeam(); drawBullets();
     for(const e of enemies) e.draw();
     if(currentBoss&&currentBoss.alive) currentBoss.draw();
     drawPickups(); drawPlayer(); drawBombs(); drawParticles(); drawFloatTexts();
-    drawHUD(); drawTransition();
+    drawHUD(); drawTransition(); drawDlg();
+    if(paused) drawPause();
   } else if(gameState==='gameover'){
     drawBackground(); drawParticles(); drawGameOver();
+    saveHiScore(player.score);
     // X = retry same difficulty, ESC = back to title
     if(keyPressed['KeyX']){ stopMusic(); initGame(); }
     if(keyPressed['Escape']){ stopMusic(); gameState='title'; diffSelectActive=false; }
   } else if(gameState==='cleared'){
     drawBackground(); drawParticles(); drawCleared();
+    saveHiScore(player.score);
     if(keyPressed['KeyX']){ stopMusic(); initGame(); }
     if(keyPressed['Escape']){ stopMusic(); gameState='title'; diffSelectActive=false; }
   }
