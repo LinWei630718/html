@@ -3,143 +3,268 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DIY遊戲選單</title>
-<style>
-    body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f4f7f6;
-        color: #333;
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 20px;
-        line-height: 1.6;
-    }
-    h1 {
-        text-align: center;
-        color: #2c3e50;
-        border-bottom: 2px solid #3498db;
-        padding-bottom: 10px;
-        margin-bottom: 20px;
-    }
-    
-    /* 搜尋與分類控制區塊的樣式 */
-    .controls-container {
-        background: #fff;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        margin-bottom: 30px;
-    }
-    .search-bar {
-        width: 100%;
-        padding: 12px 15px;
-        font-size: 1.1em;
-        border: 2px solid #bdc3c7;
-        border-radius: 5px;
-        box-sizing: border-box;
-        margin-bottom: 15px;
-        transition: border-color 0.3s;
-    }
-    .search-bar:focus {
-        border-color: #3498db;
-        outline: none;
-    }
-    .category-filters {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        justify-content: center;
-    }
-    .filter-btn {
-        background-color: #ecf0f1;
-        color: #2c3e50;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 20px;
-        cursor: pointer;
-        font-weight: bold;
-        transition: all 0.2s;
-    }
-    .filter-btn:hover {
-        background-color: #bdc3c7;
-    }
-    .filter-btn.active {
-        background-color: #3498db;
-        color: white;
-    }
 
-    /* 遊戲卡片樣式 */
-    .game-card {
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-        padding: 20px;
-        transition: transform 0.2s;
-    }
-    .game-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    .game-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .game-title {
-        font-size: 1.5em;
-        font-weight: bold;
-        color: #2980b9;
-        text-decoration: none;
-    }
-    .game-title:hover {
-        text-decoration: underline;
-        color: #1abc9c;
-    }
-    .game-badge {
-        font-size: 0.6em;
-        background-color: #e74c3c;
-        color: white;
-        padding: 3px 8px;
-        border-radius: 12px;
-        margin-left: 10px;
-        vertical-align: middle;
-    }
-    .desc-btn {
-        background-color: #34495e;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 0.9em;
-        transition: background-color 0.2s;
-    }
-    .desc-btn:hover {
-        background-color: #2c3e50;
-    }
-    .description {
-        display: none;
-        margin-top: 15px;
-        padding: 15px;
-        background-color: #ecf0f1;
-        border-left: 4px solid #3498db;
-        border-radius: 4px;
-        white-space: pre-wrap;
-    }
-    /* 查無結果的提示 */
-    #no-result {
-        text-align: center;
-        color: #7f8c8d;
-        font-size: 1.2em;
-        display: none;
-        padding: 20px;
-    }
+<title>DIY遊戲選單</title>
+
+<!-- 電競字體 -->
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+
+body{
+    font-family:'Orbitron',sans-serif;
+    background:
+        radial-gradient(circle at 20% 20%, #0f2027, #05070a 60%);
+    color:#e6f7ff;
+    max-width:1000px;
+    margin:auto;
+    padding:25px;
+}
+
+/* 標題 */
+
+h1{
+    text-align:center;
+    font-size:40px;
+    letter-spacing:3px;
+    color:#00eaff;
+
+    text-shadow:
+        0 0 5px #00eaff,
+        0 0 15px #00eaff,
+        0 0 30px #0077ff;
+
+    margin-bottom:35px;
+}
+
+/* 控制區 */
+
+.controls-container{
+
+    background:rgba(255,255,255,0.05);
+    backdrop-filter: blur(10px);
+
+    border:1px solid rgba(0,234,255,0.4);
+
+    border-radius:10px;
+
+    padding:20px;
+
+    margin-bottom:30px;
+
+    box-shadow:
+        0 0 10px rgba(0,234,255,0.3);
+}
+
+/* 搜尋框 */
+
+.search-bar{
+
+    width:100%;
+    padding:12px;
+
+    border-radius:6px;
+
+    border:1px solid #00eaff;
+
+    background:#0a0f14;
+
+    color:#fff;
+
+    font-size:16px;
+
+}
+
+.search-bar:focus{
+
+    outline:none;
+
+    box-shadow:0 0 10px #00eaff;
+
+}
+
+/* 分類按鈕 */
+
+.category-filters{
+
+    margin-top:15px;
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:10px;
+
+    justify-content:center;
+
+}
+
+.filter-btn{
+
+    padding:8px 18px;
+
+    border-radius:20px;
+
+    border:1px solid #00eaff;
+
+    background:#0a0f14;
+
+    color:#00eaff;
+
+    cursor:pointer;
+
+    transition:0.25s;
+
+}
+
+.filter-btn:hover{
+
+    background:#00eaff;
+
+    color:#000;
+
+    box-shadow:
+        0 0 10px #00eaff,
+        0 0 20px #00eaff;
+
+}
+
+.filter-btn.active{
+
+    background:#00eaff;
+
+    color:#000;
+
+}
+
+/* 遊戲卡片 */
+
+.game-card{
+
+    background:rgba(255,255,255,0.05);
+
+    border:1px solid rgba(0,234,255,0.4);
+
+    border-radius:10px;
+
+    padding:20px;
+
+    margin-bottom:20px;
+
+    transition:0.3s;
+
+}
+
+.game-card:hover{
+
+    transform:translateY(-5px) scale(1.02);
+
+    box-shadow:
+        0 0 15px #00eaff,
+        0 0 30px rgba(0,234,255,0.5);
+
+}
+
+/* 遊戲標題 */
+
+.game-title{
+
+    font-size:20px;
+
+    color:#00eaff;
+
+    text-decoration:none;
+
+}
+
+.game-title:hover{
+
+    color:#ffffff;
+
+    text-shadow:0 0 10px #00eaff;
+
+}
+
+/* NEW標籤 */
+
+.game-badge{
+
+    background:#ff004c;
+
+    padding:3px 8px;
+
+    border-radius:10px;
+
+    font-size:11px;
+
+    margin-left:10px;
+
+}
+
+/* 說明按鈕 */
+
+.desc-btn{
+
+    background:#00eaff;
+
+    border:none;
+
+    color:#000;
+
+    padding:6px 14px;
+
+    border-radius:6px;
+
+    cursor:pointer;
+
+    font-weight:bold;
+
+}
+
+.desc-btn:hover{
+
+    box-shadow:0 0 10px #00eaff;
+
+}
+
+/* 規則區 */
+
+.description{
+
+    display:none;
+
+    margin-top:15px;
+
+    padding:15px;
+
+    border-left:3px solid #00eaff;
+
+    background:#0a0f14;
+
+    border-radius:5px;
+
+    white-space:pre-wrap;
+
+}
+
+/* 查無結果 */
+
+#no-result{
+
+    text-align:center;
+
+    padding:20px;
+
+    color:#aaa;
+
+}
+
 </style>
 </head>
+
 <body>
 
-    <h1>DIY遊戲選單</h1>
+<h1>DIY 遊戲選單</h1>
 
     <div class="controls-container">
         <input type="text" id="searchInput" class="search-bar" placeholder="輸入關鍵字搜尋遊戲名稱或規則（例如：雷射、炸彈、大老二）..." onkeyup="filterGames()">
