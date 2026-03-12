@@ -4,9 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>LinWeiの遊戲DIY</title>
+<title>LinWeiの遊戲DIY - 完整四欄版</title>
 
-<!-- 電競字體 -->
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
 
 <style>
@@ -16,247 +15,155 @@ body{
     background:
         radial-gradient(circle at 20% 20%, #0f2027, #05070a 60%);
     color:#e6f7ff;
-    max-width:1000px;
+    max-width:1400px; /* 增加寬度以適應四欄佈局 */
     margin:auto;
     padding:25px;
 }
 
 /* 標題 */
-
 h1{
     text-align:center;
     font-size:40px;
     letter-spacing:3px;
     color:#00eaff;
-
     text-shadow:
         0 0 5px #00eaff,
         0 0 15px #00eaff,
         0 0 30px #0077ff;
-
     margin-bottom:35px;
 }
 
 /* 控制區 */
-
 .controls-container{
-
     background:rgba(255,255,255,0.05);
     backdrop-filter: blur(10px);
-
     border:1px solid rgba(0,234,255,0.4);
-
     border-radius:10px;
-
     padding:20px;
-
     margin-bottom:30px;
-
-    box-shadow:
-        0 0 10px rgba(0,234,255,0.3);
+    box-shadow: 0 0 10px rgba(0,234,255,0.3);
 }
 
 /* 搜尋框 */
-
 .search-bar{
-
     width:100%;
     padding:12px;
-
+    box-sizing: border-box;
     border-radius:6px;
-
     border:1px solid #00eaff;
-
     background:#0a0f14;
-
     color:#fff;
-
     font-size:16px;
-
-}
-
-.search-bar:focus{
-
-    outline:none;
-
-    box-shadow:0 0 10px #00eaff;
-
 }
 
 /* 分類按鈕 */
-
 .category-filters{
-
     margin-top:15px;
-
     display:flex;
-
     flex-wrap:wrap;
-
     gap:10px;
-
     justify-content:center;
-
 }
 
 .filter-btn{
-
     padding:8px 18px;
-
     border-radius:20px;
-
     border:1px solid #00eaff;
-
     background:#0a0f14;
-
     color:#00eaff;
-
     cursor:pointer;
-
     transition:0.25s;
-
 }
 
-.filter-btn:hover{
-
+.filter-btn.active, .filter-btn:hover{
     background:#00eaff;
-
     color:#000;
-
-    box-shadow:
-        0 0 10px #00eaff,
-        0 0 20px #00eaff;
-
 }
 
-.filter-btn.active{
+/* 遊戲清單容器 - 四欄 Grid 佈局 */
+#gamesList {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
 
-    background:#00eaff;
-
-    color:#000;
-
+@media (max-width: 1200px) {
+    #gamesList { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 900px) {
+    #gamesList { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+    #gamesList { grid-template-columns: 1fr; }
 }
 
 /* 遊戲卡片 */
-
 .game-card{
-
     background:rgba(255,255,255,0.05);
-
     border:1px solid rgba(0,234,255,0.4);
-
     border-radius:10px;
-
     padding:20px;
-
-    margin-bottom:20px;
-
     transition:0.3s;
-
+    display: flex;
+    flex-direction: column;
 }
 
 .game-card:hover{
-
-    transform:translateY(-5px) scale(1.02);
-
-    box-shadow:
-        0 0 15px #00eaff,
-        0 0 30px rgba(0,234,255,0.5);
-
+    transform:translateY(-5px);
+    box-shadow: 0 0 15px #00eaff;
 }
 
-/* 遊戲標題 */
+.game-header {
+    margin-bottom: 15px;
+}
 
 .game-title{
-
     font-size:20px;
-
     color:#00eaff;
-
     text-decoration:none;
-
+    display: block;
+    margin-bottom: 8px;
 }
-
-.game-title:hover{
-
-    color:#ffffff;
-
-    text-shadow:0 0 10px #00eaff;
-
-}
-
-/* NEW標籤 */
 
 .game-badge{
-
     background:#ff004c;
-
     padding:3px 8px;
-
     border-radius:10px;
-
     font-size:11px;
-
-    margin-left:10px;
-
 }
 
-/* 說明按鈕 */
-
+/* 按鈕 */
 .desc-btn{
-
     background:#00eaff;
-
     border:none;
-
     color:#000;
-
-    padding:6px 14px;
-
+    padding:10px;
     border-radius:6px;
-
     cursor:pointer;
-
     font-weight:bold;
-
-}
-
-.desc-btn:hover{
-
-    box-shadow:0 0 10px #00eaff;
-
+    width: 100%;
+    margin-top: auto;
 }
 
 /* 規則區 */
-
 .description{
-
     display:none;
-
     margin-top:15px;
-
     padding:15px;
-
     border-left:3px solid #00eaff;
-
     background:#0a0f14;
-
     border-radius:5px;
-
     white-space:pre-wrap;
-
+    font-size: 14px;
+    line-height: 1.6;
 }
 
-/* 查無結果 */
-
 #no-result{
-
+    grid-column: 1 / -1;
     text-align:center;
-
     padding:20px;
-
     color:#aaa;
-
+    display: none;
 }
 
 </style>
@@ -267,7 +174,7 @@ h1{
 <h1>LinWeiの遊戲DIY</h1>
 
     <div class="controls-container">
-        <input type="text" id="searchInput" class="search-bar" placeholder="輸入關鍵字搜尋遊戲名稱或規則（例如：雷射、炸彈、大老二）..." onkeyup="filterGames()">
+        <input type="text" id="searchInput" class="search-bar" placeholder="輸入關鍵字搜尋..." onkeyup="filterGames()">
         <div class="category-filters">
             <button class="filter-btn active" onclick="setCategory('all', this)">全部遊戲</button>
             <button class="filter-btn" onclick="setCategory('board', this)">棋牌休閒</button>
@@ -282,11 +189,8 @@ h1{
         
         <div class="game-card" data-category="board" data-title="台灣大老二">
             <div class="game-header">
-                <div>
-                    <a href="https://linwei630718.github.io/html/twbig2.html" target="_blank" class="game-title">台灣大老二</a>
-                    <span class="game-badge">棋牌休閒</span>
-                </div>
-                <button class="desc-btn" onclick="toggleDesc('desc-twbig2')">遊戲說明</button>
+                <a href="https://linwei630718.github.io/html/twbig2.html" target="_blank" class="game-title">台灣大老二</a>
+                <span class="game-badge">棋牌休閒</span>
             </div>
             <div id="desc-twbig2" class="description">這是一個基於 HTML5 開發的象棋遊戲，大老二相傳是20世紀時由香港人發明，是華人界中不論男女老少均喜愛的撲克牌遊戲。本遊戲是台灣地區的特別玩法。
 
@@ -302,15 +206,13 @@ h1{
 規則6：首局出牌必須包含 梅花3。
 規則7：怪物牌特權：可無視牌型無差別壓制。
 規則8：怪物大小：一條龍 > 同花順 > 鐵支。</div>
+            <button class="desc-btn" onclick="toggleDesc('desc-twbig2')">遊戲說明</button>
         </div>
 
         <div class="game-card" data-category="board" data-title="鬥地主">
             <div class="game-header">
-                <div>
-                    <a href="https://linwei630718.github.io/html/doudizhu.html" target="_blank" class="game-title">鬥地主</a>
-                    <span class="game-badge">棋牌休閒</span>
-                </div>
-                <button class="desc-btn" onclick="toggleDesc('desc-doudizhu')">遊戲說明</button>
+                <a href="https://linwei630718.github.io/html/doudizhu.html" target="_blank" class="game-title">鬥地主</a>
+                <span class="game-badge">棋牌休閒</span>
             </div>
             <div id="desc-doudizhu" class="description">這是一個基於 HTML5 開發的象棋遊戲。二打一，俗稱鬥地主（英語：Doudizhu，Fight the landlord），為一種使用撲克牌遊玩的多人合作非完全信息博弈的紙牌遊戲，是中國大陸地區最流行的紙牌遊戲。經典鬥地主玩家為3人，採用完整的一副撲克牌（54枚，包括兩張Joker）進行，玩家在遊戲初期通過叫牌方式選擇莊家（「地主」，一人）和防守方閒家（「農民」，兩人）兩個陣營進行博弈對抗，按照一定規則輪流出牌，以某一陣營中一人手牌出盡視作該陣營獲勝。
 
@@ -320,314 +222,145 @@ h1{
 🎖️職稱系統：累積積分晉升階級。連勝3場以上，勝分加成20%。
 🤖協作AI：農民具備配合隊友、讓牌與防守邏輯；地主瀕危時紅光警報亮起。
 💥翻倍機制：炸彈/火箭、春天/反春天，倍數均乘以2。</div>
+            <button class="desc-btn" onclick="toggleDesc('desc-doudizhu')">遊戲說明</button>
         </div>
 
         <div class="game-card" data-category="board" data-title="暗棋">
             <div class="game-header">
-                <div>
-                    <a href="https://linwei630718.github.io/html/darkchess.html" target="_blank" class="game-title">暗棋</a>
-                    <span class="game-badge">棋牌休閒</span>
-                </div>
-                <button class="desc-btn" onclick="toggleDesc('desc-darkchess')">遊戲說明</button>
+                <a href="https://linwei630718.github.io/html/darkchess.html" target="_blank" class="game-title">暗棋</a>
+                <span class="game-badge">棋牌休閒</span>
             </div>
             <div id="desc-darkchess" class="description">這是一個基於 HTML5 開發的象棋遊戲，暗棋使用 4行×8列 共 32格 的棋盤，所有 32 顆棋子正面朝下隨機排列。玩家輪流翻棋、移動或吃子，消滅對方所有棋子者獲勝。
 
 決定陣營：第一個翻開棋子的顏色即為翻棋者的陣營。首翻後，翻棋者繼續走棋（首翻算行動），對方接著輪到。
-棋子階級與吃子規則：
-帥/將：階級 7，最高，最強，可吃除兵/卒外所有棋子。
-仕/士：階級 6，可吃象/相及以下。
-相/象：階級 5，可吃車/俥及以下。
-俥/車：階級 4，可吃馬/傌及以下。
-傌/馬：階級 3，可吃炮/包及以下。
-炮/包：階級 2，特殊移動：直線不越子，吃子：必須隔一砲台。
-兵/卒：階級 1・反制，最弱，但可吃帥/將。
-特殊規則：
-🎯炮（包）的移動與吃子：炮沿直線移動到空格（中間不能有任何棋子）。吃子時，炮與目標之間必須恰好隔一顆棋子（砲台），才可吃掉目標（不受階級限制）。
-⚡兵/卒 vs 帥/將：兵（卒）可吃帥（將）；帥（將）無法吃兵（卒）。
-🃏 翻開暗棋：翻棋視為一次行動，翻開後輪到對方。
-🏆 勝利條件：消滅對方所有棋子（含未翻）即獲勝；若一方無棋可走，則該方認負。
-操作說明：
-翻牌：點擊背面朝上的棋子即翻開。
-移動：先點選己方棋子，再點選目標（綠點=可移動，紅框=可吃子）。
-悔棋：每局最多 3 次，人機模式自動撤回 AI 挪步，
-快捷鍵：R 重開・U / Ctrl+Z 悔棋・Esc 關閉視窗。</div>
+棋子階級與吃子規則：帥/將(7) > 仕/士(6) > 相/象(5) > 車(4) > 馬(3) > 砲(2) > 兵/卒(1)。
+🎯砲的特殊移動：直線不越子，吃子必須隔一顆「砲台」。
+⚡兵/卒 vs 帥/將：最弱的兵可吃對方的帥/將，但帥無法吃兵。</div>
+            <button class="desc-btn" onclick="toggleDesc('desc-darkchess')">遊戲說明</button>
         </div>
 
         <div class="game-card" data-category="survival" data-title="獵魔倖存者">
             <div class="game-header">
-                <div>
-                    <a href="https://linwei630718.github.io/html/vampire.html" target="_blank" class="game-title">獵魔倖存者</a>
-                    <span class="game-badge">生存挑戰</span>
-                </div>
-                <button class="desc-btn" onclick="toggleDesc('desc-vampire')">遊戲說明</button>
+                <a href="https://linwei630718.github.io/html/vampire.html" target="_blank" class="game-title">獵魔倖存者</a>
+                <span class="game-badge">生存挑戰</span>
             </div>
-            <div id="desc-vampire" class="description">這是一個基於 HTML5 開發的生存遊戲，靈感來自於 Vampire Survivors。玩家需要在不斷湧來的怪物潮中生存，收集經驗寶石升級，並取得強力的武器與被動技能。
-
-遊戲特色
-核心玩法：自動攻擊、手動走位閃避。
-升級系統：
-武器：皮鞭、魔杖、飛斧、聖經、火球等(預設武器為皮鞭)。
-被動道具：菠菜 (增加傷害)、空虛之心 (增加血量上限)、魔法書 (減少冷卻) 等。
-敵人多樣性：蝙蝠、骷髏、幽靈、殭屍，以及在特定時間出現的 Boss 與死神。
-操作方式：
-鍵盤：WASD 或 方向鍵移動。
-觸控：支援虛擬搖桿 (適合手機/平板)。
-遊戲目標：存活 10 分鐘以獲得勝利。</div>
+            <div id="desc-vampire" class="description">基於 HTML5 開發的生存遊戲，靈感來自於 Vampire Survivors。玩家需要在怪物潮中生存，收集經驗升級。
+操作方式：WASD 或 方向鍵移動。存活 10 分鐘獲勝。</div>
+            <button class="desc-btn" onclick="toggleDesc('desc-vampire')">遊戲說明</button>
         </div>
 
         <div class="game-card" data-category="survival" data-title="獵魔倖存者畫面美化武器選擇版">
             <div class="game-header">
-                <div>
-                    <a href="https://linwei630718.github.io/html/vampirepro.html" target="_blank" class="game-title">獵魔倖存者美化版</a>
-                    <span class="game-badge">生存挑戰</span>
-                </div>
-                <button class="desc-btn" onclick="toggleDesc('desc-vampirepro')">遊戲說明</button>
+                <a href="https://linwei630718.github.io/html/vampirepro.html" target="_blank" class="game-title">獵魔倖存者美化版</a>
+                <span class="game-badge">生存挑戰</span>
             </div>
-            <div id="desc-vampirepro" class="description">這是一個基於 HTML5 開發的生存遊戲，靈感來自於 Vampire Survivors。玩家需要在不斷湧來的怪物潮中生存，收集經驗寶石升級，並取得強力的武器與被動技能。
-
-遊戲特色
-核心玩法：自動攻擊、手動走位閃避。
-升級系統：
-武器：皮鞭、魔杖、飛斧、聖經、火球等(遊戲初始可以選擇武器)。
-被動道具：菠菜 (增加傷害)、空虛之心 (增加血量上限)、魔法書 (減少冷卻) 等。
-敵人多樣性：蝙蝠、骷髏、幽靈、殭屍，以及在特定時間出現的 Boss 與死神。
-操作方式：
-鍵盤：WASD 或 方向鍵移動。
-觸控：支援虛擬搖桿 (適合手機/平板)。
-遊戲目標：存活 10 分鐘以獲得勝利。</div>
+            <div id="desc-vampirepro" class="description">靈感來自 Vampire Survivors。遊戲初始可以選擇武器。存活 10 分鐘獲勝。</div>
+            <button class="desc-btn" onclick="toggleDesc('desc-vampirepro')">遊戲說明</button>
         </div>
 
         <div class="game-card" data-category="survival" data-title="獵魔倖存者八位元像素版">
             <div class="game-header">
-                <div>
-                    <a href="https://linwei630718.github.io/html/vampirepixel.html" target="_blank" class="game-title">獵魔倖存者像素版</a>
-                    <span class="game-badge">生存挑戰</span>
-                </div>
-                <button class="desc-btn" onclick="toggleDesc('desc-vampirepixel')">遊戲說明</button>
+                <a href="https://linwei630718.github.io/html/vampirepixel.html" target="_blank" class="game-title">獵魔倖存者像素版</a>
+                <span class="game-badge">生存挑戰</span>
             </div>
-            <div id="desc-vampirepixel" class="description">這是一個基於 HTML5 開發的生存遊戲，靈感來自於 Vampire Survivors。玩家需要在不斷湧來的怪物潮中生存，收集經驗寶石升級，並取得強力的武器與被動技能。
-
-遊戲特色
-核心玩法：自動攻擊、手動走位閃避。
-升級系統：
-武器：皮鞭、魔杖、飛斧、聖經、火球等(遊戲初始可以選擇武器)；閃電、十字架、暗影刃(第二關增加武器)。
-被動道具：菠菜&靈魂能量(增加傷害)、空虛之心(增加血量上限)、魔法書(減少冷卻)、燭台(增加範圍)、護腕(減少速度)、吸引器(增加拾取範圍)、幸運草(減少暴擊)、惡魔翼(增加速度)、暗鐵護甲(減少受傷)等。
-敵人多樣性：蝙蝠、骷髏、幽靈、殭屍，以及在特定時間出現的 Boss 與死神；暗黑蝙蝠、巫妖、石像鬼(第二關增加怪物)。
-操作方式：
-鍵盤：WASD 或 方向鍵移動。
-觸控：支援虛擬搖桿 (適合手機/平板)。
-遊戲目標：第一關存活 10 分鐘以，第二關存活 20 分鐘(增加3次復活機會)獲得勝利。</div>
+            <div id="desc-vampirepixel" class="description">增加第二關武器與怪物。存活 10/20 分鐘獲勝。</div>
+            <button class="desc-btn" onclick="toggleDesc('desc-vampirepixel')">遊戲說明</button>
         </div>
 
         <div class="game-card" data-category="survival" data-title="獵魔倖存者完整版">
             <div class="game-header">
-                <div>
-                    <a href="https://linwei630718.github.io/html/vampire_pixel3.html" target="_blank" class="game-title">獵魔倖存者完整版</a>
-                    <span class="game-badge">生存挑戰</span>
-                </div>
-                <button class="desc-btn" onclick="toggleDesc('desc-vampire_pixel3')">遊戲說明</button>
+                <a href="https://linwei630718.github.io/html/vampire_pixel3.html" target="_blank" class="game-title">獵魔倖存者完整版</a>
+                <span class="game-badge">生存挑戰</span>
             </div>
-            <div id="desc-vampire_pixel3" class="description">這是一個基於 HTML5 開發的生存遊戲，靈感來自於 Vampire Survivors。玩家需要在不斷湧來的怪物潮中生存，收集經驗寶石升級，並取得強力的武器與被動技能。
-
-遊戲特色
-核心玩法：自動攻擊、手動走位閃避。
-升級系統：
-武器：皮鞭、魔杖、飛斧、聖經、火球等(遊戲初始可以選擇武器)；閃電、十字架、暗影刃(第二關增加武器)。
-被動道具：菠菜&靈魂能量(增加傷害)、空虛之心(增加血量上限)、魔法書(減少冷卻)、燭台(增加範圍)、護腕(減少速度)、吸引器(增加拾取範圍)、幸運草(減少暴擊)、惡魔翼(增加速度)、暗鐵護甲(減少受傷)等。
-敵人多樣性：蝙蝠、骷髏、幽靈、殭屍，以及在特定時間出現的 Boss 與死神；暗黑蝙蝠、巫妖、石像鬼(第二關增加怪物)。
-操作方式：
-鍵盤：WASD 或 方向鍵移動。
-觸控：支援虛擬搖桿 (適合手機/平板)。
-遊戲目標：第一關存活 10 分鐘以，第二關存活 20 分鐘(增加3次復活機會)獲得勝利，第三關10分鐘內打倒BOSS(第一型態&第二型態)。</div>
+            <div id="desc-vampire_pixel3" class="description">完整體驗版本，包含第三關 10 分鐘內打倒最終 BOSS。</div>
+            <button class="desc-btn" onclick="toggleDesc('desc-vampire_pixel3')">遊戲說明</button>
         </div>
 
         <div class="game-card" data-category="shooting" data-title="天空霸主">
             <div class="game-header">
-                <div>
-                    <a href="https://linwei630718.github.io/html/sky.html" target="_blank" class="game-title">天空霸主</a>
-                    <span class="game-badge">飛行射擊</span>
-                </div>
-                <button class="desc-btn" onclick="toggleDesc('desc-sky')">遊戲說明</button>
+                <a href="https://linwei630718.github.io/html/sky.html" target="_blank" class="game-title">天空霸主</a>
+                <span class="game-badge">飛行射擊</span>
             </div>
-            <div id="desc-sky" class="description">這是一個基於 HTML5 開發的縱向飛機射擊遊戲。玩家需要穿越敵軍防線，擊敗巨大 BOSS 收集道具升級武器，炸彈清除全螢幕。
-
-遊戲特色
-核心玩法：方向鍵/WASD 移動 | 自動射擊 | Z/空白 切換武器 | X/Shift 炸彈 | ESC 暫停
-🔫四種武器系統：
-武器：🔵BULLET標準子彈，多管齊發 | 🔴LASER高傷害雷射光束 | 🟡SPREAD扇形散射彈幕 | 🟢HOMING自動追蹤飛彈（均可升級至 Lv.4）
-💣炸彈系統：按 X 清除全螢幕敵機與子彈，對 BOSS 也有傷害
-✈️敵機種類：Scout（快速Z字形機動）、Fighter（直線射擊）、Heavy（三向散彈，厚血量）、Bomber（瞄準玩家的精準砲彈）
-操作方式(自動連射)：
-鍵盤：WASD 或 方向鍵移動 | Z/空白鍵 → 切換武器 | X/Shift → 使用炸彈。
-觸控：支援虛擬搖桿 (適合手機/平板)。
-遊戲目標：第一關：天空之門開啟，第二關：進入敵方核心，第三關：決戰最終防線。</div>
+            <div id="desc-sky" class="description">縱向飛機射擊。四種武器：標準、雷射、散射、追蹤。按 X 使用炸彈清除全螢幕。</div>
+            <button class="desc-btn" onclick="toggleDesc('desc-sky')">遊戲說明</button>
         </div>
 
         <div class="game-card" data-category="strategy" data-title="深淵地牢">
             <div class="game-header">
-                <div>
-                    <a href="https://linwei630718.github.io/html/dungeon.html" target="_blank" class="game-title">深淵地牢</a>
-                    <span class="game-badge">策略角色</span>
-                </div>
-                <button class="desc-btn" onclick="toggleDesc('desc-dungeon')">遊戲說明</button>
+                <a href="https://linwei630718.github.io/html/dungeon.html" target="_blank" class="game-title">深淵地牢</a>
+                <span class="game-badge">策略角色</span>
             </div>
-            <div id="desc-dungeon" class="description">這是一個基於 HTML5 開發的Rogue Like(肉鴿)卡牌遊戲。玩家需要選擇你的職業，踏入未知的黑暗深淵，擊殺最終BOSS
-
-遊戲特色
-核心玩法：
-
-職業系統：
-
-戰士：鋼鐵意志，以力破局。高防高血，近戰強者。
-法師：奧術力量，魔法無邊。強力法術，脆弱之軀。
-盜賊：暗影之刃，速度致命。迴避高，連擊能力強。
-轉職系統：
-
-戰士：Lv5:騎士/劍聖 Lv10:聖騎士/劍神
-法師：Lv5:大法師/術士 Lv10:魔法師/暗術師
-盜賊：Lv5:刺客/遊俠 Lv10:死神/弓聖
-操作方式：
-
-滑鼠：點選地圖會隨機出現戰鬥、商店、事件、寶箱，地圖最右方出現BOSS，選擇卡牌進行戰鬥。戰鬥結束有機會掉落道具(可在背包或裝備處進行裝備)或卡牌(相同卡牌可合成升級)。
-遊戲目標：通過5層地圖關卡，擊殺最終BOSS，讓世界恢復和平吧！ </div>
+            <div id="desc-dungeon" class="description">Rogue Like 卡牌遊戲。提供戰士、法師、盜賊三種職業與兩次轉職機會。</div>
+            <button class="desc-btn" onclick="toggleDesc('desc-dungeon')">遊戲說明</button>
         </div>
 
         <div class="game-card" data-category="shooting" data-title="數位雷電">
             <div class="game-header">
-                <div>
-                    <a href="https://linwei630718.github.io/html/thunder.html" target="_blank" class="game-title">數位雷電</a>
-                    <span class="game-badge">飛行射擊</span>
-                </div>
-                <button class="desc-btn" onclick="toggleDesc('desc-thunder')">遊戲說明</button>
+                <a href="https://linwei630718.github.io/html/thunder.html" target="_blank" class="game-title">數位雷電</a>
+                <span class="game-badge">飛行射擊</span>
             </div>
-            <div id="desc-thunder" class="description">這是一個基於 HTML5 開發的橫向飛機射擊遊戲。玩家需要穿越敵軍防線，生存至 BOSS 出現。
-
-遊戲特色
-核心玩法：方向鍵 移動 | 自動連續射擊 | Z/SPACE 全屏炸彈 | P/ESC 暫停
-
-武器系統：
-
-武器：火神砲（赤色） | 雷射（藍色）（可升級至 Lv.8）
-次要武器：小型核彈「M」（黃色） | 追蹤飛彈「H」（綠色）（可升級至 Lv.4）
-炸彈：按 Z 清除全螢幕敵機與子彈，對 BOSS 也有傷害
-敵機種類：雜魚敵機、中型機械魔王、大型機械魔王
-
-操作方式：
-
-鍵盤：方向鍵 移動 | 自動連續射擊 | Z/SPACE 全屏炸彈 | P/ESC 暫停
-遊戲目標：玩家需要穿越敵軍防線，生存至 BOSS 出現三個關卡的挑戰。（每關約5分鐘）</div>
+            <div id="desc-thunder" class="description">橫向飛機射擊。提供火神砲與雷射主武，核彈與追蹤飛彈副武。</div>
+            <button class="desc-btn" onclick="toggleDesc('desc-thunder')">遊戲說明</button>
         </div>
 
         <div class="game-card" data-category="shooting" data-title="暴風突擊隊">
             <div class="game-header">
-                <div>
-                    <a href="https://linwei630718.github.io/html/storm.html" target="_blank" class="game-title">暴風突擊隊</a>
-                    <span class="game-badge">飛行射擊</span>
-                </div>
-                <button class="desc-btn" onclick="toggleDesc('desc-storm')">遊戲說明</button>
+                <a href="https://linwei630718.github.io/html/storm.html" target="_blank" class="game-title">暴風突擊隊</a>
+                <span class="game-badge">飛行射擊</span>
             </div>
-            <div id="desc-storm" class="description">這是一個基於 HTML5 開發的橫向飛機射擊遊戲。玩家需要穿越敵軍防線，擊敗巨大 BOSS 收集道具升級武器，炸彈清除全螢幕。
-
-遊戲特色
-核心玩法：方向鍵 移動 | X射擊 | Z 炸彈 | COMBO倍率加成
-
-武器系統：
-
-武器：火神砲（赤色） | 雷射（藍色）（可升級至 Lv.8）
-次要武器：小型核彈「M」（黃色） | 追蹤飛彈「H」（綠色）（可升級至 Lv.4）
-炸彈：按 Z 清除全螢幕敵機與子彈，對 BOSS 也有傷害
-敵機種類：雜魚敵機、中型機械魔王、大型機械魔王
-
-操作方式：
-
-鍵盤：方向鍵 移動 | X射擊 | Z 炸彈 | COMBO倍率加成
-遊戲目標：第一關：現代都市上空，第二關：山脈與雪地，第三關：外太空。（每關約5分鐘）</div>
+            <div id="desc-storm" class="description">橫向飛機射擊。包含 COMBO 倍率加成系統。</div>
+            <button class="desc-btn" onclick="toggleDesc('desc-storm')">遊戲說明</button>
         </div>
 
         <div class="game-card" data-category="racing" data-title="超級賽車王">
             <div class="game-header">
-                <div>
-                    <a href="https://linwei630718.github.io/html/kart.html" target="_blank" class="game-title">超級賽車王</a>
-                    <span class="game-badge">極速競速</span>
-                </div>
-                <button class="desc-btn" onclick="toggleDesc('desc-kart')">遊戲說明</button>
+                <a href="https://linwei630718.github.io/html/kart.html" target="_blank" class="game-title">超級賽車王</a>
+                <span class="game-badge">極速競速</span>
             </div>
-            <div id="desc-kart" class="description">這是一個基於 HTML5 開發的2D賽車遊戲。玩家可選擇四個賽道，和電腦來一場刺激的比賽。
-
-遊戲特色
-核心玩法：在3、5、7圈的競賽中奪得第一吧！
-操作方式：
-鍵盤：方向鍵上 加速 | 方向鍵下 減速 | 方向鍵左右 轉向 | 空白鍵 道具
-道具：🍄超速蘑菇、⭐無敵星星、🐢烏龜殼、💣炸彈、⚡全體閃電、🍌香蕉皮、🎯追蹤飛彈、🌀龍捲風、🧲磁力拉近
-賽道選擇：
-🏖️台灣大道：初學者推薦 · 寬敞橢圓賽道
-🏙️台中街頭：中等難度 · 都市街道賽道
-🌋鰲峰山山道：困難 · 連續髮夾彎賽道
-🌌星際競速：極限難度 · 超高速五芒星賽道
-遊戲目標：連續過彎可累積 漂移 加速 | 跟在對手後方可獲得 氣流 加速，善用道具，在3、5、7圈的競賽中奪得第一吧！</div>
+            <div id="desc-kart" class="description">2D 賽車遊戲。提供四個賽道，支援漂移與氣流加速，多種趣味道具。</div>
+            <button class="desc-btn" onclick="toggleDesc('desc-kart')">遊戲說明</button>
         </div>
 
         <div id="no-result">沒有找到符合條件的遊戲，請嘗試其他關鍵字或分類。</div>
     </div>
 
     <script>
-        // 控制展開/收合遊戲說明的函數
-        function toggleDesc(elementId) {
-            var descElement = document.getElementById(elementId);
-            if (descElement.style.display === "none" || descElement.style.display === "") {
-                descElement.style.display = "block";
-            } else {
-                descElement.style.display = "none";
-            }
+        function toggleDesc(id) {
+            let el = document.getElementById(id);
+            el.style.display = (el.style.display === "block") ? "none" : "block";
         }
 
-        // 目前選擇的分類
         let currentCategory = 'all';
 
-        // 設定分類並觸發篩選
-        function setCategory(category, btnElement) {
+        function setCategory(category, btn) {
             currentCategory = category;
-            
-            // 更新按鈕樣式
-            let buttons = document.querySelectorAll('.filter-btn');
-            buttons.forEach(btn => btn.classList.remove('active'));
-            btnElement.classList.add('active');
-            
-            // 執行篩選
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
             filterGames();
         }
 
-        // 根據關鍵字與分類篩選遊戲
         function filterGames() {
             let keyword = document.getElementById('searchInput').value.toLowerCase();
             let cards = document.querySelectorAll('.game-card');
-            let visibleCount = 0;
+            let count = 0;
 
             cards.forEach(card => {
                 let title = card.getAttribute('data-title').toLowerCase();
                 let desc = card.querySelector('.description').innerText.toLowerCase();
                 let category = card.getAttribute('data-category');
 
-                // 檢查是否符合關鍵字 (名稱或說明中包含)
-                let matchesKeyword = title.includes(keyword) || desc.includes(keyword);
-                // 檢查是否符合目前分類
-                let matchesCategory = (currentCategory === 'all' || currentCategory === category);
+                let matchK = title.includes(keyword) || desc.includes(keyword);
+                let matchC = (currentCategory === 'all' || currentCategory === category);
 
-                if (matchesKeyword && matchesCategory) {
-                    card.style.display = "block";
-                    visibleCount++;
+                if (matchK && matchC) {
+                    card.style.display = "flex";
+                    count++;
                 } else {
                     card.style.display = "none";
                 }
             });
 
-            // 如果沒有符合的結果，顯示提示訊息
-            let noResultMsg = document.getElementById('no-result');
-            if (visibleCount === 0) {
-                noResultMsg.style.display = "block";
-            } else {
-                noResultMsg.style.display = "none";
-            }
+            document.getElementById('no-result').style.display = (count === 0) ? "block" : "none";
         }
     </script>
 
