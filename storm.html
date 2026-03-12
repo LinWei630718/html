@@ -2,49 +2,73 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>暴風突擊隊</title>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html {
-  width: 100%; height: 100%;
-  background: #000;
-}
-body {
-  width: 100vw; height: 100vh;
+
+html, body {
+  width: 100%;
+  height: 100%;
   background: #000;
   overflow: hidden;
+  touch-action: none; /* prevent scroll/zoom on touch devices */
+}
+
+body {
   display: flex;
   justify-content: center;
   align-items: center;
+  /* dvh = dynamic viewport height (accounts for mobile browser chrome) */
+  /* fallback: 100vh for browsers without dvh support */
+  min-height: 100vh;
+  min-height: 100dvh;
 }
+
 #gameWrap {
   position: relative;
-  /* JS sets width/height to match canvas logical size */
   flex-shrink: 0;
+  /* transform-origin must be top-left for scale math to work */
   transform-origin: top left;
+  /* Prevent touch callouts on iOS */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
+
 #gameCanvas {
   display: block;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
+  /* Prevent canvas tap highlight on mobile */
+  -webkit-tap-highlight-color: transparent;
 }
+
 #muteBtn {
   position: absolute;
-  top: 10px; right: 10px;
+  top: 10px;
+  right: 10px;
   z-index: 100;
   background: rgba(0,20,40,0.85);
   border: 1px solid #2266aa;
   color: #88ccff;
   font: bold 13px "Courier New";
-  padding: 5px 10px;
+  padding: 6px 12px;
   cursor: pointer;
   border-radius: 4px;
   letter-spacing: 1px;
   transition: background 0.2s;
-  /* scale button back so it stays readable regardless of canvas scale */
   transform-origin: top right;
+  /* Ensure button is always tappable on mobile */
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-#muteBtn:hover { background: rgba(0,40,80,0.9); }
+#muteBtn:hover, #muteBtn:active { background: rgba(0,40,80,0.95); }
 </style>
 </head>
 <body>
@@ -67,32 +91,46 @@ wrap.style.width  = W + 'px';
 wrap.style.height = H + 'px';
 
 // ── RWD: scale wrap to fill the viewport ─────────────
+// Strategy: wrap stays at native 960×640, CSS transform scales it.
+// Body flexbox centres it. muteBtn counter-scales to stay readable.
 function resize(){
-  const vw = window.innerWidth  || document.documentElement.clientWidth;
-  const vh = window.innerHeight || document.documentElement.clientHeight;
+  // Use visualViewport when available (most accurate on mobile/tablet)
+  // Falls back to window.inner*, then documentElement.client*
+  const vw = (window.visualViewport ? window.visualViewport.width  : null)
+           || window.innerWidth
+           || document.documentElement.clientWidth
+           || 960;
+  const vh = (window.visualViewport ? window.visualViewport.height : null)
+           || window.innerHeight
+           || document.documentElement.clientHeight
+           || 640;
 
-  // Uniform scale: fit inside viewport (no stretching, no black bars beyond aspect)
-  // For true full-fill on 16:9, we use Math.max to cover; for letterbox use Math.min.
-  // Game is 960×640 = 3:2. Most monitors are 16:9.
-  // We use Math.min (letterbox) so gameplay area is never cropped.
+  // Fit inside viewport, maintaining aspect ratio (no crop, no stretch)
   const scale = Math.min(vw / W, vh / H);
 
-  // Apply via transform on the wrapper; canvas pixels stay 960×640
   wrap.style.transform       = `scale(${scale})`;
   wrap.style.transformOrigin = 'top left';
 
-  // Center the scaled wrapper in the body
-  const scaledW = W * scale;
-  const scaledH = H * scale;
-  wrap.style.marginLeft = Math.max(0, (vw - scaledW) / 2) + 'px';
-  wrap.style.marginTop  = Math.max(0, (vh - scaledH) / 2) + 'px';
+  // Offset to visually centre inside the flex container
+  // (flex centres the pre-scale 960×640 block; we need to compensate for scale)
+  const offsetX = Math.max(0, (vw - W * scale) / 2);
+  const offsetY = Math.max(0, (vh - H * scale) / 2);
+  wrap.style.position = 'absolute';
+  wrap.style.left = offsetX + 'px';
+  wrap.style.top  = offsetY + 'px';
 
-  // Counter-scale the muteBtn so it's always readable
-  const btnScale = 1 / scale;
+  // Counter-scale muteBtn so its physical size stays ~44px touch target
+  const btnScale = Math.max(1, 1 / scale);
   document.getElementById('muteBtn').style.transform = `scale(${btnScale})`;
 }
+
+// Listen for all relevant resize events
 window.addEventListener('resize', resize);
-window.addEventListener('orientationchange', () => setTimeout(resize, 150));
+window.addEventListener('orientationchange', () => setTimeout(resize, 200));
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', resize);
+  window.visualViewport.addEventListener('scroll', resize);
+}
 resize();
 
 // ══════════════════════════════════════════════════════
@@ -633,16 +671,16 @@ function fireVulcan(){
   spawnParticles(player.x+28,player.y,3,{speedMin:60,speedMax:180,angle:0,spread:0.5,decayMin:0.08,decayMax:0.15,rMin:1,rMax:3,color:'#ff6633',color2:'#ffcc44'});
   if(player.vulcanSfxTimer<=0){ playVulcan(); player.vulcanSfxTimer=0.06; }
 }
-function fireLaser(){
+function fireLaser(dt){
   const lv=player.weaponLevel-1,w=LASER_WIDTHS[Math.min(lv,7)],dmg=LASER_DMGS[Math.min(lv,7)];
   player.laserBeams=[{y:player.y,width:w,dmg}];
   const beamX=player.x+24;
   for(const e of enemies){
     if(!e.alive) continue;
-    if(Math.abs(e.y-player.y)<w/2+e.r&&e.x>beamX){ e.hp-=dmg*0.016*60; if(e.hp<=0) killEnemy(e); }
+    if(Math.abs(e.y-player.y)<w/2+e.r&&e.x>beamX){ e.hp-=dmg*dt*60; if(e.hp<=0) killEnemy(e); }
   }
   if(currentBoss&&currentBoss.alive&&Math.abs(currentBoss.y-player.y)<w/2+currentBoss.r)
-    currentBoss.hp-=dmg*0.016*60*1.5;
+    currentBoss.hp-=dmg*dt*60*1.5;
   playLaserLoop();
 }
 function fireMissile(){
@@ -677,7 +715,7 @@ function updatePlayer(dt){
   player.shootTimer-=dt;
   if(keys['KeyX']&&player.shootTimer<=0){
     player.shootTimer=player.weapon===WEAPON.VULCAN?0.072:0.05;
-    if(player.weapon===WEAPON.VULCAN) fireVulcan(); else fireLaser();
+    if(player.weapon===WEAPON.VULCAN) fireVulcan(); else fireLaser(dt);
   }
   if(!keys['KeyX']){ player.laserBeams=[]; stopLaserLoop(); }
   player.subShootTimer-=dt;
@@ -870,10 +908,9 @@ function showPickupText(x,y,text,color='#ffffff',style='normal'){
   });
 }
 function showScoreText(x,y,score,combo){
-  const mult=1+Math.floor(combo/5)*0.1;
-  const dispScore=Math.round(score*(1+Math.floor(combo/5)*0.1));
+  // score is already the final value (post-combo), just colour by combo tier
   const col=combo>=20?'#ff4444':combo>=10?'#ffcc00':combo>=5?'#44ffcc':'#ffffff';
-  showPickupText(x,y-20,`+${dispScore}`,col,'score');
+  showPickupText(x,y-20,`+${score}`,col,'score');
 }
 function updateFloatTexts(dt){
   for(let i=floatTexts.length-1;i>=0;i--){
@@ -952,7 +989,7 @@ class Enemy{
     }
     if(keys['KeyX']&&player.weapon===WEAPON.LASER&&player.alive){
       const lv=player.weaponLevel-1,hw=LASER_WIDTHS[Math.min(lv,7)];
-      if(Math.abs(this.y-player.y)<hw+this.r&&this.x>player.x+24){
+      if(Math.abs(this.y-player.y)<hw/2+this.r&&this.x>player.x+24){
         this.hp-=LASER_DMGS[Math.min(lv,7)]*dt*1.5; this.hitFlash=0.5; if(this.hp<=0){killEnemy(this);return;}
       }
     }
@@ -984,8 +1021,8 @@ function killEnemy(e){
   const scoreGained=Math.round(e.score*(1+Math.floor(player.combo/5)*0.1));
   player.score+=scoreGained;
   addCombo();
-  // Score float text
-  showScoreText(e.x,e.y,e.score,player.combo);
+  // Score float text — show actual gained amount (post-combo)
+  showScoreText(e.x,e.y,scoreGained,player.combo);
   triggerShake(e.r>20?6:3,e.r>20?0.3:0.15);
   playExplosion(e.r>20?1.5:0.8);
   spawnParticles(e.x,e.y,e.r>20?60:30,{speedMin:60,speedMax:350,rMin:1.5,rMax:e.r>20?6:4,decayMin:0.012,decayMax:0.035,color:'#ff6622',color2:'#ffcc00'});
@@ -1094,7 +1131,7 @@ class Boss{
     }
     if(keys['KeyX']&&player.weapon===WEAPON.LASER&&player.alive){
       const lv=player.weaponLevel-1,hw=LASER_WIDTHS[Math.min(lv,7)];
-      if(Math.abs(this.y-player.y)<hw+this.r&&this.x>player.x+24){
+      if(Math.abs(this.y-player.y)<hw/2+this.r&&this.x>player.x+24){
         this.hp-=LASER_DMGS[Math.min(lv,7)]*dt*2; this.hitFlash=1; if(this.hp<=0){this.die();return;}
       }
     }
@@ -1140,8 +1177,10 @@ class Boss{
     triggerShake(this.type==='final'?20:12,this.type==='final'?2.5:1.2);
     this.type==='final'?playBigExplosion():playExplosion(2);
     const cnt=this.type==='final'?120:70;
-    spawnParticles(this.x,this.y,cnt,{speedMin:60,speedMax:500,rMin:2,rMax:this.type==='final'?10:7,decayMin:0.006,decayMax:0.025,color:this.glow,color2:'#ffffff'});
-    for(let i=0;i<6;i++) setTimeout(()=>{ spawnParticles(this.x+rnd(-50,50),this.y+rnd(-50,50),30,{speedMin:40,speedMax:250,rMin:2,rMax:6,decayMin:0.015,decayMax:0.04,color:this.accent,color2:'#ffcc00'}); playExplosion(0.8); },i*200);
+    // Capture position+colors before any async callbacks (closure safety)
+    const bx=this.x,by=this.y,bAccent=this.accent,bGlow=this.glow;
+    spawnParticles(bx,by,cnt,{speedMin:60,speedMax:500,rMin:2,rMax:this.type==='final'?10:7,decayMin:0.006,decayMax:0.025,color:bGlow,color2:'#ffffff'});
+    for(let i=0;i<6;i++) setTimeout(()=>{ spawnParticles(bx+rnd(-50,50),by+rnd(-50,50),30,{speedMin:40,speedMax:250,rMin:2,rMax:6,decayMin:0.015,decayMax:0.04,color:bAccent,color2:'#ffcc00'}); playExplosion(0.8); },i*200);
     player.score+=this.score;
     if(bossDefeatedCallback) bossDefeatedCallback(this.type);
   }
@@ -1722,8 +1761,8 @@ function drawTitle(dt){
   ctx.restore();
 }
 
-function drawDifficultySelect(){
-  diffSelectPulse+=0.016;
+function drawDifficultySelect(dt){
+  diffSelectPulse+=dt;
   ctx.save();
   // Dark overlay panel
   ctx.fillStyle='rgba(0,5,20,0.92)';
@@ -1851,10 +1890,10 @@ function drawCleared(){
     ctx.fillText(newHi?`★ 新紀錄！★`:`最高紀錄: ${hiScore.toString().padStart(8,'0')}`,W/2,H/2+52);
   }
   ctx.font='18px "Courier New"'; ctx.fillStyle='#ffcc88'; glow('#ffcc88',8);
-  ctx.fillText(`最高COMBO: ${player.maxCombo}`,W/2,H/2+58);
+  ctx.fillText(`最高COMBO: ${player.maxCombo}`,W/2,H/2+76);
   glow(DIFF_GLOW[difficulty],15);
   ctx.fillStyle=DIFF_COLORS[difficulty]; ctx.font='bold 18px serif';
-  ctx.fillText(`難度：${DIFF_NAMES[difficulty]}  ${DIFF_ICONS[difficulty]}`,W/2,H/2+90);
+  ctx.fillText(`難度：${DIFF_NAMES[difficulty]}  ${DIFF_ICONS[difficulty]}`,W/2,H/2+106);
   if(Math.floor(t*1.5)%2===0){
     ctx.font='19px "Courier New"'; ctx.fillStyle='#aaddff'; glow('#aaddff',8);
     ctx.fillText('X 鍵  重試同難度        ESC  返回標題',W/2,H/2+132);
@@ -1880,8 +1919,8 @@ function togglePause(){
     }
   }
 }
-function drawPause(){
-  pausePulse+=0.04;
+function drawPause(dt){
+  pausePulse+=dt*2.5;
   ctx.save();
   // Blurred overlay
   ctx.fillStyle='rgba(0,5,20,0.78)'; ctx.fillRect(0,0,W,H);
@@ -1925,7 +1964,7 @@ function initGame(){
     bombs:3,score:0,laserBeams:[],shootTimer:0,subShootTimer:0,enginePhase:0,
     combo:0,comboTimer:0,maxCombo:0,vulcanSfxTimer:0});
   stageNum=1; stageTime=0; stagePhase='play'; midBossSpawned=false; finalBossSpawned=false;
-  currentBoss=null; laserNode=null;
+  currentBoss=null; stopLaserLoop(); laserNode=null;
   [enemies,playerBullets,enemyBullets,particles,pickups,floatTexts,activeBombs].forEach(a=>a.length=0);
   enemySpawnTimer=1; inTransition=false; transAlpha=0; paused=false; dlg=null;
   initBgForStage(); startMusic(); gameState='playing';
@@ -1945,7 +1984,7 @@ function loop(ts){
     if(diffSelectActive){
       // Draw diff select on top of title
       updateDifficultySelect(dt);
-      drawDifficultySelect();
+      drawDifficultySelect(dt);
     } else {
       if(Object.keys(keyPressed).length>0){
         // Any key → open difficulty select
@@ -1969,7 +2008,7 @@ function loop(ts){
     if(currentBoss&&currentBoss.alive) currentBoss.draw();
     drawPickups(); drawPlayer(); drawBombs(); drawParticles(); drawFloatTexts();
     drawHUD(); drawTransition(); drawDlg();
-    if(paused) drawPause();
+    if(paused) drawPause(dt);
   } else if(gameState==='gameover'){
     drawBackground(); drawParticles(); drawGameOver();
     if(keyPressed['KeyX']){ stopMusic(); initGame(); }
