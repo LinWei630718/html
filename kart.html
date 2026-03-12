@@ -74,6 +74,7 @@ canvas{display:block;}
 /* track name banner */
 #hTrack{position:absolute;top:55px;left:50%;transform:translateX(-50%);font-family:'Bangers',cursive;font-size:13px;color:rgba(255,255,255,.45);letter-spacing:3px;white-space:nowrap;}
 
+@keyframes ww{from{transform:translate(-50%,-50%) translateY(-60px) scale(1)}to{transform:translate(-50%,-50%) translateY(-60px) scale(1.08)}}
 /* ── COUNTDOWN ── */
 #cdText{font-family:'Bangers',cursive;font-size:clamp(76px,18vw,166px);text-align:center;text-shadow:0 0 50px currentColor,6px 6px 0 rgba(0,0,0,.6);opacity:0;transition:opacity .15s;}
 
@@ -138,6 +139,7 @@ canvas{display:block;}
   <div id="hDrift">🔥 DRIFT!</div>
   <div id="hSlip">💨 SLIPSTREAM!</div>
   <div id="hTurbo">🚀 TURBO!</div>
+  <div id="hWrongWay" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) translateY(-60px);font-family:'Bangers',cursive;font-size:clamp(36px,7vw,72px);color:#ff2244;text-shadow:0 0 30px #ff0000,3px 3px 0 #880000;pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap;animation:ww 0.7s ease-in-out infinite alternate;">⚠️ 逆向！</div>
   <button id="hMute" onclick="toggleMute()">🔊</button>
 </div>
 <div class="scr" id="sCd"><div id="cdText"></div></div>
@@ -312,7 +314,7 @@ var TW=1000,TH=1000;
 var TRACK_DEFS=[
   {
     // Classic wide oval with two sweeping chicanes — beginner friendly
-    id:0, name:'🏖️ 海濱大道', sub:'初學者推薦 · 寬敞橢圓賽道',
+    id:0, name:'🛣️ 台灣大道', sub:'初學者推薦 · 寬敞橢圓賽道',
     diff:'easy', diffLabel:'⭐ 入門', aiSpeedMul:1.0,
     grassCol:'#1a4a22', grassCol2:'#1e5a2a',
     roadCol:'#3a3a4e', shoulderCol:'#4a4a5e',
@@ -328,7 +330,7 @@ var TRACK_DEFS=[
   },
   {
     // Urban street circuit — tight chicanes, 90° bends, variety
-    id:1, name:'🏙️ 城市特技', sub:'中等難度 · 都市街道賽道',
+    id:1, name:'🏙️ 台中街頭', sub:'中等難度 · 都市街道賽道',
     diff:'mid', diffLabel:'⭐⭐ 普通', aiSpeedMul:1.08,
     grassCol:'#111820', grassCol2:'#151e28',
     roadCol:'#353545', shoulderCol:'#424255',
@@ -349,22 +351,25 @@ var TRACK_DEFS=[
   },
   {
     // Hairpin snake — multiple 180° turns, narrow, technical
-    id:2, name:'🌋 火山蛇道', sub:'困難 · 連續髮夾彎賽道',
+    id:2, name:'⛰️ 鰲峰山山道', sub:'困難 · 連續髮夾彎山路',
     diff:'hard', diffLabel:'⭐⭐⭐ 困難', aiSpeedMul:1.14,
     grassCol:'#2a0e0e', grassCol2:'#320f0f',
     roadCol:'#282020', shoulderCol:'#382828',
     lineCol:'rgba(255,80,50,.4)', kerbCol:'#991111',
     rw:70,
     wps:[
-      [150,130],[380,110],[620,130],[840,160],[940,250],[920,370],
-      [820,430],[680,430],[600,500],[620,600],[720,650],
-      [820,700],[860,790],[780,860],[620,870],[480,830],
-      [380,760],[320,660],[360,560],[460,500],[500,420],
-      [420,340],[280,300],[170,360],[100,460],[120,570],
-      [200,650],[230,760],[180,840],[80,840],[60,720],
-      [150,130]
+      [200,880],[200,760],[200,620],[200,480],[200,340],[200,200],
+      [300,120],[440,120],[580,120],[720,120],[840,120],
+      [880,200],[880,340],
+      [780,400],[640,400],[520,400],[400,400],
+      [360,480],[360,600],[360,720],[360,840],[360,880],
+      [500,880],[640,880],[780,880],
+      [840,800],[840,680],
+      [740,620],[600,620],[480,620],
+      [440,700],[440,800],[440,880],
+      [340,880],[200,880]
     ],
-    turboPads:[0.07,0.20,0.36,0.52,0.68,0.84],
+    turboPads:[0.06,0.18,0.32,0.50,0.65,0.82],
   },
   {
     // Star-shaped: 5 blazing straights, sharp apex corners — extreme speed
@@ -468,7 +473,17 @@ function checkGate(car,isPlayer){
     car.gc[ng]=GC;car.gate++;
     if(car.gate%NG===0){
       car.lap++;car.lapStart=gTime;
-      if(isPlayer&&car.lap<=totLaps){SFX.lap();msg('✅ 第'+(car.lap-1)+'圈完成！','#0f8');}
+      if(isPlayer&&car.lap<=totLaps){
+        SFX.lap();
+        var lapTime=gTime-car.lapStart;
+        var ltSec=(lapTime/60).toFixed(1);
+        if(!PL.bestLap||lapTime<PL.bestLap){
+          PL.bestLap=lapTime;
+          msg('🏆 最快圈！ '+ltSec+'s','#fd0');
+        } else {
+          msg('✅ 第'+(car.lap-1)+'圈 '+ltSec+'s','#0f8');
+        }
+      }
       if(car.lap>totLaps&&!car.done){
         car.done=true;car.doneT=gTime;
         if(isPlayer)endRace();
@@ -934,6 +949,23 @@ function updAI(ai){
   ai.trail.push({x:ai.x,y:ai.y,boost:ai.boost>0});
   if(ai.trail.length>14)ai.trail.shift();
 
+  // Stuck detection: if AI barely moved for 90 frames, teleport to nearest road point
+  if(!ai.stuckT)ai.stuckT=0;
+  if(!ai.stuckX){ai.stuckX=ai.x;ai.stuckY=ai.y;}
+  ai.stuckT++;
+  if(ai.stuckT>=90){
+    var movedD=Math.sqrt((ai.x-ai.stuckX)*(ai.x-ai.stuckX)+(ai.y-ai.stuckY)*(ai.y-ai.stuckY));
+    if(movedD<12){
+      // Unstick: jump to a road point ahead of nearest
+      var ns=nearTP(ai.x,ai.y);
+      var rescueIdx=(ns.i+30)%TR.length;
+      ai.x=TR[rescueIdx].x;ai.y=TR[rescueIdx].y;
+      ai.ang=tAng(rescueIdx);ai.spd=ai.maxSpd*.4;
+      spawnPts(ai.x,ai.y,'rgba(255,255,100,.6)',8,1.5);
+    }
+    ai.stuckT=0;ai.stuckX=ai.x;ai.stuckY=ai.y;
+  }
+
   // Collect boxes
   for(var i=0;i<boxes.length;i++){
     var b=boxes[i];if(!b.on||ai.item)continue;
@@ -1060,6 +1092,7 @@ function updEfxs(){
 // ═══════════════════════════════════════════════════════════════════
 //  RANK
 // ═══════════════════════════════════════════════════════════════════
+var wrongWayFrames=0;
 function calcRank(){
   var all=[PL].concat(AIs);
   var fin=all.filter(function(c){return c.done;}).sort(function(a,b){return a.doneT-b.doneT;});
@@ -1068,6 +1101,27 @@ function calcRank(){
     return nearTP(b.x,b.y).td/TLEN-nearTP(a.x,a.y).td/TLEN;
   });
   PL.rank=fin.concat(unf).indexOf(PL)+1;
+
+  // Wrong-way detection: compare car angle to track direction
+  if(!PL.done&&Math.abs(PL.spd)>PL.maxSpd*.25){
+    var ntp=nearTP(PL.x,PL.y);
+    var trackAng=tAng(ntp.i);
+    var diff=PL.ang-trackAng;
+    while(diff>Math.PI)diff-=Math.PI*2;
+    while(diff<-Math.PI)diff+=Math.PI*2;
+    if(Math.abs(diff)>Math.PI*.65){
+      wrongWayFrames++;
+      if(wrongWayFrames>45){
+        document.getElementById('hWrongWay').style.opacity='1';
+      }
+    } else {
+      wrongWayFrames=0;
+      document.getElementById('hWrongWay').style.opacity='0';
+    }
+  } else {
+    wrongWayFrames=0;
+    document.getElementById('hWrongWay').style.opacity='0';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1453,6 +1507,17 @@ function updHUD(){
   document.getElementById('hSpdN').style.color=col;
   document.getElementById('hSpd').style.borderColor=col;
   document.getElementById('hSpd').style.boxShadow='0 0 18px '+col;
+  // Show boost remaining in speedometer subtext
+  if(PL.boost>0){
+    document.getElementById('hSpdL').textContent='BOOST!';
+    document.getElementById('hSpdL').style.color='#f80';
+  } else if(PL.slipBoost>0.05){
+    document.getElementById('hSpdL').textContent='SLIP >';
+    document.getElementById('hSpdL').style.color='#0ff';
+  } else {
+    document.getElementById('hSpdL').textContent='KM/H';
+    document.getElementById('hSpdL').style.color='#555';
+  }
   // Drift bar — update border glow on item slot
   var driftCharge=PL.driftBoost/DRIFT_MAX_BOOST;
   if(driftCharge>0){
@@ -1537,7 +1602,8 @@ function endRace(){
         +'<span style="color:#aaa;font-size:15px">'+(car.doneT/60).toFixed(1)+'s</span>';
       fp.appendChild(row);
     }
-    fs.textContent='賽道：'+TRACK_DEFS[selTrack].name+'　完成時間：'+(PL.doneT/60).toFixed(1)+'秒　圈數：'+totLaps+'圈';
+    var bestStr=PL.bestLap?(PL.bestLap/60).toFixed(1)+'s':'--';
+    fs.textContent='賽道：'+TRACK_DEFS[selTrack].name+'　完成時間：'+(PL.doneT/60).toFixed(1)+'秒　最快圈：'+bestStr+'　圈數：'+totLaps+'圈';
     document.getElementById('sFinish').style.display='flex';
     stopBGM();
   },1400);
@@ -1608,13 +1674,15 @@ function startGame(){
   PL.inv=0;PL.boost=0;PL.stun=0;PL.spin=0;
   PL.done=false;PL.doneT=0;PL.lapStart=0;
   PL.ofrd=0;PL.rank=1;PL.trail=[];
-  PL.drift=0;PL.driftBoost=0;PL.slipTimer=0;PL.slipBoost=0;PL.turboFlash=0;
+  PL.drift=0;PL.driftBoost=0;PL.slipTimer=0;PL.slipBoost=0;PL.turboFlash=0;PL.bestLap=0;
   updItemHUD();
 
   AIs=[];
-  // 4 AI cars for more chaotic racing
+  // 4 AI cars: place them behind start, but verify they're on road
+  // Use 8-step spacing (about 1/47 of track) to avoid intersection issues
   for(var i=0;i<AIDEFS.length;i++){
-    var idx=((si-10*(i+1))%TR.length+TR.length)%TR.length;
+    var offset=8*(i+1); // small consistent offset behind player
+    var idx=((si-offset)%TR.length+TR.length)%TR.length;
     AIs.push(mkAI(AIDEFS[i],idx));
   }
 
