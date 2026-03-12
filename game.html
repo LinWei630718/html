@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>LinWeiの遊戲DIY - 完整四欄版</title>
+<title>LinWeiの遊戲DIY</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
 
@@ -15,7 +15,7 @@ body{
     background:
         radial-gradient(circle at 20% 20%, #0f2027, #05070a 60%);
     color:#e6f7ff;
-    max-width:1400px; /* 增加寬度以適應四欄佈局 */
+    max-width:1200px; /* 三欄佈局，稍微縮小最大寬度讓視覺更集中 */
     margin:auto;
     padding:25px;
 }
@@ -80,21 +80,19 @@ h1{
     color:#000;
 }
 
-/* 遊戲清單容器 - 四欄 Grid 佈局 */
+/* 遊戲清單容器 - 三欄 Grid 佈局 */
 #gamesList {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr); /* 這裡改為三欄 */
     gap: 20px;
 }
 
-@media (max-width: 1200px) {
-    #gamesList { grid-template-columns: repeat(3, 1fr); }
-}
+/* 響應式設計調整 */
 @media (max-width: 900px) {
-    #gamesList { grid-template-columns: repeat(2, 1fr); }
+    #gamesList { grid-template-columns: repeat(2, 1fr); } /* 平板雙欄 */
 }
 @media (max-width: 600px) {
-    #gamesList { grid-template-columns: 1fr; }
+    #gamesList { grid-template-columns: 1fr; } /* 手機單欄 */
 }
 
 /* 遊戲卡片 */
