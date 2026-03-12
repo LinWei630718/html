@@ -1,4 +1,4 @@
-# 台灣大老二 ([link](twbig2.html)
+# 台灣大老二 ([link](https://linwei630718.github.io/html/twbig2.html))
 
 這是一個基於 HTML5 開發的象棋遊戲，大老二相傳是20世紀時由香港人發明，是華人界中不論男女老少均喜愛的撲克牌遊戲。本遊戲是台灣地區的特別玩法。
 
