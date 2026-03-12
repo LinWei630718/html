@@ -5,62 +5,94 @@
 <title>暴風突擊隊</title>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html, body {
+html {
+  width: 100%; height: 100%;
+  background: #000;
+}
+body {
   width: 100vw; height: 100vh;
   background: #000;
   overflow: hidden;
-  display: flex; justify-content: center; align-items: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+#gameWrap {
+  position: relative;
+  /* JS sets width/height to match canvas logical size */
+  flex-shrink: 0;
+  transform-origin: top left;
 }
 #gameCanvas {
   display: block;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-  /* transform-based scaling — JS will set transform:scale() */
-  transform-origin: center center;
 }
 #muteBtn {
-  position: fixed; top: 10px; right: 10px; z-index: 100;
-  background: rgba(0,20,40,0.85); border: 1px solid #2266aa;
-  color: #88ccff; font: bold 13px "Courier New"; padding: 5px 10px;
-  cursor: pointer; border-radius: 4px; letter-spacing: 1px;
+  position: absolute;
+  top: 10px; right: 10px;
+  z-index: 100;
+  background: rgba(0,20,40,0.85);
+  border: 1px solid #2266aa;
+  color: #88ccff;
+  font: bold 13px "Courier New";
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  letter-spacing: 1px;
   transition: background 0.2s;
+  /* scale button back so it stays readable regardless of canvas scale */
+  transform-origin: top right;
 }
 #muteBtn:hover { background: rgba(0,40,80,0.9); }
 </style>
 </head>
 <body>
-<canvas id="gameCanvas"></canvas>
-<button id="muteBtn">🔊 SOUND</button>
+<div id="gameWrap">
+  <canvas id="gameCanvas"></canvas>
+  <button id="muteBtn">🔊 SOUND</button>
+</div>
 <script>
-const canvas=document.getElementById('gameCanvas');
-const ctx=canvas.getContext('2d');
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+const wrap   = document.getElementById('gameWrap');
 
-// Dynamic canvas sizing - canvas fills viewport exactly
-// We keep H fixed at 640 and adjust W to match screen aspect ratio
-// All game coords use W,H which update on resize
-let W=960, H=640;
+// ── Fixed logical resolution ─────────────────────────
+// All game coordinates are in this fixed space.
+// The viewport scales via CSS transform — nothing else changes.
+const W = 960, H = 640;
+canvas.width  = W;
+canvas.height = H;
+wrap.style.width  = W + 'px';
+wrap.style.height = H + 'px';
 
+// ── RWD: scale wrap to fill the viewport ─────────────
 function resize(){
-  const vw = window.innerWidth  || document.documentElement.clientWidth  || 960;
-  const vh = window.innerHeight || document.documentElement.clientHeight || 640;
+  const vw = window.innerWidth  || document.documentElement.clientWidth;
+  const vh = window.innerHeight || document.documentElement.clientHeight;
 
-  // Scale canvas to exactly fill the viewport
-  W = Math.round(vw * (640 / vh));  // keep H=640, scale W to match aspect ratio
-  H = 640;
+  // Uniform scale: fit inside viewport (no stretching, no black bars beyond aspect)
+  // For true full-fill on 16:9, we use Math.max to cover; for letterbox use Math.min.
+  // Game is 960×640 = 3:2. Most monitors are 16:9.
+  // We use Math.min (letterbox) so gameplay area is never cropped.
+  const scale = Math.min(vw / W, vh / H);
 
-  canvas.width  = W;
-  canvas.height = H;
-  canvas.style.width  = vw + 'px';
-  canvas.style.height = vh + 'px';
+  // Apply via transform on the wrapper; canvas pixels stay 960×640
+  wrap.style.transform       = `scale(${scale})`;
+  wrap.style.transformOrigin = 'top left';
 
-  // muteBtn always top-right
-  const btn = document.getElementById('muteBtn');
-  if(btn){ btn.style.right = '10px'; btn.style.top = '10px'; }
+  // Center the scaled wrapper in the body
+  const scaledW = W * scale;
+  const scaledH = H * scale;
+  wrap.style.marginLeft = Math.max(0, (vw - scaledW) / 2) + 'px';
+  wrap.style.marginTop  = Math.max(0, (vh - scaledH) / 2) + 'px';
+
+  // Counter-scale the muteBtn so it's always readable
+  const btnScale = 1 / scale;
+  document.getElementById('muteBtn').style.transform = `scale(${btnScale})`;
 }
 window.addEventListener('resize', resize);
-// Also respond to orientation changes and layout shifts
-window.addEventListener('orientationchange', ()=>setTimeout(resize,100));
-// Initial sizing
+window.addEventListener('orientationchange', () => setTimeout(resize, 150));
 resize();
 
 // ══════════════════════════════════════════════════════
@@ -1665,7 +1697,7 @@ function drawTitle(dt){
 
   // ── Version tag
   ctx.font='13px "Courier New"'; ctx.fillStyle='rgba(100,150,180,0.7)'; noGlow();
-  ctx.fillText('STORM STRIKER',W/2,H/2+38);
+  ctx.fillText('STORM STRIKER  v4.0',W/2,H/2+38);
   // Hi-Score on title
   if(hiScore>0){
     glow('#ffcc00',8); ctx.fillStyle='#ffcc00'; ctx.font='bold 14px "Courier New"';
