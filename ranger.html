@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>無個性戰隊</title>
+    <style>
+        #player-container {
+            width: 800px;
+            height: 600px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>無個性戰隊</h2>
+    
+    <!-- 播放器容器 -->
+    <div id="player-container"></div>
+
+    <!-- 載入 Ruffle JS -->
+    <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+    
+    <script>
+        window.RufflePlayer = window.RufflePlayer || {};
+        window.addEventListener("load", (event) => {
+            const ruffle = window.RufflePlayer.newest();
+            const player = ruffle.createPlayer();
+            const container = document.getElementById("player-container");
+            container.appendChild(player);
+            
+            // 載入您的 SWF 檔案
+            player.load("http://linwei630718.github.io/html/ranger.swf");
+        });
+    </script>
+
+</body>
+</html>
