@@ -5,53 +5,138 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>無個性戰隊</title>
     <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
-        /* 響應式容器設定 */
-        #player-container {
-            width: 90%;
+        body {
+            font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        /* 標題與說明區塊 */
+        header {
+            text-align: center;
+            width: 100%;
             max-width: 800px;
-            aspect-ratio: 4 / 3; /* 保持 Flash 經典比例 */
+            margin-bottom: 20px;
+        }
+        .instructions {
+            background: #ffffff;
+            border-left: 5px solid #007bff;
+            padding: 15px 20px;
+            text-align: left;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            line-height: 1.6;
+            margin-top: 10px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #007bff;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .instructions ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .instructions li {
+            margin-bottom: 5px;
+        }
+        .highlight {
+            font-weight: bold;
+            color: #d9534f;
+        }
+
+        /* 播放器容器樣式 */
+        #player-container {
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 4 / 3;
             background: #000;
-            border: 2px solid #333;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            border: 3px solid #333;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            position: relative;
         }
         ruffle-player {
             width: 100%;
             height: 100%;
         }
+        
+        /* 全螢幕按鈕 */
+        #fullscreen-btn {
+            margin-top: 25px;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+        }
+        #fullscreen-btn:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
     </style>
 </head>
 <body>
 
-    <h2>無個性戰隊</h2>
+    <header>
+        <!-- 遊戲說明區塊 -->
+        <div class="instructions">
+            <h3>🎮 【無個性戰隊】遊戲說明</h3>
+            <ul>
+                <li><strong>移動：</strong>↑↓←→，跑：←←或→→</li>
+                <li><strong>攻擊：</strong><span class="highlight">Ｚ</span>，<strong>絕招：</strong><span class="highlight">Ｘ</span>（可搭配↓、空中、跑使出不同的），<strong>換人／模式切換／防禦：</strong><span class="highlight">Ｃ</span></li>
+                <li><strong>進階技巧：</strong>打敗魔王連按兩次 <span class="highlight">Ｃ</span> 會進入巨大魔王，<strong>隱藏人物：</strong>按一下標題變灰色能使用隱藏人物</li>
+            </ul>
+        </div>
+    </header>
     
     <div id="player-container"></div>
 
-    <!-- 載入 Ruffle JS (最新穩定版) -->
+    <button id="fullscreen-btn">🖥️ 進入全螢幕模式</button>
+
+    <!-- Ruffle 設定 -->
+    <script>
+        window.RufflePlayer = window.RufflePlayer || {};
+        window.RufflePlayer.config = {
+            "allowFullscreen": true,
+            "forceDeviceFont": true,
+            "defaultFonts": {
+                "sans": ["Noto Sans JP", "Meiryo", "MS Gothic", "Arial Unicode MS", "sans-serif"],
+                "serif": ["Noto Serif JP", "MS Mincho", "serif"]
+            },
+            "letterbox": "on",
+            "autoplay": "on",
+            "unmuteOverlay": "visible"
+        };
+    </script>
+
     <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
     
     <script>
-        window.RufflePlayer = window.RufflePlayer || {};
         window.addEventListener("DOMContentLoaded", () => {
             const ruffle = window.RufflePlayer.newest();
             const player = ruffle.createPlayer();
             const container = document.getElementById("player-container");
             container.appendChild(player);
             
-            // Ruffle 播放器配置
-            player.config = {
-                letterbox: "on",
-                autoplay: "on",
-                unmuteOverlay: "visible",
-            };
-
-            // 修正為 HTTPS 連結，避免 Mixed Content 錯誤
+            // 載入路徑
             const swfUrl = "https://linwei630718.github.io/html/ranger.swf";
             
-            player.load(swfUrl).then(() => {
-                console.log("Flash 內容已成功載入");
-            }).catch((e) => {
-                console.error("載入失敗，可能是 CORS 或檔案路徑問題：", e);
+            player.load(swfUrl).catch((e) => console.error("載入失敗：", e));
+
+            // 全螢幕功能
+            document.getElementById("fullscreen-btn").addEventListener("click", () => {
+                player.enterFullscreen();
             });
         });
     </script>
