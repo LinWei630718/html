@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>U3單字密室：破解逃脫</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#161a33;
+    --bg-panel:#20264a;
+    --gold:#d8a94e;
+    --gold-dim:#8a6f38;
+    --parchment:#f4ead6;
+    --ink:#2b2318;
+    --wrong:#c1483f;
+    --right:#6fa87a;
+    --fs-h1: clamp(28px, 5vw, 44px);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    min-height:100%;
+    background:
+      radial-gradient(ellipse at 50% -10%, #2c3364 0%, var(--bg-deep) 55%),
+      var(--bg-deep);
+    color:var(--parchment);
+    font-family:'Noto Sans TC', sans-serif;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:32px 16px 48px;
+    overflow-x:hidden;
+  }
+  h1,h2,.display{font-family:'Baloo 2','Noto Sans TC',sans-serif;}
+
+  /* ---- Torches / progress ---- */
+  .stage{width:100%;max-width:640px;}
+  .torch-row{
+    display:flex; justify-content:center; gap:8px; flex-wrap:wrap;
+    margin-bottom:22px;
+  }
+  .torch{
+    width:26px;height:26px;border-radius:50%;
+    background:var(--bg-panel);
+    border:2px solid var(--gold-dim);
+    position:relative;
+    transition: background .35s, border-color .35s, transform .35s;
+  }
+  .torch.lit{
+    background:radial-gradient(circle at 50% 40%, #ffe9a8, var(--gold) 70%);
+    border-color:var(--gold);
+    box-shadow:0 0 14px 2px rgba(216,169,78,.75);
+    transform:scale(1.08);
+  }
+
+  header{text-align:center;margin-bottom:6px;}
+  header h1{font-size:var(--fs-h1);font-weight:800;margin:0 0 6px;letter-spacing:.5px;color:var(--gold);}
+  header p{margin:0;opacity:.75;font-size:15px;}
+
+  /* ---- Puzzle card ---- */
+  .card{
+    background:var(--bg-panel);
+    border:1px solid #383f6d;
+    border-radius:18px;
+    padding:28px 22px 26px;
+    margin-top:20px;
+    box-shadow:0 18px 40px rgba(0,0,0,.35);
+  }
+  .card .meaning-label{font-size:13px;opacity:.6;margin-bottom:6px;}
+  .card .meaning{
+    font-family:'Baloo 2',sans-serif;
+    font-weight:700;
+    font-size:clamp(24px,5vw,32px);
+    color:var(--parchment);
+    margin-bottom:22px;
+    line-height:1.3;
+  }
+
+  .answer-slots{
+    display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
+    min-height:56px; margin-bottom:22px;
+  }
+  .slot{
+    width:46px;height:52px;border-radius:10px;
+    background:#171b38;
+    border:2px solid var(--gold-dim);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Baloo 2',sans-serif; font-weight:700; font-size:24px;
+    color:var(--gold);
+    cursor:pointer;
+    transition: transform .15s;
+  }
+  .slot:active{transform:scale(.93);}
+  .slot.empty{border-style:dashed; opacity:.45; cursor:default;}
+
+  .letter-bank{
+    display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
+    margin-bottom:24px;
+  }
+  .tile{
+    width:46px;height:52px;border-radius:10px;
+    background:linear-gradient(180deg,#f7ecd2,var(--parchment));
+    color:var(--ink);
+    border:none;
+    font-family:'Baloo 2',sans-serif; font-weight:700; font-size:22px;
+    cursor:pointer;
+    box-shadow:0 3px 0 #b89a5f, 0 6px 10px rgba(0,0,0,.3);
+    transition: transform .12s, box-shadow .12s;
+  }
+  .tile:hover{transform:translateY(-2px);}
+  .tile:active{transform:translateY(1px);box-shadow:0 1px 0 #b89a5f;}
+  .tile.used{visibility:hidden;}
+
+  .actions{display:flex; gap:12px; justify-content:center; flex-wrap:wrap;}
+  button.primary,button.ghost{
+    font-family:'Noto Sans TC',sans-serif;
+    font-weight:700; font-size:15px;
+    padding:11px 22px; border-radius:999px; cursor:pointer;
+    border:2px solid transparent;
+  }
+  button.primary{background:var(--gold); color:#241c0c;}
+  button.primary:hover{background:#e8bd6a;}
+  button.ghost{background:transparent; border-color:var(--gold-dim); color:var(--parchment);}
+  button.ghost:hover{border-color:var(--gold);}
+
+  .feedback{
+    text-align:center; min-height:24px; margin-top:16px;
+    font-weight:700;
+  }
+  .feedback.wrong{color:var(--wrong);}
+  .feedback.right{color:var(--right);}
+
+  .shake{animation: shake .4s;}
+  @keyframes shake{
+    10%,90%{transform:translateX(-2px);}
+    20%,80%{transform:translateX(4px);}
+    30%,50%,70%{transform:translateX(-8px);}
+    40%,60%{transform:translateX(8px);}
+  }
+
+  /* ---- Door / final screen ---- */
+  .door-wrap{display:flex; justify-content:center; margin:18px 0 10px;}
+  .door-wrap svg{width:150px;height:auto;}
+
+  .finale{text-align:center;}
+  .finale h1{font-size:clamp(30px,6vw,46px);}
+  .finale .sub{opacity:.8;margin-bottom:26px;}
+  .review{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    gap:10px; margin:0 0 28px;
+  }
+  .review div{
+    background:var(--bg-panel); border:1px solid #383f6d; border-radius:12px;
+    padding:12px 10px;
+  }
+  .review .w{font-family:'Baloo 2',sans-serif;color:var(--gold);font-weight:700;font-size:17px;}
+  .review .m{font-size:13px;opacity:.8;margin-top:2px;}
+
+  footer{margin-top:34px;font-size:12px;opacity:.4;text-align:center;}
+
+  .stats{
+    display:flex; gap:14px; justify-content:center; margin-bottom:24px; flex-wrap:wrap;
+  }
+  .stats .pill{
+    background:var(--bg-panel); border:1px solid #383f6d; border-radius:999px;
+    padding:8px 18px; font-size:14px;
+  }
+  .stats .pill b{color:var(--gold); font-family:'Baloo 2',sans-serif; font-size:16px;}
+
+  .confetti-layer{
+    position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:5;
+  }
+  .confetto{
+    position:absolute; top:-20px; width:9px; height:14px; opacity:.9;
+    animation: fall linear forwards;
+  }
+  @keyframes fall{
+    to{ transform: translateY(110vh) rotate(420deg); opacity:.2; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .torch,.tile,.shake,.confetto{animation:none !important; transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage"></div>
+<footer>單字密室 · 拖出十個房間，逃出生天</footer>
+
+<script>
+const WORDS = [
+  {en:'hop', zh:'跳過、躍過'},
+  {en:'mop', zh:'拖(地)'},
+  {en:'top', zh:'頂端、陀螺'},
+  {en:'dot', zh:'點'},
+  {en:'not', zh:'不是'},
+  {en:'pot', zh:'鍋子'},
+  {en:'box', zh:'箱子'},
+  {en:'fox', zh:'狐狸'},
+  {en:'leg', zh:'腿'},
+  {en:'hen', zh:'母雞'},
+];
+
+let idx = 0;
+let built = [];      // letters placed in slots (in order)
+let bankState = [];  // {ch, used}
+let wrongCount = 0;
+let wrongThisPuzzle = false;
+
+const stage = document.getElementById('stage');
+
+/* ---- Sound engine (Web Audio, no external files) ---- */
+let actx = null;
+function ctx(){
+  if(!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  return actx;
+}
+function tone(freq, start, dur, type='sine', gain=0.18){
+  const c = ctx();
+  const osc = c.createOscillator();
+  const g = c.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  g.gain.value = gain;
+  osc.connect(g); g.connect(c.destination);
+  const t0 = c.currentTime + start;
+  g.gain.setValueAtTime(gain, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  osc.start(t0);
+  osc.stop(t0 + dur + 0.02);
+}
+function playTileClick(){ tone(520, 0, 0.08, 'square', 0.08); }
+function playCorrect(){
+  tone(523.25, 0, 0.15, 'triangle');
+  tone(659.25, 0.12, 0.15, 'triangle');
+  tone(783.99, 0.24, 0.22, 'triangle');
+}
+function playWrong(){
+  tone(220, 0, 0.18, 'sawtooth', 0.14);
+  tone(180, 0.1, 0.22, 'sawtooth', 0.14);
+}
+function playWin(){
+  [523.25,659.25,783.99,1046.5].forEach((f,i)=> tone(f, i*0.13, 0.3, 'triangle'));
+}
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function scrambledLetters(word){
+  let letters = word.split('');
+  let tries = 0;
+  let s = shuffle(letters);
+  while(s.join('') === word && tries < 6){ s = shuffle(letters); tries++; }
+  return s;
+}
+
+function renderTorches(){
+  let html = '<div class="torch-row">';
+  WORDS.forEach((_,i)=>{
+    html += `<div class="torch ${i < idx ? 'lit' : ''}"></div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function renderPuzzle(){
+  const w = WORDS[idx];
+  built = [];
+  wrongThisPuzzle = false;
+  bankState = scrambledLetters(w.en).map(ch => ({ch, used:false}));
+
+  stage.innerHTML = `
+    ${renderTorches()}
+    <header>
+      <h1>U3單字密室</h1>
+      <p>第 ${idx+1} 道門，共 ${WORDS.length} 道 — 排出正確的英文單字，破解機關</p>
+    </header>
+    <div class="card">
+      <div class="meaning-label">這道門的提示</div>
+      <div class="meaning">${w.zh}</div>
+      <div class="answer-slots" id="slots"></div>
+      <div class="letter-bank" id="bank"></div>
+      <div class="actions">
+        <button class="ghost" id="clearBtn">清空</button>
+        <button class="primary" id="submitBtn">開門</button>
+      </div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+  `;
+
+  renderSlots(w.en.length);
+  renderBank();
+
+  document.getElementById('clearBtn').onclick = () => {
+    built = [];
+    bankState.forEach(t => t.used = false);
+    renderSlots(w.en.length);
+    renderBank();
+    setFeedback('','');
+  };
+  document.getElementById('submitBtn').onclick = checkAnswer;
+}
+
+function renderSlots(len){
+  const slots = document.getElementById('slots');
+  let html = '';
+  for(let i=0;i<len;i++){
+    if(built[i]){
+      html += `<div class="slot" data-i="${i}">${built[i].toUpperCase()}</div>`;
+    } else {
+      html += `<div class="slot empty" data-i="${i}"></div>`;
+    }
+  }
+  slots.innerHTML = html;
+  slots.querySelectorAll('.slot').forEach(el=>{
+    el.onclick = () => {
+      const i = +el.dataset.i;
+      if(built[i]){
+        // return that letter to bank
+        const ch = built[i];
+        const freeTile = bankState.find(t => t.used && t.ch === ch);
+        if(freeTile) freeTile.used = false;
+        built[i] = null;
+        built = built.filter(x => x !== null || x === undefined).slice(); // no-op keep order
+        // rebuild built array without holes but keep entered order minus this one
+        built = built.filter((_,idx2)=> idx2 !== i);
+        renderSlots(WORDS[idx].en.length);
+        renderBank();
+      }
+    };
+  });
+}
+
+function renderBank(){
+  const bank = document.getElementById('bank');
+  bank.innerHTML = bankState.map((t,i)=>
+    `<button class="tile ${t.used?'used':''}" data-i="${i}">${t.ch.toUpperCase()}</button>`
+  ).join('');
+  bank.querySelectorAll('.tile').forEach(el=>{
+    el.onclick = () => {
+      const i = +el.dataset.i;
+      const wordLen = WORDS[idx].en.length;
+      if(bankState[i].used || built.length >= wordLen) return;
+      bankState[i].used = true;
+      built.push(bankState[i].ch);
+      playTileClick();
+      renderSlots(wordLen);
+      renderBank();
+    };
+  });
+}
+
+function setFeedback(msg, cls){
+  const f = document.getElementById('feedback');
+  f.textContent = msg;
+  f.className = 'feedback ' + cls;
+}
+
+function checkAnswer(){
+  const w = WORDS[idx];
+  const card = document.querySelector('.card');
+  if(built.join('') === w.en){
+    playCorrect();
+    setFeedback('答對了！這道門開了 ✦', 'right');
+    idx++;
+    setTimeout(()=>{
+      if(idx >= WORDS.length){ renderFinale(); }
+      else{ renderPuzzle(); }
+    }, 650);
+  } else {
+    playWrong();
+    wrongCount++;
+    wrongThisPuzzle = true;
+    setFeedback('機關沒有反應，再排排看', 'wrong');
+    card.classList.remove('shake');
+    void card.offsetWidth;
+    card.classList.add('shake');
+  }
+}
+
+function ratingText(){
+  if(wrongCount === 0) return '完美無瑕，一次都沒出錯，真正的密室高手！';
+  if(wrongCount <= 3) return '身手俐落，只踩了幾次機關陷阱！';
+  if(wrongCount <= 7) return '有驚無險，靠著毅力闖出了密室！';
+  return '過程曲折，但你終究還是逃出來了！';
+}
+
+function spawnConfetti(){
+  const colors = ['#d8a94e','#f4ead6','#6fa87a','#8fb3e6','#e08a6d'];
+  const layer = document.createElement('div');
+  layer.className = 'confetti-layer';
+  document.body.appendChild(layer);
+  for(let i=0;i<60;i++){
+    const el = document.createElement('div');
+    el.className = 'confetto';
+    el.style.left = Math.random()*100 + 'vw';
+    el.style.background = colors[i % colors.length];
+    el.style.animationDuration = (2.2 + Math.random()*1.8) + 's';
+    el.style.animationDelay = (Math.random()*0.6) + 's';
+    el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    layer.appendChild(el);
+  }
+  setTimeout(()=> layer.remove(), 4600);
+}
+
+function renderFinale(){
+  playWin();
+  stage.innerHTML = `
+    ${renderTorches()}
+    <div class="finale">
+      <div class="door-wrap">
+        <svg viewBox="0 0 100 130" fill="none">
+          <rect x="10" y="10" width="80" height="115" rx="6" fill="#3a4278" stroke="#d8a94e" stroke-width="3"/>
+          <rect x="20" y="20" width="60" height="95" rx="4" fill="#20264a"/>
+          <circle cx="70" cy="68" r="4" fill="#d8a94e"/>
+        </svg>
+      </div>
+      <h1>🎉 密室大門開啟了！</h1>
+      <p class="sub">你破解了全部 ${WORDS.length} 道機關，成功逃出密室 — ${ratingText()}</p>
+      <div class="stats">
+        <div class="pill">答錯次數：<b>${wrongCount}</b> 次</div>
+        <div class="pill">總題數：<b>${WORDS.length}</b> 題</div>
+      </div>
+      <div class="review">
+        ${WORDS.map(w=>`<div><div class="w">${w.en}</div><div class="m">${w.zh}</div></div>`).join('')}
+      </div>
+      <button class="primary" id="again">再玩一次</button>
+    </div>
+  `;
+  spawnConfetti();
+  document.getElementById('again').onclick = () => { idx = 0; wrongCount = 0; renderPuzzle(); };
+}
+
+renderPuzzle();
+</script>
+</body>
+</html>

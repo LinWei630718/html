@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🙆🏻‍♀️ U3單字配對賽 (10題版)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --orange:   #ff9f43;
+            --yellow:   #feca57;
+            --green:    #1dd1a1;
+            --red:      #ff6b6b;
+            --bg:       #fff8ee;
+            --card-bg:  #ffffff;
+            --text:     #2d3436;
+            --shadow:   rgba(255,159,67,0.18);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Nunito', 'Microsoft JhengHei', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            touch-action: manipulation;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(255,202,87,0.15) 0%, transparent 50%),
+                radial-gradient(circle at 90% 80%, rgba(255,159,67,0.12) 0%, transparent 50%);
+        }
+
+        /* ── HEADER ── */
+        header {
+            width: 100%;
+            background: linear-gradient(135deg, #ff9f43 0%, #ffbe76 100%);
+            padding: 18px 20px 22px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(255,159,67,0.35);
+            position: relative;
+            overflow: hidden;
+        }
+        header::before {
+            content: '';
+            position: absolute;
+            top: -40px; right: -40px;
+            width: 120px; height: 120px;
+            background: rgba(255,255,255,0.12);
+            border-radius: 50%;
+        }
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: -30px; left: 20px;
+            width: 80px; height: 80px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 50%;
+        }
+
+        h1 {
+            color: white;
+            font-size: 1.8rem;
+            font-weight: 900;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            position: relative;
+        }
+
+        .header-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 14px;
+            margin-top: 12px;
+            position: relative;
+        }
+
+        .stats-pill {
+            background: rgba(255,255,255,0.28);
+            backdrop-filter: blur(4px);
+            border: 1.5px solid rgba(255,255,255,0.45);
+            padding: 6px 18px;
+            border-radius: 20px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .restart-btn {
+            background: white;
+            border: none;
+            color: var(--orange);
+            font-size: 0.9rem;
+            font-weight: 800;
+            font-family: inherit;
+            padding: 7px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+        .restart-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.16); }
+        .restart-btn:active { transform: scale(0.95); }
+
+        /* ── PROGRESS BAR ── */
+        .progress-bar-wrap {
+            width: 90%;
+            max-width: 700px;
+            height: 8px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 10px;
+            margin: 18px auto 0;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--green), #55efc4);
+            border-radius: 10px;
+            transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            width: 0%;
+        }
+
+        /* ── GAME AREA ── */
+        .game-area {
+            display: flex;
+            justify-content: space-around;
+            width: 95%;
+            max-width: 740px;
+            margin-top: 24px;
+            gap: 14px;
+        }
+
+        .column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .col-label {
+            text-align: center;
+            font-size: 0.78rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--orange);
+            opacity: 0.7;
+            margin-bottom: 2px;
+        }
+
+        /* ── CARDS ── */
+        .word-card {
+            background: var(--card-bg);
+            border: 2.5px solid #ffe0b2;
+            padding: 13px 10px;
+            border-radius: 14px;
+            text-align: center;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1),
+                        box-shadow 0.18s ease,
+                        border-color 0.18s ease,
+                        background 0.18s ease,
+                        opacity 0.3s ease;
+            box-shadow: 0 3px 10px var(--shadow);
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 58px;
+            line-height: 1.3;
+            position: relative;
+            overflow: hidden;
+        }
+        .word-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0);
+            transition: background 0.15s;
+        }
+        .word-card:hover:not(.matched):not(.error) {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 8px 22px var(--shadow);
+            border-color: var(--yellow);
+        }
+        .word-card:active:not(.matched) { transform: scale(0.96); }
+
+        .word-card.selected {
+            background: linear-gradient(135deg, var(--yellow), #ffda79);
+            border-color: var(--orange);
+            color: #7d4800;
+            transform: translateY(-4px) scale(1.04);
+            box-shadow: 0 10px 28px rgba(255,159,67,0.3);
+        }
+
+        .word-card.matched {
+            background: linear-gradient(135deg, var(--green), #26de81);
+            border-color: #10ac84;
+            color: white;
+            opacity: 0.38;
+            transform: scale(0.88);
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .word-card.error {
+            animation: shake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+            background: linear-gradient(135deg, var(--red), #ff9f9f);
+            border-color: #ee5253;
+            color: white;
+        }
+
+        @media (max-width: 500px) {
+            h1 { font-size: 1.35rem; }
+            .word-card { font-size: 0.92rem; padding: 10px 7px; min-height: 50px; }
+            .game-area { gap: 8px; }
+        }
+
+        @keyframes shake {
+            0%,100% { transform: translateX(0) scale(1); }
+            15%      { transform: translateX(-9px) scale(1.02); }
+            45%      { transform: translateX(9px) scale(1.02); }
+            70%      { transform: translateX(-5px); }
+            85%      { transform: translateX(5px); }
+        }
+
+        .word-card.matched::after {
+            content: '✓';
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: rgba(255,255,255,0.55);
+            background: transparent;
+        }
+
+        /* ── WIN OVERLAY ── */
+        #win-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(20,20,20,0.65);
+            backdrop-filter: blur(6px);
+            z-index: 200;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #win-overlay.show { display: flex; }
+
+        .win-box {
+            background: white;
+            border-radius: 24px;
+            padding: 44px 40px 36px;
+            max-width: 320px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.22);
+            animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes popIn {
+            from { transform: scale(0.6); opacity: 0; }
+            to   { transform: scale(1);   opacity: 1; }
+        }
+        .win-emoji { font-size: 3.5rem; }
+        .win-box h2 {
+            font-size: 1.7rem;
+            font-weight: 900;
+            color: var(--text);
+            margin: 10px 0 6px;
+        }
+        .win-box p {
+            color: #777;
+            font-size: 0.98rem;
+            line-height: 1.5;
+        }
+        .win-stats {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin: 18px 0;
+        }
+        .win-stat { text-align: center; }
+        .win-stat .num {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--orange);
+        }
+        .win-stat .lbl {
+            font-size: 0.75rem;
+            color: #aaa;
+            font-weight: 700;
+        }
+        .win-btn {
+            background: linear-gradient(135deg, var(--orange), #ffbe76);
+            border: none;
+            padding: 13px 32px;
+            color: white;
+            font-size: 1.05rem;
+            font-weight: 900;
+            font-family: inherit;
+            border-radius: 14px;
+            cursor: pointer;
+            margin-top: 8px;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 16px rgba(255,159,67,0.4);
+            transition: transform 0.15s, box-shadow 0.15s;
+            width: 100%;
+        }
+        .win-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,159,67,0.45); }
+        .win-btn:active { transform: scale(0.97); }
+
+        .confetti-dot {
+            position: fixed;
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 300;
+            animation: confettiFall linear forwards;
+        }
+        @keyframes confettiFall {
+            0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
+            100% { opacity: 0; transform: translateY(100vh) rotate(720deg); }
+        }
+
+        footer {
+            margin: 30px 0 16px;
+            color: #bbb;
+            font-size: 0.78rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🙆🏻‍♀️ U3 單字配對賽</h1>
+    <div class="header-controls">
+        <div class="stats-pill">進度 <span id="score">0</span> / 10 ✅</div>
+        <button class="restart-btn" onclick="initGame()">🔄 重新開始</button>
+    </div>
+</header>
+
+<div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progress-bar"></div>
+</div>
+
+<div class="game-area">
+    <div class="column">
+        <div class="col-label">🔤 英文</div>
+        <div id="english-col"></div>
+    </div>
+    <div class="column">
+        <div class="col-label">🈶 中文</div>
+        <div id="chinese-col"></div>
+    </div>
+</div>
+
+<div id="win-overlay">
+    <div class="win-box">
+        <div class="win-emoji">🎉</div>
+        <h2>太棒了！</h2>
+        <p>完成全部 10 組單字配對！</p>
+        <div class="win-stats">
+            <div class="win-stat">
+                <div class="num" id="win-time">0s</div>
+                <div class="lbl">完成時間</div>
+            </div>
+            <div class="win-stat">
+                <div class="num" id="win-errors">0</div>
+                <div class="lbl">錯誤次數</div>
+            </div>
+        </div>
+        <button class="win-btn" onclick="initGame()">🚀 再玩一次</button>
+    </div>
+</div>
+
+<footer>U54 English Vocabulary · 單字配對練習</footer>
+
+<script>
+// ────────────────────────────────────────────────
+// 1. 字庫 (共 20 組)
+// ────────────────────────────────────────────────
+const vocabulary = [
+    { en: 'hop',   zh: '跳過、躍過' },
+    { en: 'mop',    zh: '拖(地)'   },
+    { en: 'top', zh: '頂端、陀螺' },
+    { en: 'dot',            zh: '點'   },
+    { en: 'not',           zh: '不是'   },
+    { en: 'pot',          zh: '鍋子'   },
+    { en: 'box',           zh: '箱子'   },
+    { en: 'fox',          zh: '狐狸'   },
+    { en: 'leg',         zh: '腿'   },
+    { en: 'hen',           zh: '母雞'   },
+];
+
+// ────────────────────────────────────────────────
+// 2. Web Audio 音效系統
+// ────────────────────────────────────────────────
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let ctx = null;
+
+function getCtx() {
+    if (!ctx) ctx = new AudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+}
+
+function playTone(type, params) {
+    try {
+        const ac = getCtx();
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.connect(gain);
+        gain.connect(ac.destination);
+
+        osc.type = type;
+        const now = ac.currentTime;
+
+        if (params.freq) {
+            osc.frequency.setValueAtTime(params.freq, now);
+            if (params.freqEnd) osc.frequency.exponentialRampToValueAtTime(params.freqEnd, now + params.dur);
+        }
+        gain.gain.setValueAtTime(params.vol || 0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + params.dur);
+
+        osc.start(now);
+        osc.stop(now + params.dur);
+    } catch(e) { }
+}
+
+function soundSelect() { playTone('sine', { freq: 880, freqEnd: 1000, vol: 0.18, dur: 0.12 }); }
+function soundMatch() {
+    playTone('sine', { freq: 523, freqEnd: 784, vol: 0.25, dur: 0.18 });
+    setTimeout(() => playTone('sine', { freq: 784, freqEnd: 1047, vol: 0.22, dur: 0.22 }), 130);
+}
+function soundWin() {
+    const notes = [523, 659, 784, 1047, 1319];
+    notes.forEach((f, i) => {
+        setTimeout(() => playTone('sine', { freq: f, freqEnd: f * 1.02, vol: 0.28, dur: 0.25 }), i * 110);
+    });
+}
+function soundError() { playTone('sawtooth', { freq: 300, freqEnd: 120, vol: 0.2, dur: 0.25 }); }
+
+// ────────────────────────────────────────────────
+// 3. 遊戲狀態
+// ────────────────────────────────────────────────
+let currentGameWords = []; // 【新增】用來儲存當前這局被抽中的 10 個單字
+let selectedEn  = null;
+let selectedZh  = null;
+let matches     = 0;
+let errorCount  = 0;
+let startTime   = null;
+let locked      = false;
+
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+
+// ────────────────────────────────────────────────
+// 4. 初始化
+// ────────────────────────────────────────────────
+function initGame() {
+    matches    = 0;
+    errorCount = 0;
+    locked     = false;
+    selectedEn = null;
+    selectedZh = null;
+    startTime  = Date.now();
+
+    document.getElementById('score').textContent = 0;
+    document.getElementById('progress-bar').style.width = '0%';
+    document.getElementById('win-overlay').classList.remove('show');
+
+    const enCol = document.getElementById('english-col');
+    const zhCol = document.getElementById('chinese-col');
+    enCol.innerHTML = '';
+    zhCol.innerHTML = '';
+
+    // 【修改核心】：先將總字庫隨機打亂，並從中切出 10 個單字作為本局題目
+    currentGameWords = shuffle(vocabulary).slice(0, 10);
+
+    // 使用這抽出的 10 個單字來產生英文和中文卡片
+    shuffle(currentGameWords).forEach(item => {
+        enCol.appendChild(makeCard(item.en, item.en, 'en'));
+    });
+    shuffle(currentGameWords).forEach(item => {
+        zhCol.appendChild(makeCard(item.zh, item.en, 'zh'));
+    });
+}
+
+function makeCard(label, val, type) {
+    const card = document.createElement('div');
+    card.className = 'word-card';
+    card.textContent = label;
+    card.dataset.val = val;
+    card.addEventListener('click', () => selectCard(card, type));
+    return card;
+}
+
+// ────────────────────────────────────────────────
+// 5. 選牌邏輯
+// ────────────────────────────────────────────────
+function selectCard(card, type) {
+    if (locked || card.classList.contains('matched')) return;
+    soundSelect();
+
+    if (type === 'en') {
+        document.querySelectorAll('#english-col .word-card').forEach(c => c.classList.remove('selected'));
+        selectedEn = card;
+    } else {
+        document.querySelectorAll('#chinese-col .word-card').forEach(c => c.classList.remove('selected'));
+        selectedZh = card;
+    }
+    card.classList.add('selected');
+
+    if (selectedEn && selectedZh) checkMatch();
+}
+
+// ────────────────────────────────────────────────
+// 6. 配對檢查
+// ────────────────────────────────────────────────
+function checkMatch() {
+    locked = true;
+    const e = selectedEn, z = selectedZh;
+    selectedEn = null;
+    selectedZh = null;
+
+    if (e.dataset.val === z.dataset.val) {
+        soundMatch();
+        e.classList.remove('selected');
+        z.classList.remove('selected');
+        e.classList.add('matched');
+        z.classList.add('matched');
+
+        matches++;
+        document.getElementById('score').textContent = matches;
+        
+        // 【修改分母】：將原本的 vocabulary.length 改為 currentGameWords.length (即 10)
+        document.getElementById('progress-bar').style.width = (matches / currentGameWords.length * 100) + '%';
+
+        locked = false;
+
+        // 【修改分母】：當配對數等於 10 時觸獲勝
+        if (matches === currentGameWords.length) {
+            setTimeout(showWin, 500);
+        }
+    } else {
+        soundError();
+        errorCount++;
+        e.classList.add('error');
+        z.classList.add('error');
+
+        setTimeout(() => {
+            e.classList.remove('error', 'selected');
+            z.classList.remove('error', 'selected');
+            locked = false;
+        }, 480);
+    }
+}
+
+// ────────────────────────────────────────────────
+// 7. 勝利畫面
+// ────────────────────────────────────────────────
+function showWin() {
+    soundWin();
+    const elapsed = Math.round((Date.now() - startTime) / 1000);
+    document.getElementById('win-time').textContent   = elapsed + 's';
+    document.getElementById('win-errors').textContent = errorCount;
+    document.getElementById('win-overlay').classList.add('show');
+    spawnConfetti();
+}
+
+function spawnConfetti() {
+    const colors = ['#ff9f43','#feca57','#1dd1a1','#ff6b6b','#54a0ff','#5f27cd','#ff9ff3'];
+    for (let i = 0; i < 60; i++) {
+        setTimeout(() => {
+            const d = document.createElement('div');
+            d.className = 'confetti-dot';
+            d.style.cssText = `
+                left: ${Math.random() * 100}vw;
+                top: ${-10 + Math.random() * -30}px;
+                background: ${colors[Math.floor(Math.random() * colors.length)]};
+                width: ${6 + Math.random() * 10}px;
+                height: ${6 + Math.random() * 10}px;
+                border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+                animation-duration: ${1.5 + Math.random() * 2}s;
+            `;
+            document.body.appendChild(d);
+            setTimeout(() => d.remove(), 3500);
+        }, Math.random() * 800);
+    }
+}
+
+// 啟動遊戲
+initGame();
+document.body.addEventListener('click', () => getCtx(), { once: true });
+</script>
+</body>
+</html>
