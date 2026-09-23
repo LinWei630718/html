@@ -47,7 +47,7 @@
     margin-bottom:22px;
   }
   .torch{
-    width:26px;height:26px;border-radius:50%;
+    width:22px;height:22px;border-radius:50%;
     background:var(--bg-panel);
     border:2px solid var(--gold-dim);
     position:relative;
@@ -185,6 +185,36 @@
     to{ transform: translateY(110vh) rotate(420deg); opacity:.2; }
   }
 
+  /* ---- Number selection screen ---- */
+  .intro{text-align:center;margin-bottom:8px;}
+  .intro p{margin:0;opacity:.75;font-size:15px;}
+  .num-grid{
+    display:grid; grid-template-columns:repeat(5,1fr); gap:12px;
+    margin-top:22px;
+  }
+  @media (max-width:420px){ .num-grid{grid-template-columns:repeat(3,1fr);} }
+  .num-btn{
+    aspect-ratio:1; border-radius:14px;
+    background:var(--bg-panel); border:2px solid #383f6d;
+    color:var(--parchment);
+    font-family:'Baloo 2',sans-serif; font-weight:700; font-size:20px;
+    cursor:pointer; position:relative;
+    display:flex; align-items:center; justify-content:center;
+    transition: transform .15s, border-color .15s;
+  }
+  .num-btn:hover{transform:translateY(-2px); border-color:var(--gold);}
+  .num-btn.done{
+    border-color:#4a6b52; box-shadow:inset 0 0 0 1px rgba(111,168,122,.4);
+  }
+  .num-btn.done::after{
+    content:'✓'; position:absolute; top:4px; right:7px; font-size:12px; color:var(--right);
+  }
+  .num-btn.locked{
+    background:var(--gold); color:#241c0c; border-color:var(--gold);
+    cursor:not-allowed; pointer-events:none; opacity:.92;
+  }
+  .num-btn.locked::after{ content:'★'; color:#241c0c; top:4px; right:7px; }
+
   @media (prefers-reduced-motion: reduce){
     .torch,.tile,.shake,.confetto{animation:none !important; transition:none !important;}
   }
@@ -193,7 +223,7 @@
 <body>
 
 <div class="stage" id="stage"></div>
-<footer>單字密室 · 拖出十個房間，逃出生天</footer>
+<footer>單字密室 · 每個號碼都是一輪完整的十道機關</footer>
 
 <script>
 const WORDS = [
@@ -209,11 +239,18 @@ const WORDS = [
   {en:'hen', zh:'母雞'},
 ];
 
-let idx = 0;
+const TOTAL_NUMBERS = 15;
+const perfectSet = new Set();  // numbers (0-14) cleared with zero mistakes in the whole round
+const doneSet = new Set();     // numbers (0-14) completed at least once (may include mistakes)
+
+let roundNumber = null;   // which number (0-14) is being played
+let roundOrder = [];      // shuffled word indices for this round (10 entries)
+let roundPos = 0;         // position within roundOrder
+let roundWrongCount = 0;  // mistakes made anywhere in this round
+let wrongThisWord = false;
+
 let built = [];      // letters placed in slots (in order)
 let bankState = [];  // {ch, used}
-let wrongCount = 0;
-let wrongThisPuzzle = false;
 
 const stage = document.getElementById('stage');
 
@@ -268,26 +305,63 @@ function scrambledLetters(word){
   return s;
 }
 
-function renderTorches(){
+function renderTorches(lit, total){
   let html = '<div class="torch-row">';
-  WORDS.forEach((_,i)=>{
-    html += `<div class="torch ${i < idx ? 'lit' : ''}"></div>`;
-  });
+  for(let i=0;i<total;i++){
+    html += `<div class="torch ${i < lit ? 'lit' : ''}"></div>`;
+  }
   html += '</div>';
   return html;
 }
 
+/* ---- Selection screen ---- */
+function renderSelection(){
+  let grid = '<div class="num-grid">';
+  for(let n=1;n<=TOTAL_NUMBERS;n++){
+    const i = n-1;
+    let cls = 'num-btn';
+    if(perfectSet.has(i)) cls += ' locked';
+    else if(doneSet.has(i)) cls += ' done';
+    grid += `<button class="${cls}" data-i="${i}">${String(n).padStart(2,'0')}</button>`;
+  }
+  grid += '</div>';
+
+  stage.innerHTML = `
+    <div class="intro">
+      <h1>U3單字密室</h1>
+      <p>選一個號碼，挑戰隨機排列的全部 ${WORDS.length} 道機關；全部零失誤過關,該號碼就會永久鎖定</p>
+    </div>
+    <div class="stats">
+      <div class="pill">完美鎖定：<b>${perfectSet.size}</b> / ${TOTAL_NUMBERS}</div>
+      <div class="pill">已挑戰：<b>${doneSet.size}</b> / ${TOTAL_NUMBERS}</div>
+    </div>
+    ${grid}
+  `;
+
+  stage.querySelectorAll('.num-btn').forEach(el=>{
+    if(el.classList.contains('locked')) return;
+    el.onclick = () => {
+      roundNumber = +el.dataset.i;
+      roundOrder = shuffle(WORDS.map((_,i)=>i));
+      roundPos = 0;
+      roundWrongCount = 0;
+      renderPuzzle();
+    };
+  });
+}
+
+/* ---- Puzzle screen ---- */
 function renderPuzzle(){
-  const w = WORDS[idx];
+  const w = WORDS[roundOrder[roundPos]];
   built = [];
-  wrongThisPuzzle = false;
+  wrongThisWord = false;
   bankState = scrambledLetters(w.en).map(ch => ({ch, used:false}));
 
   stage.innerHTML = `
-    ${renderTorches()}
+    ${renderTorches(roundPos, WORDS.length)}
     <header>
       <h1>U3單字密室</h1>
-      <p>第 ${idx+1} 道門，共 ${WORDS.length} 道 — 排出正確的英文單字，破解機關</p>
+      <p>號碼 ${String(roundNumber+1).padStart(2,'0')} — 第 ${roundPos+1} / ${WORDS.length} 道機關</p>
     </header>
     <div class="card">
       <div class="meaning-label">這道門的提示</div>
@@ -295,6 +369,7 @@ function renderPuzzle(){
       <div class="answer-slots" id="slots"></div>
       <div class="letter-bank" id="bank"></div>
       <div class="actions">
+        <button class="ghost" id="backBtn">返回選單</button>
         <button class="ghost" id="clearBtn">清空</button>
         <button class="primary" id="submitBtn">開門</button>
       </div>
@@ -305,6 +380,7 @@ function renderPuzzle(){
   renderSlots(w.en.length);
   renderBank();
 
+  document.getElementById('backBtn').onclick = renderSelection;
   document.getElementById('clearBtn').onclick = () => {
     built = [];
     bankState.forEach(t => t.used = false);
@@ -330,15 +406,11 @@ function renderSlots(len){
     el.onclick = () => {
       const i = +el.dataset.i;
       if(built[i]){
-        // return that letter to bank
         const ch = built[i];
         const freeTile = bankState.find(t => t.used && t.ch === ch);
         if(freeTile) freeTile.used = false;
-        built[i] = null;
-        built = built.filter(x => x !== null || x === undefined).slice(); // no-op keep order
-        // rebuild built array without holes but keep entered order minus this one
         built = built.filter((_,idx2)=> idx2 !== i);
-        renderSlots(WORDS[idx].en.length);
+        renderSlots(WORDS[roundOrder[roundPos]].en.length);
         renderBank();
       }
     };
@@ -353,7 +425,7 @@ function renderBank(){
   bank.querySelectorAll('.tile').forEach(el=>{
     el.onclick = () => {
       const i = +el.dataset.i;
-      const wordLen = WORDS[idx].en.length;
+      const wordLen = WORDS[roundOrder[roundPos]].en.length;
       if(bankState[i].used || built.length >= wordLen) return;
       bankState[i].used = true;
       built.push(bankState[i].ch);
@@ -371,20 +443,20 @@ function setFeedback(msg, cls){
 }
 
 function checkAnswer(){
-  const w = WORDS[idx];
+  const w = WORDS[roundOrder[roundPos]];
   const card = document.querySelector('.card');
   if(built.join('') === w.en){
     playCorrect();
     setFeedback('答對了！這道門開了 ✦', 'right');
-    idx++;
+    roundPos++;
     setTimeout(()=>{
-      if(idx >= WORDS.length){ renderFinale(); }
+      if(roundPos >= WORDS.length){ finishRound(); }
       else{ renderPuzzle(); }
     }, 650);
   } else {
     playWrong();
-    wrongCount++;
-    wrongThisPuzzle = true;
+    roundWrongCount++;
+    wrongThisWord = true;
     setFeedback('機關沒有反應，再排排看', 'wrong');
     card.classList.remove('shake');
     void card.offsetWidth;
@@ -392,11 +464,17 @@ function checkAnswer(){
   }
 }
 
+function finishRound(){
+  doneSet.add(roundNumber);
+  if(roundWrongCount === 0) perfectSet.add(roundNumber);
+  renderFinale();
+}
+
 function ratingText(){
-  if(wrongCount === 0) return '完美無瑕，一次都沒出錯，真正的密室高手！';
-  if(wrongCount <= 3) return '身手俐落，只踩了幾次機關陷阱！';
-  if(wrongCount <= 7) return '有驚無險，靠著毅力闖出了密室！';
-  return '過程曲折，但你終究還是逃出來了！';
+  if(roundWrongCount === 0) return '完美無瑕，一次都沒出錯，這個號碼永久鎖定，真正的密室高手！';
+  if(roundWrongCount <= 3) return '身手俐落，只踩了幾次機關陷阱，這個號碼還能再挑戰一次！';
+  if(roundWrongCount <= 7) return '有驚無險，靠著毅力闖出了密室，再試一次爭取零失誤吧！';
+  return '過程曲折，但你終究還是逃出來了，再接再厲！';
 }
 
 function spawnConfetti(){
@@ -420,7 +498,7 @@ function spawnConfetti(){
 function renderFinale(){
   playWin();
   stage.innerHTML = `
-    ${renderTorches()}
+    ${renderTorches(WORDS.length, WORDS.length)}
     <div class="finale">
       <div class="door-wrap">
         <svg viewBox="0 0 100 130" fill="none">
@@ -429,23 +507,23 @@ function renderFinale(){
           <circle cx="70" cy="68" r="4" fill="#d8a94e"/>
         </svg>
       </div>
-      <h1>🎉 密室大門開啟了！</h1>
+      <h1>🎉 號碼 ${String(roundNumber+1).padStart(2,'0')} 大門開啟了！</h1>
       <p class="sub">你破解了全部 ${WORDS.length} 道機關，成功逃出密室 — ${ratingText()}</p>
       <div class="stats">
-        <div class="pill">答錯次數：<b>${wrongCount}</b> 次</div>
-        <div class="pill">總題數：<b>${WORDS.length}</b> 題</div>
+        <div class="pill">本輪答錯：<b>${roundWrongCount}</b> 次</div>
+        <div class="pill">題目總數：<b>${WORDS.length}</b> 題</div>
       </div>
       <div class="review">
         ${WORDS.map(w=>`<div><div class="w">${w.en}</div><div class="m">${w.zh}</div></div>`).join('')}
       </div>
-      <button class="primary" id="again">再玩一次</button>
+      <button class="primary" id="backMenu">返回選單</button>
     </div>
   `;
   spawnConfetti();
-  document.getElementById('again').onclick = () => { idx = 0; wrongCount = 0; renderPuzzle(); };
+  document.getElementById('backMenu').onclick = renderSelection;
 }
 
-renderPuzzle();
+renderSelection();
 </script>
 </body>
 </html>
