@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>直式加減法練習</title>
+<style>
+:root{--bg:#fff7e6;--card:#fff;--ink:#3b3355;--pri:#ff7a59;--pri2:#ffb347;--ok:#2fbf71;--bad:#e5484d;--soft:#ffe9c7;--line:#e7d9bd;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#241f38;--card:#322b4e;--ink:#f5efff;--soft:#463d69;--line:#5b5085}}
+:root[data-theme="dark"]{--bg:#241f38;--card:#322b4e;--ink:#f5efff;--soft:#463d69;--line:#5b5085}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(160deg,var(--bg),var(--soft));color:var(--ink);font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;min-height:100vh}
+.wrap{max-width:1040px;margin:0 auto;padding:14px}
+#setup,#result{max-width:600px;margin-left:auto;margin-right:auto}
+.play{display:grid;gap:12px}
+.side{display:flex;flex-direction:column}
+@media (min-width:860px){.play{grid-template-columns:minmax(0,1fr) 300px;align-items:start}.side{position:sticky;top:14px}.paper{min-height:clamp(480px,72vh,680px)!important}}
+@media (max-width:480px){.wrap{padding:8px}.card{padding:12px;border-radius:18px}h1{font-size:1.3rem}.tools button{flex:1;padding:10px 6px}.pad button{padding:14px 0}}
+h1{text-align:center;margin:6px 0 12px;font-size:1.6rem}
+.card{background:var(--card);border-radius:22px;padding:16px;box-shadow:0 8px 24px #0002;margin-bottom:12px}
+.hide{display:none!important}
+button{font:inherit;cursor:pointer;border:0;border-radius:14px;padding:10px 16px;background:var(--soft);color:var(--ink);font-weight:700;transition:transform .1s}
+button:active{transform:scale(.94)}
+.big{background:linear-gradient(90deg,var(--pri),var(--pri2));color:#fff;font-size:1.2rem;padding:14px 26px;width:100%;box-shadow:0 4px 0 #c9532f}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px}
+.chips button.on{background:var(--pri);color:#fff}
+label.t{font-weight:700}
+.top{display:flex;justify-content:space-between;align-items:center;font-weight:700;gap:8px}
+.bar{height:10px;background:var(--soft);border-radius:9px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--pri),var(--pri2));transition:width .4s}
+.tools{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.tools button.on{background:var(--pri);color:#fff}
+.paper{position:relative;background:repeating-linear-gradient(0deg,transparent 0 31px,var(--line) 31px 32px),var(--card);border:2px dashed var(--line);border-radius:16px;padding:28px 14px 36px;min-height:clamp(420px,62vh,560px);display:flex;justify-content:center;touch-action:none}
+.c.carry{height:calc(var(--cw)*1.25);font-size:calc(var(--cw)*.5)}
+canvas{position:absolute;inset:0;z-index:1;touch-action:none;border-radius:16px}
+.prob{position:relative;display:grid;gap:4px;align-self:center;font-variant-numeric:tabular-nums}
+.c{width:var(--cw);height:var(--cw);display:flex;align-items:center;justify-content:center;font-size:calc(var(--cw)*.75);font-weight:800}
+.rule{grid-column:1/-1;height:5px;background:var(--ink);border-radius:3px;margin:2px 0}
+.slot{position:relative;z-index:2;border:3px solid var(--pri2);border-radius:12px;background:var(--card);color:var(--pri);cursor:pointer}
+.slot.act{border-color:var(--pri);box-shadow:0 0 0 4px #ff7a5944}
+.slot.ok{border-color:var(--ok);color:var(--ok)}.slot.no{border-color:var(--bad);color:var(--bad)}
+.pad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:12px 0}
+.pad button{font-size:1.4rem;padding:12px 0;background:var(--soft)}
+.fb{text-align:center;font-weight:800;min-height:1.6em;font-size:1.15rem}
+.score{font-size:4rem;font-weight:900;text-align:center;color:var(--pri);line-height:1}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin:12px 0}
+.grid div{background:var(--soft);border-radius:14px;padding:8px}.grid b{display:block;font-size:1.3rem}
+table{width:100%;border-collapse:collapse;font-size:.92rem}td,th{padding:5px 4px;border-bottom:1px solid var(--line);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>🧮 直式加減法練習</h1>
+
+<div id="setup" class="card">
+  <label class="t">位數（1～5位數）</label>
+  <div class="chips" id="dg"></div>
+  <label class="t">題型</label>
+  <div class="chips" id="op"></div>
+  <p style="margin:0 0 14px">一次 10 題，看你答得又快又準！⚡</p>
+  <button class="big" id="start">開始挑戰 🚀</button>
+  <button id="mute" style="margin-top:10px;width:100%">🔊 音效：開</button>
+</div>
+
+<div id="game" class="card hide">
+  <div class="top"><span id="qn">第 1 / 10 題</span><span id="tm">⏱ 0 秒</span><span id="sc">⭐ 0</span></div>
+  <div class="bar"><i id="pg"></i></div>
+  <div class="tools">
+    <button id="pen" class="on">✏️ 畫筆</button>
+    <button id="era">🧽 橡皮擦</button>
+    <button id="clr">🗑 清除</button>
+  </div>
+  <div class="play"><div class="paper" id="paper"><div class="prob" id="prob"></div><canvas id="cv"></canvas></div>
+  <div class="side"><div class="pad" id="pad"></div>
+  <div class="fb" id="fb"></div>
+  <button class="big" id="ok">確認答案 ✔</button></div></div>
+</div>
+
+<div id="result" class="card hide">
+  <div style="text-align:center;font-size:1.4rem;font-weight:800" id="lv"></div>
+  <div class="score" id="fs"></div>
+  <div style="text-align:center;margin-top:4px" id="stars"></div>
+  <div class="grid"><div>答對<b id="r1"></b></div><div>正確率<b id="r2"></b></div><div>平均時間<b id="r3"></b></div></div>
+  <div style="font-size:.85rem;text-align:center;margin-bottom:8px" id="fm"></div>
+  <div style="overflow-x:auto"><table id="tb"></table></div>
+  <button class="big" id="again" style="margin-top:14px">再玩一次 🔁</button>
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let digits=4,mode='mix',muted=false,Q=[],idx=0,t0=0,slots=[],act=0,locked=false,timer,ctx;
+// ===== 音效 =====
+function tone(f,d,type='sine',delay=0,v=.15){if(muted)return;try{ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();const o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime+delay;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ctx.destination);o.start(t);o.stop(t+d)}catch(e){}}
+const sfx={click:()=>tone(660,.07,'triangle'),good:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.18,'triangle',i*.09)),bad:()=>{tone(220,.25,'sawtooth',0,.1);tone(165,.3,'sawtooth',.15,.1)},fin:()=>[523,659,784,659,784,1047,1319].forEach((f,i)=>tone(f,.25,'triangle',i*.11))};
+// ===== 設定 =====
+function chips(el,items,get,set){el.innerHTML='';items.forEach(([v,l])=>{const b=document.createElement('button');b.textContent=l;b.className=get()==v?'on':'';b.onclick=()=>{set(v);sfx.click();chips(el,items,get,set)};el.appendChild(b)})}
+chips($('dg'),[1,2,3,4,5].map(n=>[n,n+'位數']),()=>digits,v=>digits=v);
+chips($('op'),[['add','加法 ➕'],['sub','減法 ➖'],['mix','加減混合']],()=>mode,v=>mode=v);
+$('mute').onclick=()=>{muted=!muted;$('mute').textContent=muted?'🔇 音效：關':'🔊 音效：開';sfx.click()};
+// ===== 出題 =====
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+function make(){const lo=digits==1?1:10**(digits-1),hi=10**digits-1;let a=rnd(lo,hi),b=rnd(lo,hi);const op=mode=='mix'?(Math.random()<.5?'+':'-'):(mode=='add'?'+':'-');if(op=='-'&&a<b)[a,b]=[b,a];return{a,b,op,ans:op=='+'?a+b:a-b}}
+$('start').onclick=()=>{Q=[];for(let i=0;i<10;i++)Q.push(make());idx=0;$('setup').classList.add('hide');$('result').classList.add('hide');$('game').classList.remove('hide');sfx.click();load()};
+function load(){const q=Q[idx];locked=false;$('fb').textContent='';$('ok').disabled=false;
+  const n=digits+1,cw=`min(80px,${(84/(n+1)).toFixed(1)}vw)`;const p=$('prob');p.style.setProperty('--cw',cw);p.style.gridTemplateColumns=`repeat(${n+1},var(--cw))`;p.innerHTML='';
+  const cell=(t,c='c')=>{const d=document.createElement('div');d.className=c;d.textContent=t;p.appendChild(d);return d};
+  const row=(op,s)=>{cell(op);s.padStart(n,' ').split('').forEach(ch=>cell(ch.trim()))};
+  cell('');for(let i=0;i<n;i++)cell('','c carry');row('',String(q.a));row(q.op=='+'?'＋':'－',String(q.b));p.appendChild(Object.assign(document.createElement('div'),{className:'rule'}));
+  const cnt=q.op=='+'?n:digits;slots=Array(cnt).fill(null);act=cnt-1;cell('');
+  for(let i=0;i<n-cnt;i++)cell('');
+  for(let i=0;i<cnt;i++){const s=cell('','c slot');s.dataset.i=i;s.onclick=()=>{act=i;sfx.click();draw()}}
+  $('qn').textContent=`第 ${idx+1} / 10 題`;$('pg').style.width=idx*10+'%';
+  $('sc').textContent='⭐ '+Q.slice(0,idx).filter(x=>x.ok).length;
+  resizeCv();draw();t0=Date.now();clearInterval(timer);timer=setInterval(()=>$('tm').textContent='⏱ '+Math.floor((Date.now()-t0)/1000)+' 秒',250);$('tm').textContent='⏱ 0 秒'}
+function draw(){document.querySelectorAll('.slot').forEach(s=>{const i=+s.dataset.i;s.textContent=slots[i]===null?'':slots[i];s.classList.toggle('act',!locked&&i===act)})}
+// ===== 數字鍵 =====
+const pad=$('pad');'0123456789'.split('').forEach(d=>{const b=document.createElement('button');b.textContent=d;b.onclick=()=>put(d);pad.appendChild(b)});
+function put(d){if(locked)return;sfx.click();slots[act]=d;if(act>0)act--;draw()}
+function del(){if(locked)return;sfx.click();if(slots[act]===null&&act<slots.length-1)act++;slots[act]=null;draw()}
+const bk=document.createElement('button');bk.textContent='⌫';bk.style.gridColumn='span 5';bk.onclick=del;pad.appendChild(bk);
+document.addEventListener('keydown',e=>{if($('game').classList.contains('hide'))return;if(/^\d$/.test(e.key))put(e.key);else if(e.key=='Backspace')del();else if(e.key=='Enter')submit()});
+// ===== 畫布 =====
+const cv=$('cv'),g=cv.getContext('2d');let tool='pen',drawing=false,last;
+function resizeCv(){const r=$('paper').getBoundingClientRect();cv.width=r.width;cv.height=r.height}
+addEventListener('resize',()=>{if(!$('game').classList.contains('hide')){const im=g.getImageData(0,0,cv.width,cv.height);resizeCv();g.putImageData(im,0,0)}});
+function setTool(t){tool=t;$('pen').classList.toggle('on',t=='pen');$('era').classList.toggle('on',t=='era');sfx.click()}
+$('pen').onclick=()=>setTool('pen');$('era').onclick=()=>setTool('era');
+$('clr').onclick=()=>{g.clearRect(0,0,cv.width,cv.height);sfx.click()};
+const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+cv.addEventListener('pointerdown',e=>{drawing=true;last=pos(e);cv.setPointerCapture(e.pointerId);stroke(last,last)});
+cv.addEventListener('pointermove',e=>{if(!drawing)return;const p=pos(e);stroke(last,p);last=p});
+['pointerup','pointercancel'].forEach(ev=>cv.addEventListener(ev,()=>drawing=false));
+function stroke(a,b){g.lineCap=g.lineJoin='round';if(tool=='pen'){g.globalCompositeOperation='source-over';g.strokeStyle='#3b6fd9';g.lineWidth=3.5}else{g.globalCompositeOperation='destination-out';g.lineWidth=28}g.beginPath();g.moveTo(...a);g.lineTo(b[0]+.01,b[1]);g.stroke()}
+// ===== 作答 =====
+$('ok').onclick=submit;
+function submit(){if(locked||$('game').classList.contains('hide'))return;if(slots.every(s=>s===null)){$('fb').textContent='請先選擇答案數字喔 ✋';sfx.bad();return}
+  locked=true;const q=Q[idx];q.time=(Date.now()-t0)/1000;q.user=parseInt(slots.map(s=>s===null?'':s).join('')||'0',10);q.ok=q.user===q.ans;clearInterval(timer);
+  document.querySelectorAll('.slot').forEach(s=>s.classList.add(q.ok?'ok':'no'));draw();
+  $('fb').style.color=q.ok?'var(--ok)':'var(--bad)';$('fb').textContent=q.ok?'🎉 答對了！':'再接再厲！正確答案是 '+q.ans;q.ok?sfx.good():sfx.bad();
+  $('ok').disabled=true;setTimeout(()=>{idx++;idx<10?(g.clearRect(0,0,cv.width,cv.height),load()):finish()},q.ok?1000:2200)}
+// ===== 計分 =====
+function finish(){clearInterval(timer);sfx.fin();$('game').classList.add('hide');$('result').classList.remove('hide');
+  const target=12*digits+8,right=Q.filter(q=>q.ok),acc=right.length/10;
+  const sp=q=>Math.max(0,Math.min(1,(3*target-q.time)/(2*target)));
+  const speed=right.length?right.reduce((s,q)=>s+sp(q),0)/right.length:0;
+  const score=Math.round(acc*70+speed*acc*30);const avg=Q.reduce((s,q)=>s+q.time,0)/10;
+  const lv=score>=90?'🏆 數學小天才':score>=75?'🥇 計算高手':score>=60?'👍 穩紮穩打':'💪 繼續加油';
+  $('lv').textContent=lv;$('fs').textContent=score+' 分';$('stars').textContent='⭐'.repeat(Math.max(1,Math.round(score/20)));
+  $('r1').textContent=right.length+' / 10';$('r2').textContent=Math.round(acc*100)+'%';$('r3').textContent=avg.toFixed(1)+' 秒';
+  $('fm').textContent=`分數 = 正確率 70 分 ＋ 答題速度 30 分（每題 ${target} 秒內算滿分，答對才計速度）`;
+  $('tb').innerHTML='<tr><th>#</th><th>題目</th><th>你的答案</th><th>秒數</th><th></th></tr>'+Q.map((q,i)=>`<tr><td>${i+1}</td><td>${q.a}${q.op}${q.b}</td><td>${q.user}${q.ok?'':' (正解 '+q.ans+')'}</td><td>${q.time.toFixed(1)}</td><td>${q.ok?'✅':'❌'}</td></tr>`).join('');
+  if(score>=75)confetti()}
+$('again').onclick=()=>{$('result').classList.add('hide');$('setup').classList.remove('hide');sfx.click()};
+function confetti(){for(let i=0;i<40;i++){const e=document.createElement('div');e.textContent=['🎉','⭐','✨','🎈'][i%4];e.style.cssText=`position:fixed;top:-30px;left:${Math.random()*100}vw;font-size:${18+Math.random()*20}px;z-index:9;pointer-events:none;transition:transform ${2+Math.random()*2}s linear,opacity 3s`;document.body.appendChild(e);requestAnimationFrame(()=>{e.style.transform=`translateY(${110+Math.random()*20}vh) rotate(${Math.random()*720}deg)`;e.style.opacity=.2});setTimeout(()=>e.remove(),4500)}}
+</script>
+</body>
+</html>
