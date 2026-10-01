@@ -53,9 +53,11 @@ canvas{position:absolute;inset:0;z-index:1;touch-action:none;border-radius:16px}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin:12px 0}
 .grid div{background:var(--soft);border-radius:14px;padding:8px}.grid b{display:block;font-size:1.3rem}
 table{width:100%;border-collapse:collapse;font-size:.92rem}td,th{padding:5px 4px;border-bottom:1px solid var(--line);text-align:center}
+#theme{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:10px;z-index:50;width:44px;height:44px;border-radius:50%;padding:0;font-size:1.3rem;background:var(--card);box-shadow:0 3px 10px #0003}
 </style>
 </head>
 <body>
+<button id="theme" aria-label="切換暗黑／明亮模式" title="切換暗黑／明亮模式"></button>
 <div class="wrap">
 <h1>🧮 直式加減法練習</h1>
 
@@ -100,6 +102,12 @@ let digits=4,mode='mix',muted=false,Q=[],idx=0,t0=0,slots=[],act=0,locked=false,
 // ===== 音效 =====
 function tone(f,d,type='sine',delay=0,v=.15){if(muted)return;try{ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();const o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime+delay;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ctx.destination);o.start(t);o.stop(t+d)}catch(e){}}
 const sfx={click:()=>tone(660,.07,'triangle'),good:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.18,'triangle',i*.09)),bad:()=>{tone(220,.25,'sawtooth',0,.1);tone(165,.3,'sawtooth',.15,.1)},fin:()=>[523,659,784,659,784,1047,1319].forEach((f,i)=>tone(f,.25,'triangle',i*.11))};
+// ===== 暗黑／明亮模式 =====
+const isDark=()=>{const t=document.documentElement.dataset.theme;return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
+function setTheme(t){document.documentElement.dataset.theme=t;$('theme').textContent=t==='dark'?'☀️':'🌙';try{localStorage.setItem('vm-theme',t)}catch(e){}}
+let saved=null;try{saved=localStorage.getItem('vm-theme')}catch(e){}
+setTheme(saved||(isDark()?'dark':'light'));
+$('theme').onclick=()=>{setTheme(isDark()?'light':'dark');sfx.click()};
 // ===== 設定 =====
 function chips(el,items,get,set){el.innerHTML='';items.forEach(([v,l])=>{const b=document.createElement('button');b.textContent=l;b.className=get()==v?'on':'';b.onclick=()=>{set(v);sfx.click();chips(el,items,get,set)};el.appendChild(b)})}
 chips($('dg'),[1,2,3,4,5].map(n=>[n,n+'位數']),()=>digits,v=>digits=v);
@@ -138,7 +146,7 @@ const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clien
 cv.addEventListener('pointerdown',e=>{drawing=true;last=pos(e);cv.setPointerCapture(e.pointerId);stroke(last,last)});
 cv.addEventListener('pointermove',e=>{if(!drawing)return;const p=pos(e);stroke(last,p);last=p});
 ['pointerup','pointercancel'].forEach(ev=>cv.addEventListener(ev,()=>drawing=false));
-function stroke(a,b){g.lineCap=g.lineJoin='round';if(tool=='pen'){g.globalCompositeOperation='source-over';g.strokeStyle='#3b6fd9';g.lineWidth=3.5}else{g.globalCompositeOperation='destination-out';g.lineWidth=28}g.beginPath();g.moveTo(...a);g.lineTo(b[0]+.01,b[1]);g.stroke()}
+function stroke(a,b){g.lineCap=g.lineJoin='round';if(tool=='pen'){g.globalCompositeOperation='source-over';g.strokeStyle=isDark()?'#ffe135':'#3b6fd9';g.lineWidth=3.5}else{g.globalCompositeOperation='destination-out';g.lineWidth=28}g.beginPath();g.moveTo(...a);g.lineTo(b[0]+.01,b[1]);g.stroke()}
 // ===== 作答 =====
 $('ok').onclick=submit;
 function submit(){if(locked||$('game').classList.contains('hide'))return;if(slots.every(s=>s===null)){$('fb').textContent='請先選擇答案數字喔 ✋';sfx.bad();return}
