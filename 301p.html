@@ -54,6 +54,10 @@ canvas{position:absolute;inset:0;z-index:1;touch-action:none;border-radius:16px}
 .grid div{background:var(--soft);border-radius:14px;padding:8px}.grid b{display:block;font-size:1.3rem}
 table{width:100%;border-collapse:collapse;font-size:.92rem}td,th{padding:5px 4px;border-bottom:1px solid var(--line);text-align:center}
 #theme{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:10px;z-index:50;width:44px;height:44px;border-radius:50%;padding:0;font-size:1.3rem;background:var(--card);box-shadow:0 3px 10px #0003}
+.brk{border-right:5px solid var(--ink)}
+.dvd{border-top:5px solid var(--ink)}
+.work{grid-column:1/-1;height:calc(var(--cw)*2.2)}
+.c.remlbl{width:auto;grid-column:span 2;font-size:calc(var(--cw)*.4)}
 </style>
 </head>
 <body>
@@ -62,10 +66,16 @@ table{width:100%;border-collapse:collapse;font-size:.92rem}td,th{padding:5px 4px
 <h1>🧮 直式加減法練習</h1>
 
 <div id="setup" class="card">
-  <label class="t">位數（1～5位數）</label>
+  <label class="t">練習類型</label>
+  <div class="chips" id="kd"></div>
+  <div id="s-as"><label class="t">位數（1～5位數）</label>
   <div class="chips" id="dg"></div>
   <label class="t">題型</label>
-  <div class="chips" id="op"></div>
+  <div class="chips" id="op"></div></div>
+  <div id="s-mul" class="hide"><label class="t">題型（乘數為一位數）</label>
+  <div class="chips" id="ml"></div></div>
+  <div id="s-div" class="hide"><label class="t">題型（二位數 ÷ 一位數）</label>
+  <div class="chips" id="dv"></div></div>
   <p style="margin:0 0 14px">一次 10 題，看你答得又快又準！⚡</p>
   <button class="big" id="start">開始挑戰 🚀</button>
   <button id="mute" style="margin-top:10px;width:100%">🔊 音效：開</button>
@@ -98,7 +108,7 @@ table{width:100%;border-collapse:collapse;font-size:.92rem}td,th{padding:5px 4px
 
 <script>
 const $=id=>document.getElementById(id);
-let digits=4,mode='mix',muted=false,Q=[],idx=0,t0=0,slots=[],act=0,locked=false,timer,ctx;
+let digits=4,mode='mix',kind='as',mulMode='mix',divMode='mix',dir=-1,mainLen=0,pIdx=0,rIdx=-1,muted=false,Q=[],idx=0,t0=0,slots=[],act=0,locked=false,timer,ctx;
 // ===== 音效 =====
 function tone(f,d,type='sine',delay=0,v=.15){if(muted)return;try{ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();const o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime+delay;o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ctx.destination);o.start(t);o.stop(t+d)}catch(e){}}
 const sfx={click:()=>tone(660,.07,'triangle'),good:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.18,'triangle',i*.09)),bad:()=>{tone(220,.25,'sawtooth',0,.1);tone(165,.3,'sawtooth',.15,.1)},fin:()=>[523,659,784,659,784,1047,1319].forEach((f,i)=>tone(f,.25,'triangle',i*.11))};
@@ -112,27 +122,48 @@ $('theme').onclick=()=>{setTheme(isDark()?'light':'dark');sfx.click()};
 function chips(el,items,get,set){el.innerHTML='';items.forEach(([v,l])=>{const b=document.createElement('button');b.textContent=l;b.className=get()==v?'on':'';b.onclick=()=>{set(v);sfx.click();chips(el,items,get,set)};el.appendChild(b)})}
 chips($('dg'),[1,2,3,4,5].map(n=>[n,n+'位數']),()=>digits,v=>digits=v);
 chips($('op'),[['add','加法 ➕'],['sub','減法 ➖'],['mix','加減混合']],()=>mode,v=>mode=v);
+chips($('kd'),[['as','加減法 ➕➖'],['mul','乘法 ✖️'],['div','除法 ➗']],()=>kind,v=>{kind=v;showKind()});
+chips($('ml'),[['2','二位數 × 一位數'],['3','三位數 × 一位數'],['mix','混合']],()=>mulMode,v=>mulMode=v);
+chips($('dv'),[['exact','整除'],['rem','有餘數'],['mix','混合']],()=>divMode,v=>divMode=v);
+function showKind(){$('s-as').classList.toggle('hide',kind!='as');$('s-mul').classList.toggle('hide',kind!='mul');$('s-div').classList.toggle('hide',kind!='div')}
 $('mute').onclick=()=>{muted=!muted;$('mute').textContent=muted?'🔇 音效：關':'🔊 音效：開';sfx.click()};
 // ===== 出題 =====
 const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
-function make(){const lo=digits==1?1:10**(digits-1),hi=10**digits-1;let a=rnd(lo,hi),b=rnd(lo,hi);const op=mode=='mix'?(Math.random()<.5?'+':'-'):(mode=='add'?'+':'-');if(op=='-'&&a<b)[a,b]=[b,a];return{a,b,op,ans:op=='+'?a+b:a-b}}
+const fin=q=>(q.target=12*q.nd+8,q);
+function make(){
+  if(kind=='mul'){const nd=mulMode=='mix'?rnd(2,3):+mulMode;const a=rnd(10**(nd-1),10**nd-1),b=rnd(2,9);return fin({a,b,op:'×',ans:a*b,nd})}
+  if(kind=='div'){const b=rnd(2,9);const rm=divMode=='rem'||(divMode=='mix'&&Math.random()<.5);const r=rm?rnd(1,b-1):0;const k=rnd(Math.max(1,Math.ceil((10-r)/b)),Math.min(9,Math.floor((99-r)/b)));return fin({a:k*b+r,b,op:'÷',ans:k,rem:r,hasRem:divMode!='exact',nd:2})}
+  const lo=digits==1?1:10**(digits-1),hi=10**digits-1;let a=rnd(lo,hi),b=rnd(lo,hi);const op=mode=='mix'?(Math.random()<.5?'+':'-'):(mode=='add'?'+':'-');if(op=='-'&&a<b)[a,b]=[b,a];
+  return fin({a,b,op,ans:op=='+'?a+b:a-b,nd:String(a).length})}
 $('start').onclick=()=>{Q=[];for(let i=0;i<10;i++)Q.push(make());idx=0;$('setup').classList.add('hide');$('result').classList.add('hide');$('game').classList.remove('hide');sfx.click();load()};
 function load(){const q=Q[idx];locked=false;$('fb').textContent='';$('ok').disabled=false;
-  const n=digits+1,cw=`min(80px,calc((100cqw - ${n*4+8}px)/${n+1}),9.5vh)`;const p=$('prob');p.style.setProperty('--cw',cw);p.style.gridTemplateColumns=`repeat(${n+1},var(--cw))`;p.innerHTML='';
+  const dv=q.op=='÷',nd=q.nd,n=nd+1,C=dv?nd+2:n+1;
+  const p=$('prob');p.style.setProperty('--cw',`min(80px,calc((100cqw - ${C*4+4}px)/${C}),9.5vh)`);p.style.gridTemplateColumns=`repeat(${C},var(--cw))`;p.innerHTML='';
   const cell=(t,c='c')=>{const d=document.createElement('div');d.className=c;d.textContent=t;p.appendChild(d);return d};
+  const mk=i=>{const s=cell('','c slot');s.dataset.i=i;s.onclick=()=>{act=i;sfx.click();draw()}};
   const row=(op,s)=>{cell(op);s.padStart(n,' ').split('').forEach(ch=>cell(ch.trim()))};
-  cell('');for(let i=0;i<n;i++)cell('','c carry');row('',String(q.a));row(q.op=='+'?'＋':'－',String(q.b));p.appendChild(Object.assign(document.createElement('div'),{className:'rule'}));
-  const cnt=q.op=='+'?n:digits;slots=Array(cnt).fill(null);act=cnt-1;cell('');
-  for(let i=0;i<n-cnt;i++)cell('');
-  for(let i=0;i<cnt;i++){const s=cell('','c slot');s.dataset.i=i;s.onclick=()=>{act=i;sfx.click();draw()}}
+  if(dv){
+    const k=String(q.ans).length;dir=1;mainLen=k;pIdx=k;rIdx=q.hasRem?k+2:-1;slots=Array(k+2+(q.hasRem?2:0)).fill(null);act=0;
+    cell('');cell('');for(let i=0;i<nd-k;i++)cell('');for(let i=0;i<k;i++)mk(i);
+    cell(String(q.b));cell('','c brk');String(q.a).split('').forEach(ch=>cell(ch,'c dvd'));
+    cell('');cell('');mk(pIdx);mk(pIdx+1);
+    const rl=document.createElement('div');rl.className='rule';rl.style.gridColumn='3 / -1';p.appendChild(rl);
+    if(q.hasRem){cell('餘數','c remlbl');mk(rIdx);mk(rIdx+1)}
+  }else{
+    dir=-1;const cnt=q.op=='-'?nd:n;mainLen=cnt;slots=Array(cnt).fill(null);act=cnt-1;
+    cell('');for(let i=0;i<n;i++)cell('','c carry');
+    row('',String(q.a));row({'+':'＋','-':'－','×':'×'}[q.op],String(q.b));
+    p.appendChild(Object.assign(document.createElement('div'),{className:'rule'}));
+    cell('');for(let i=0;i<n-cnt;i++)cell('');for(let i=0;i<cnt;i++)mk(i);
+  }
   $('qn').textContent=`第 ${idx+1} / 10 題`;$('pg').style.width=idx*10+'%';
   $('sc').textContent='⭐ '+Q.slice(0,idx).filter(x=>x.ok).length;
   resizeCv();draw();t0=Date.now();clearInterval(timer);timer=setInterval(()=>$('tm').textContent='⏱ '+Math.floor((Date.now()-t0)/1000)+' 秒',250);$('tm').textContent='⏱ 0 秒'}
 function draw(){document.querySelectorAll('.slot').forEach(s=>{const i=+s.dataset.i;s.textContent=slots[i]===null?'':slots[i];s.classList.toggle('act',!locked&&i===act)})}
 // ===== 數字鍵 =====
 const pad=$('pad');'0123456789'.split('').forEach(d=>{const b=document.createElement('button');b.textContent=d;b.onclick=()=>put(d);pad.appendChild(b)});
-function put(d){if(locked)return;sfx.click();slots[act]=d;if(act>0)act--;draw()}
-function del(){if(locked)return;sfx.click();if(slots[act]===null&&act<slots.length-1)act++;slots[act]=null;draw()}
+function put(d){if(locked)return;sfx.click();slots[act]=d;if(dir>0){if(act<slots.length-1)act++}else if(act>0)act--;draw()}
+function del(){if(locked)return;sfx.click();if(dir>0){if(slots[act]===null&&act>0)act--}else if(slots[act]===null&&act<mainLen-1)act++;slots[act]=null;draw()}
 const bk=document.createElement('button');bk.textContent='⌫';bk.style.gridColumn='span 5';bk.onclick=del;pad.appendChild(bk);
 document.addEventListener('keydown',e=>{if($('game').classList.contains('hide'))return;if(/^\d$/.test(e.key))put(e.key);else if(e.key=='Backspace')del();else if(e.key=='Enter')submit()});
 // ===== 畫布 =====
@@ -149,22 +180,30 @@ cv.addEventListener('pointermove',e=>{if(!drawing)return;const p=pos(e);stroke(l
 function stroke(a,b){g.lineCap=g.lineJoin='round';if(tool=='pen'){g.globalCompositeOperation='source-over';g.strokeStyle=isDark()?'#ffe135':'#3b6fd9';g.lineWidth=3.5}else{g.globalCompositeOperation='destination-out';g.lineWidth=28}g.beginPath();g.moveTo(...a);g.lineTo(b[0]+.01,b[1]);g.stroke()}
 // ===== 作答 =====
 $('ok').onclick=submit;
-function submit(){if(locked||$('game').classList.contains('hide'))return;if(slots.every(s=>s===null)){$('fb').textContent='請先選擇答案數字喔 ✋';sfx.bad();return}
-  locked=true;const q=Q[idx];q.time=(Date.now()-t0)/1000;q.user=parseInt(slots.map(s=>s===null?'':s).join('')||'0',10);q.ok=q.user===q.ans;clearInterval(timer);
+function submit(){if(locked||$('game').classList.contains('hide'))return;const q=Q[idx],dv=q.op=='÷';
+  const val=(a,b)=>parseInt(slots.slice(a,b).map(x=>x===null?'':x).join('')||'0',10),has=(a,b)=>slots.slice(a,b).some(x=>x!==null);
+  if(dv?!(slots.slice(0,mainLen).every(x=>x!==null)&&has(pIdx,pIdx+2)&&(rIdx<0||has(rIdx,rIdx+2))):slots.every(s=>s===null)){$('fb').style.color='var(--bad)';$('fb').textContent=dv?'請把商、乘積、餘數都填好喔 ✋':'請先選擇答案數字喔 ✋';sfx.bad();return}
+  locked=true;q.time=(Date.now()-t0)/1000;
+  q.user=val(0,mainLen);
+  if(dv){q.prod=val(pIdx,pIdx+2);q.remU=rIdx>=0?val(rIdx,rIdx+2):0}
+  q.ok=q.user===q.ans&&(!dv||(q.prod===q.ans*q.b&&q.remU===(q.rem||0)));
+  q.userText=dv?`商${q.user}、積${q.prod}`+(q.hasRem?`、餘${q.remU}`:''):`${q.user}`;
+  q.ansText=dv?`商${q.ans}、積${q.ans*q.b}`+(q.hasRem?`、餘${q.rem}`:''):`${q.ans}`;
+  clearInterval(timer);
   document.querySelectorAll('.slot').forEach(s=>s.classList.add(q.ok?'ok':'no'));draw();
-  $('fb').style.color=q.ok?'var(--ok)':'var(--bad)';$('fb').textContent=q.ok?'🎉 答對了！':'再接再厲！正確答案是 '+q.ans;q.ok?sfx.good():sfx.bad();
+  $('fb').style.color=q.ok?'var(--ok)':'var(--bad)';$('fb').textContent=q.ok?'🎉 答對了！':'再接再厲！正確答案是 '+q.ansText;q.ok?sfx.good():sfx.bad();
   $('ok').disabled=true;setTimeout(()=>{idx++;idx<10?(g.clearRect(0,0,cv.width,cv.height),load()):finish()},q.ok?1000:2200)}
 // ===== 計分 =====
 function finish(){clearInterval(timer);sfx.fin();$('game').classList.add('hide');$('result').classList.remove('hide');
-  const target=12*digits+8,right=Q.filter(q=>q.ok),acc=right.length/10;
-  const sp=q=>Math.max(0,Math.min(1,(3*target-q.time)/(2*target)));
+  const right=Q.filter(q=>q.ok),acc=right.length/10,target=Math.round(Q.reduce((a,q)=>a+q.target,0)/10);
+  const sp=q=>Math.max(0,Math.min(1,(3*q.target-q.time)/(2*q.target)));
   const speed=right.length?right.reduce((s,q)=>s+sp(q),0)/right.length:0;
   const score=Math.round(acc*70+speed*acc*30);const avg=Q.reduce((s,q)=>s+q.time,0)/10;
   const lv=score>=90?'🏆 數學小天才':score>=75?'🥇 計算高手':score>=60?'👍 穩紮穩打':'💪 繼續加油';
   $('lv').textContent=lv;$('fs').textContent=score+' 分';$('stars').textContent='⭐'.repeat(Math.max(1,Math.round(score/20)));
   $('r1').textContent=right.length+' / 10';$('r2').textContent=Math.round(acc*100)+'%';$('r3').textContent=avg.toFixed(1)+' 秒';
-  $('fm').textContent=`分數 = 正確率 70 分 ＋ 答題速度 30 分（每題 ${target} 秒內算滿分，答對才計速度）`;
-  $('tb').innerHTML='<tr><th>#</th><th>題目</th><th>你的答案</th><th>秒數</th><th></th></tr>'+Q.map((q,i)=>`<tr><td>${i+1}</td><td>${q.a}${q.op}${q.b}</td><td>${q.user}${q.ok?'':' (正解 '+q.ans+')'}</td><td>${q.time.toFixed(1)}</td><td>${q.ok?'✅':'❌'}</td></tr>`).join('');
+  $('fm').textContent=`分數 = 正確率 70 分 ＋ 答題速度 30 分（每題約 ${target} 秒內算滿分，答對才計速度）`;
+  $('tb').innerHTML='<tr><th>#</th><th>題目</th><th>你的答案</th><th>秒數</th><th></th></tr>'+Q.map((q,i)=>`<tr><td>${i+1}</td><td>${q.a}${q.op}${q.b}</td><td>${q.userText}${q.ok?'':' (正解 '+q.ansText+')'}</td><td>${q.time.toFixed(1)}</td><td>${q.ok?'✅':'❌'}</td></tr>`).join('');
   if(score>=75)confetti()}
 $('again').onclick=()=>{$('result').classList.add('hide');$('setup').classList.remove('hide');sfx.click()};
 function confetti(){for(let i=0;i<40;i++){const e=document.createElement('div');e.textContent=['🎉','⭐','✨','🎈'][i%4];e.style.cssText=`position:fixed;top:-30px;left:${Math.random()*100}vw;font-size:${18+Math.random()*20}px;z-index:9;pointer-events:none;transition:transform ${2+Math.random()*2}s linear,opacity 3s`;document.body.appendChild(e);requestAnimationFrame(()=>{e.style.transform=`translateY(${110+Math.random()*20}vh) rotate(${Math.random()*720}deg)`;e.style.opacity=.2});setTimeout(()=>e.remove(),4500)}}
