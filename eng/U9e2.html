@@ -1,0 +1,1891 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>U9單字跑酷：極限運動</title>
+  <!-- 載入 Tailwind CSS 與 Google Fonts (Orbitron + Noto Sans TC) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet" />
+  <style>
+    /* 自訂極限運動霓虹視覺樣式 */
+    :root {
+      --neon-cyan: #00f5d4;
+      --neon-pink: #ff2a85;
+      --neon-amber: #ffb703;
+      --neon-purple: #8338ec;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0b0719;
+      font-family: 'Noto Sans TC', sans-serif;
+      color: #ffffff;
+    }
+
+    .font-sport {
+      font-family: 'Orbitron', 'Noto Sans TC', sans-serif;
+    }
+
+    /* 動態霓虹發光文字 */
+    .neon-text-cyan {
+      text-shadow: 0 0 10px rgba(0, 245, 212, 0.8), 0 0 24px rgba(0, 245, 212, 0.45);
+    }
+
+    .neon-text-pink {
+      text-shadow: 0 0 10px rgba(255, 42, 133, 0.85), 0 0 24px rgba(255, 42, 133, 0.5);
+    }
+
+    /* 氣泡感立體按鈕 */
+    .btn-extreme {
+      background: linear-gradient(135deg, #ff2a85 0%, #ff7b00 100%);
+      box-shadow: 0 6px 0 #9d114c, 0 12px 24px rgba(255, 42, 133, 0.45);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    }
+    .btn-extreme:hover {
+      filter: brightness(1.08);
+      transform: translateY(-2px);
+    }
+    .btn-extreme:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #9d114c, 0 6px 12px rgba(255, 42, 133, 0.4);
+    }
+
+    .btn-cyan {
+      background: linear-gradient(135deg, #00f5d4 0%, #00bbf9 100%);
+      color: #07131f;
+      box-shadow: 0 5px 0 #007799, 0 10px 20px rgba(0, 245, 212, 0.35);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .btn-cyan:active {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 #007799;
+    }
+
+    /* 單字預習卡片懸停效果 */
+    .vocab-pill {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(0, 245, 212, 0.35);
+      backdrop-filter: blur(8px);
+      transition: all 0.18s ease;
+    }
+    .vocab-pill:hover, .vocab-pill:active {
+      background: rgba(0, 245, 212, 0.22);
+      border-color: #00f5d4;
+      transform: translateY(-2px) scale(1.03);
+    }
+
+    /* 遊戲畫布全螢幕自適應 */
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 自訂捲軸 */
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 999px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(0, 245, 212, 0.45);
+      border-radius: 999px;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .animate-pulse-slow {
+      animation: pulseGlow 2.2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden select-none">
+
+  <!-- 全螢幕遊戲畫布 -->
+  <canvas id="gameCanvas" class="fixed inset-0 w-full h-full z-0"></canvas>
+
+  <!-- ==================== 遊戲中頂部 HUD ==================== -->
+  <div id="hudOverlay" class="hidden pointer-events-none fixed inset-0 z-20 flex flex-col justify-between p-3 sm:p-5">
+    
+    <!-- 上方資訊列：狀態 + 題目提示卡 + 控制按鈕 -->
+    <div class="w-full max-w-6xl mx-auto flex flex-col gap-2">
+      <div class="flex items-center justify-between gap-2">
+        <!-- 左側：座號徽章、生命值、分數、Combo -->
+        <div class="flex items-center gap-2 sm:gap-3 bg-slate-950/75 border border-cyan-400/40 backdrop-blur-md px-3 py-2 rounded-2xl shadow-lg">
+          <!-- 目前選手座號 -->
+          <div class="bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black text-xs sm:text-sm px-2.5 py-1 rounded-xl shadow shrink-0">
+            選手：<span id="hudSeatBadge">01號</span>
+          </div>
+          <div class="h-6 w-px bg-white/20"></div>
+          <!-- 生命愛心 -->
+          <div id="heartsContainer" class="flex items-center gap-1 text-lg sm:text-xl" title="能量愛心">
+            <!-- JS 動態渲染愛心 -->
+          </div>
+          <div class="h-6 w-px bg-white/20"></div>
+          <!-- 分數 -->
+          <div class="flex flex-col">
+            <span class="text-[10px] tracking-wider text-cyan-300 font-bold">分數</span>
+            <span id="scoreDisplay" class="font-sport text-base sm:text-xl font-black text-white leading-none">0</span>
+          </div>
+          <!-- 連擊徽章 -->
+          <div id="comboBadge" class="hidden items-center gap-1 bg-gradient-to-r from-amber-400 to-pink-500 text-slate-950 font-black text-xs sm:text-sm px-2.5 py-1 rounded-xl shadow">
+            <span id="comboCount" class="font-sport">2</span><span>連擊</span>
+          </div>
+        </div>
+
+        <!-- 右側：音效開關 & 暫停按鈕（皆為 2 字簡潔中文） -->
+        <div class="pointer-events-auto flex items-center gap-2">
+          <button id="muteBtn" class="bg-slate-950/75 hover:bg-slate-800 border border-white/25 text-white px-3 py-2 rounded-2xl backdrop-blur-md font-bold text-xs sm:text-sm transition active:scale-95" title="音效">
+            <span id="muteIcon">🔊 音效</span>
+          </button>
+          <button id="pauseBtn" class="bg-slate-950/75 hover:bg-slate-800 border border-white/25 text-white px-3.5 py-2 rounded-2xl backdrop-blur-md font-bold text-xs sm:text-sm transition active:scale-95">
+            ⏸ 暫停
+          </button>
+        </div>
+      </div>
+
+      <!-- 中央題目提示看板 -->
+      <div class="pointer-events-auto mx-auto flex items-center gap-3 sm:gap-4 bg-gradient-to-r from-indigo-950/90 via-purple-950/90 to-pink-950/90 border-2 border-cyan-400 shadow-[0_0_25px_rgba(0,245,212,0.4)] backdrop-blur-md px-4 sm:px-6 py-2 sm:py-2.5 rounded-3xl">
+        <div class="flex flex-col items-start">
+          <div class="flex items-center gap-2">
+            <span class="bg-cyan-400 text-slate-950 text-[11px] font-black px-2 py-0.5 rounded-full">目標</span>
+            <span id="progressText" class="text-xs font-bold text-amber-300">1 / 10</span>
+          </div>
+          <div class="flex items-baseline gap-2.5 mt-0.5">
+            <span id="targetChinese" class="text-2xl sm:text-3xl font-black text-white tracking-wider">使用</span>
+            <span id="hintMask" class="font-sport text-xs sm:text-sm text-cyan-300/90 tracking-widest">_ _ _</span>
+          </div>
+        </div>
+
+        <!-- 語音發音按鈕（2 字標籤） -->
+        <button id="speakTargetBtn" class="btn-cyan flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-2xl font-black text-sm sm:text-base shrink-0" title="發音">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14" />
+          </svg>
+          <span>發音</span>
+        </button>
+      </div>
+
+      <!-- 關卡進度條 -->
+      <div class="w-full max-w-md mx-auto h-2 bg-slate-900/80 rounded-full overflow-hidden border border-white/15">
+        <div id="progressBar" class="h-full bg-gradient-to-r from-cyan-400 via-amber-400 to-pink-500 transition-all duration-300" style="width: 10%"></div>
+      </div>
+    </div>
+
+    <!-- 下方行動裝置 / 滑鼠觸控虛擬控制列（2 字簡潔中文標籤） -->
+    <div class="w-full max-w-5xl mx-auto flex items-end justify-between pb-1 sm:pb-2">
+      <!-- 左下：滑行按鈕 -->
+      <button id="touchSlideBtn" class="pointer-events-auto flex flex-col items-center justify-center w-24 h-20 sm:w-28 sm:h-22 rounded-3xl bg-purple-900/70 hover:bg-purple-800/85 active:bg-pink-600/90 border-2 border-purple-300/55 backdrop-blur-md shadow-xl transition active:scale-95">
+        <span class="text-2xl sm:text-3xl">⬇️</span>
+        <span class="text-sm sm:text-base font-black tracking-wide text-purple-100">滑行</span>
+      </button>
+
+      <!-- 中間簡潔操作提示 -->
+      <div class="hidden md:flex items-center gap-3 bg-slate-950/65 border border-white/15 px-4 py-1.5 rounded-full text-xs text-slate-200 backdrop-blur-sm">
+        <span>🚀 空白鍵 / ↑：二段跳</span>
+        <span>•</span>
+        <span>⚡ ↓：滑行速降</span>
+      </div>
+
+      <!-- 右下：跳躍按鈕 -->
+      <button id="touchJumpBtn" class="pointer-events-auto flex flex-col items-center justify-center w-24 h-20 sm:w-28 sm:h-22 rounded-3xl bg-cyan-500/75 hover:bg-cyan-400/85 active:bg-amber-400/90 border-2 border-cyan-200/75 backdrop-blur-md shadow-xl transition active:scale-95">
+        <span class="text-2xl sm:text-3xl">🚀</span>
+        <span class="text-sm sm:text-base font-black tracking-wide text-slate-950">跳躍</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== 開始片頭畫面 (Start Modal) ==================== -->
+  <div id="startScreen" class="fixed inset-0 z-30 flex items-center justify-center p-3 sm:p-6 bg-slate-950/75 backdrop-blur-md">
+    <div class="w-full max-w-3xl max-h-[94vh] flex flex-col bg-gradient-to-b from-slate-900/95 via-indigo-950/95 to-slate-950/95 border-2 border-cyan-400/60 rounded-3xl shadow-[0_0_50px_rgba(0,245,212,0.3)] overflow-hidden">
+      
+      <!-- 頂部標題區 -->
+      <div class="p-4 sm:p-6 text-center border-b border-white/10 bg-gradient-to-r from-cyan-500/15 via-purple-500/15 to-pink-500/15">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-400/20 border border-cyan-400/40 text-cyan-300 text-xs font-black tracking-widest mb-1.5">
+          <span>🛹</span> EXTREME VOCABULARY PARKOUR
+        </div>
+        <h1 class="text-2xl sm:text-4xl font-black text-white tracking-wide neon-text-cyan">
+          U9單字跑酷：極限運動
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-300 mt-1">
+          踩上霓虹懸浮滑板，聽發音、看中文，飛躍衝破正確英文單字能量門！
+        </p>
+      </div>
+
+      <!-- 中間可滾動內容：座號選擇 + 單字預習 + 速度選擇 -->
+      <div class="p-4 sm:p-6 overflow-y-auto custom-scroll space-y-5">
+
+        <!-- 01號 - 16號 座號選擇與通關紀錄區 -->
+        <div class="bg-slate-950/55 p-3.5 sm:p-4 rounded-2xl border border-amber-400/40 shadow-inner">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+            <div class="flex items-center gap-2">
+              <h2 class="text-sm sm:text-base font-black text-amber-300 flex items-center gap-1.5">
+                <span>🎫</span> 選擇挑戰座號（01號－16號）
+              </h2>
+              <span id="completedCountBadge" class="text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 px-2.5 py-0.5 rounded-full">
+                已滿分鎖定：0 / 16
+              </span>
+            </div>
+            <button id="openResetModalBtn" type="button" class="text-[11px] font-bold bg-white/10 hover:bg-rose-500/30 text-slate-300 hover:text-rose-200 border border-white/15 px-2.5 py-1 rounded-full transition">
+              🔄 重置紀錄
+            </button>
+          </div>
+          <div id="seatGrid" class="grid grid-cols-4 sm:grid-cols-8 gap-2">
+            <!-- JS 動態產生 01號 - 16號 按鈕 -->
+          </div>
+          <p id="seatHelperMsg" class="mt-2 text-xs text-cyan-200 font-bold">
+            💡 提示：10 個單字全部一次答對（100% 正確率）通關後，該座號將自動鎖定為「已通關」！
+          </p>
+        </div>
+        
+        <!-- 10個單字預習卡（點擊可發音） -->
+        <div>
+          <div class="flex items-center justify-between mb-2.5">
+            <h2 class="text-sm sm:text-base font-black text-cyan-300 flex items-center gap-1.5">
+              <span>🎧</span> 單字熱身區（點擊聽發音）
+            </h2>
+            <button id="playAllVocabBtn" class="text-xs font-bold bg-cyan-500/20 hover:bg-cyan-500/35 text-cyan-200 border border-cyan-400/40 px-3 py-1 rounded-full transition">
+              🔊 全部朗讀
+            </button>
+          </div>
+          <div id="vocabPreviewGrid" class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <!-- JS 動態產生 10 張單字卡 -->
+          </div>
+        </div>
+
+        <!-- 難度與操作設定 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-950/50 p-3.5 rounded-2xl border border-white/10">
+          <div>
+            <label class="block text-xs font-bold text-amber-300 mb-1.5">⚡ 滑板速度</label>
+            <div class="grid grid-cols-3 gap-1.5" id="speedSelector">
+              <button data-speed="slow" class="speed-opt py-2 px-2 rounded-xl text-xs font-black border border-white/15 bg-white/5 text-slate-300 transition">
+                🐢 暖身
+              </button>
+              <button data-speed="normal" class="speed-opt py-2 px-2 rounded-xl text-xs font-black border-2 border-cyan-400 bg-cyan-500/25 text-white transition">
+                🛹 標準
+              </button>
+              <button data-speed="fast" class="speed-opt py-2 px-2 rounded-xl text-xs font-black border border-white/15 bg-white/5 text-slate-300 transition">
+                🔥 狂飆
+              </button>
+            </div>
+          </div>
+
+          <div class="flex flex-col justify-center text-xs text-slate-300 space-y-1 bg-white/5 p-2.5 rounded-xl">
+            <div class="font-bold text-cyan-300">🎮 操作方式：</div>
+            <div>• <b>電腦</b>：空白鍵 / <kbd class="px-1.5 py-0.5 bg-slate-800 rounded">↑</kbd> 二段跳，<kbd class="px-1.5 py-0.5 bg-slate-800 rounded">↓</kbd> 滑行</div>
+            <div>• <b>觸控</b>：點擊畫面跳躍（連點二段跳），或按下方按鈕</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部開始按鈕 -->
+      <div class="p-4 sm:p-5 bg-slate-950/80 border-t border-white/10 flex flex-col sm:flex-row items-center justify-center gap-3">
+        <button id="startGameBtn" class="btn-extreme w-full sm:w-auto px-10 py-3.5 rounded-2xl text-lg sm:text-xl font-black text-white tracking-wider animate-pulse-slow disabled:opacity-45 disabled:pointer-events-none">
+          🚀 01號 開始極限跑酷！
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 重置紀錄確認彈窗 (Custom Confirm Modal) ==================== -->
+  <div id="resetConfirmModal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="w-full max-w-sm bg-slate-900 border-2 border-rose-500/70 rounded-3xl p-6 text-center shadow-2xl space-y-4">
+      <div class="text-4xl">⚠️</div>
+      <h3 class="text-xl font-black text-white">確定要重置所有座號紀錄嗎？</h3>
+      <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+        這將會清除 <span class="text-amber-300 font-bold">01號－16號</span> 所有的「已滿分通關」鎖定狀態，讓全部號碼重新開放挑戰。
+      </p>
+      <div class="flex gap-2.5 pt-1">
+        <button id="cancelResetBtn" type="button" class="flex-1 py-2.5 rounded-2xl font-bold text-sm bg-white/10 hover:bg-white/20 text-white transition">
+          取消
+        </button>
+        <button id="confirmResetBtn" type="button" class="flex-1 py-2.5 rounded-2xl font-black text-sm bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg transition active:scale-95">
+          確定重置
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 暫停遮罩 (Pause Modal) ==================== -->
+  <div id="pauseScreen" class="hidden fixed inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md">
+    <div class="w-full max-w-sm bg-slate-900 border-2 border-cyan-400/60 rounded-3xl p-6 text-center shadow-2xl space-y-5">
+      <div class="text-4xl">⏸️</div>
+      <h2 class="text-2xl font-black text-white">遊戲暫停</h2>
+      <p class="text-sm text-slate-300">深呼吸調整滑板重心，準備好隨時繼續衝刺！</p>
+      <div class="flex flex-col gap-2.5">
+        <button id="resumeBtn" class="btn-cyan w-full py-3 rounded-2xl font-black text-base">
+          ▶ 繼續
+        </button>
+        <button id="restartFromPauseBtn" class="w-full py-3 rounded-2xl font-bold text-sm bg-white/10 hover:bg-white/20 text-white transition">
+          🔄 重來
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 遊戲結束結算畫面 (Game Over / Victory Modal) ==================== -->
+  <div id="endScreen" class="hidden fixed inset-0 z-30 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md">
+    <div class="w-full max-w-2xl max-h-[92vh] flex flex-col bg-gradient-to-b from-slate-900 to-indigo-950 border-2 border-amber-400/70 rounded-3xl shadow-[0_0_50px_rgba(255,183,3,0.3)] overflow-hidden">
+      
+      <!-- 結算標題 -->
+      <div class="p-5 sm:p-6 text-center border-b border-white/10 bg-gradient-to-r from-pink-500/15 via-amber-500/15 to-cyan-500/15">
+        <div class="flex items-center justify-center gap-2 mb-2">
+          <span id="endSeatBadge" class="px-3 py-1 rounded-full bg-cyan-400 text-slate-950 text-xs font-black tracking-wider">
+            選手：01號
+          </span>
+          <div id="endBadge" class="inline-block px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black tracking-wider">
+            🏆 CHALLENGE COMPLETE!
+          </div>
+        </div>
+        <h2 id="endTitle" class="text-3xl sm:text-4xl font-black text-white neon-text-pink">
+          極限跑酷大成功！
+        </h2>
+        <p id="endSubtitle" class="text-xs sm:text-sm text-slate-300 mt-1">
+          太神啦！你成功征服了城市天際線與 U9 單字挑戰！
+        </p>
+        <!-- 座號鎖定狀態通知橫幅 -->
+        <div id="seatLockStatusBanner" class="mt-3 inline-block px-4 py-1.5 rounded-2xl text-xs sm:text-sm font-black border">
+          <!-- JS 動態更新鎖定結果 -->
+        </div>
+      </div>
+
+      <!-- 成績統計與錯題複習 -->
+      <div class="p-4 sm:p-6 overflow-y-auto custom-scroll space-y-5">
+        <!-- 三大數據卡片 -->
+        <div class="grid grid-cols-3 gap-2.5 sm:gap-4 text-center">
+          <div class="bg-slate-950/70 border border-cyan-400/30 p-3 rounded-2xl">
+            <div class="text-xs font-bold text-cyan-300">總分</div>
+            <div id="finalScore" class="font-sport text-2xl sm:text-3xl font-black text-white mt-0.5">0</div>
+          </div>
+          <div class="bg-slate-950/70 border border-amber-400/30 p-3 rounded-2xl">
+            <div class="text-xs font-bold text-amber-300">最高連擊</div>
+            <div id="finalMaxCombo" class="font-sport text-2xl sm:text-3xl font-black text-amber-400 mt-0.5">0x</div>
+          </div>
+          <div class="bg-slate-950/70 border border-pink-400/30 p-3 rounded-2xl">
+            <div class="text-xs font-bold text-pink-300">答對率</div>
+            <div id="finalAccuracy" class="font-sport text-2xl sm:text-3xl font-black text-pink-400 mt-0.5">100%</div>
+          </div>
+        </div>
+
+        <!-- 單字學習戰果清單 -->
+        <div>
+          <h3 class="text-sm font-black text-amber-300 mb-2 flex items-center gap-1.5">
+            <span>📋</span> 本局單字複習（點擊聽發音）
+          </h3>
+          <div id="reviewList" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <!-- JS 動態生成複習列表 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部按鈕 -->
+      <div class="p-4 sm:p-5 bg-slate-950/85 border-t border-white/10 flex flex-col sm:flex-row gap-3 justify-center">
+        <button id="playAgainBtn" class="btn-extreme flex-1 sm:flex-initial px-8 py-3.5 rounded-2xl text-lg font-black text-white">
+          🔥 再玩一次
+        </button>
+        <button id="backToHomeBtn" class="px-6 py-3.5 rounded-2xl text-sm font-bold bg-white/10 hover:bg-white/20 text-white transition">
+          🏠 返回預習
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ============================================================================
+     * U9單字跑酷：極限運動 (Extreme English Parkour)
+     * 修正重點：
+     * 1. 基準解析度動態物理縮放 (Responsive Physics Scaling)：
+     *    重力 gravity 與跳躍初速度 jumpVelocity 皆與當前畫布高度 state.height 成正比！
+     *    無論在手機直螢幕、桌面視窗或全螢幕放大狀態下：
+     *    - 一段跳最高可達距離地面約 40% 畫布高度（輕鬆觸及中層軌道 33%）
+     *    - 二段跳總高度最高可達距離地面約 72% 畫布高度（輕鬆超越並觸及最上層軌道 56%，預留 16% 充足餘裕）
+     * 2. 統一鍵盤與觸控跳躍觸發機制（防連點誤觸與防重複事件）：
+     *    統一透過 triggerJump() 處理，並加入觸控防重複冷卻保護 (65ms)，避免觸控螢幕同時觸發 pointerdown / touchstart / mousedown 吃掉二段跳次數。
+     * ============================================================================
+     */
+
+    // 1. 內建 U9 核心單字庫（10個單字）
+    const VOCAB_LIST = [
+      { en: 'use',   zh: '使用' },
+      { en: 'cute',  zh: '可愛的' },
+      { en: 'each',  zh: '每個' },
+      { en: 'teach', zh: '教' },
+      { en: 'much',  zh: '許多' },
+      { en: 'inch',  zh: '英吋' },
+      { en: 'rich',  zh: '富有的' },
+      { en: 'high',  zh: '高的' },
+      { en: 'light', zh: '燈光' },
+      { en: 'night', zh: '夜晚' }
+    ];
+
+    // 額外干擾庫（與 U9 單字拼法相似，增加辨識挑戰性）
+    const EXTRA_DISTRACTORS = [
+      'cute', 'use', 'each', 'teach', 'much', 'inch', 'rich', 'high', 'light', 'night',
+      'huge', 'tube', 'beach', 'reach', 'such', 'lunch', 'witch', 'right', 'fight', 'sight'
+    ];
+
+    // 2. Web Audio API 音效合成器（無需外部音檔）
+    class SoundFX {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playTone(freq, type, duration, vol = 0.15, slideTo = null) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        if (slideTo) {
+          osc.frequency.exponentialRampToValueAtTime(slideTo, now + duration);
+        }
+
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + duration);
+      }
+
+      jump(isDouble = false) {
+        if (isDouble) {
+          this.playTone(440, 'sine', 0.22, 0.17, 920);
+          setTimeout(() => this.playTone(680, 'triangle', 0.18, 0.14, 1120), 55);
+        } else {
+          this.playTone(270, 'sine', 0.18, 0.16, 600);
+        }
+      }
+
+      slide() {
+        this.playTone(220, 'sawtooth', 0.18, 0.08, 90);
+      }
+
+      correct(combo = 1) {
+        const base = 523.25 * Math.min(1.5, 1 + (combo - 1) * 0.06);
+        this.playTone(base, 'triangle', 0.14, 0.18);
+        setTimeout(() => this.playTone(base * 1.25, 'triangle', 0.16, 0.18), 75);
+        setTimeout(() => this.playTone(base * 1.5, 'sine', 0.28, 0.2), 150);
+      }
+
+      wrong() {
+        this.playTone(190, 'sawtooth', 0.25, 0.18, 110);
+        setTimeout(() => this.playTone(145, 'sawtooth', 0.3, 0.18, 85), 120);
+      }
+
+      locked() {
+        this.playTone(160, 'square', 0.09, 0.08, 130);
+      }
+
+      victory() {
+        const notes = [523.25, 659.25, 783.99, 1046.5];
+        notes.forEach((n, i) => {
+          setTimeout(() => this.playTone(n, 'triangle', 0.28, 0.2), i * 110);
+        });
+      }
+    }
+
+    const sfx = new SoundFX();
+
+    // 3. 英語語音朗讀模組 (Web Speech API)
+    function speakWord(word, rate = 0.92) {
+      if (!('speechSynthesis' in window)) return;
+      try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(word);
+        utter.lang = 'en-US';
+        utter.rate = rate;
+        utter.pitch = 1.05;
+        const voices = window.speechSynthesis.getVoices();
+        const enVoice = voices.find(v => v.lang.includes('en-US')) || voices.find(v => v.lang.includes('en'));
+        if (enVoice) utter.voice = enVoice;
+        window.speechSynthesis.speak(utter);
+      } catch (e) {
+        // 忽略自動播放限制
+      }
+    }
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
+
+    // 4. 遊戲狀態與基準比例物理常數
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // 基準高度設計：所有重力與跳躍速度依此比例隨畫布高度動態縮放
+    // 物理推導：
+    // 設畫布高度為 H。
+    // 一段跳躍升高度 h1 = v1^2 / (2 * g)。令 v1 = 1.68 * H, g = 3.55 * H
+    // 則 h1 = (1.68^2 * H^2) / (2 * 3.55 * H) = 2.8224 / 7.1 * H ≈ 0.397 * H（約 40% 畫布高度！）
+    // 二段跳躍升高度 h2 = v2^2 / (2 * g)。令 v2 = 1.56 * H
+    // 則 h2 = (1.56^2 * H^2) / (7.1 * H) ≈ 0.343 * H（約 34% 畫布高度！）
+    // 總躍升最高可達 h1 + h2 ≈ 74% 畫布高度（遠高於最上層軌道 56% 畫布高度，並低於頂部 HUD）
+    const PHYSICS_RATIOS = {
+      gravityFactor: 3.55,       // gravity = H * 3.55
+      firstJumpFactor: 1.68,     // v1 = -H * 1.68 -> 一段跳高度 ≈ 0.397 * H
+      secondJumpFactor: 1.58,    // v2 = -H * 1.58 -> 二段跳額外高度 ≈ 0.351 * H (總高 ≈ 0.748 * H)
+      fastFallFactor: 1.85       // 空中快速下降速度 = H * 1.85
+    };
+
+    // 三條軌道的相對高度比例（距離地面的高度佔畫布總高度 H 的比例）
+    const TRACK_HEIGHT_RATIOS = [
+      0.085, // 軌道 0（下層低軌：貼近地面，距離地面 8.5% H）
+      0.325, // 軌道 1（中層中軌：一段跳即可輕鬆觸及，距離地面 32.5% H）
+      0.555  // 軌道 2（上層高軌：二段跳可穩定觸及並保留充足上方餘裕，距離地面 55.5% H）
+    ];
+
+    const SPEED_CONFIGS = {
+      slow:   { baseSpeed: 330, label: '暖身練習' },
+      normal: { baseSpeed: 430, label: '標準極限' },
+      fast:   { baseSpeed: 550, label: '音速狂飆' }
+    };
+
+    // 座號紀錄儲存鍵值 (01號 - 16號)
+    const STORAGE_KEY = 'u9_vocab_parkour_completed_seats_v1';
+    const SEAT_LIST = Array.from({ length: 16 }, (_, i) => String(i + 1).padStart(2, '0'));
+
+    function loadCompletedSeats() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return new Set();
+        const arr = JSON.parse(raw);
+        return new Set(Array.isArray(arr) ? arr.filter(s => SEAT_LIST.includes(s)) : []);
+      } catch (e) {
+        return new Set();
+      }
+    }
+
+    function saveCompletedSeats(seatSet) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify([...seatSet]));
+      } catch (e) {
+        // 忽略無痕模式儲存限制
+      }
+    }
+
+    const state = {
+      status: 'start', // 'start' | 'playing' | 'paused' | 'gameover' | 'victory'
+      speedMode: 'normal',
+      baseSpeed: 430,
+      currentSpeed: 430,
+      boostTimer: 0,
+      shakeTimer: 0,
+      shakeIntensity: 0,
+      flashColor: null,
+      flashAlpha: 0,
+
+      // 座號與鎖定紀錄狀態
+      selectedSeat: '01',
+      completedSeats: loadCompletedSeats(),
+
+      // 分數與進度
+      score: 0,
+      combo: 0,
+      maxCombo: 0,
+      lives: 5,
+      maxLives: 5,
+      questionQueue: [],
+      currentIndex: 0,
+      results: [],
+      currentAttempts: 0,
+
+      // 場地與動態物理參數（隨視窗縮放即時更新）
+      width: 0,
+      height: 0,
+      groundY: 0,
+      gravity: 2130,
+      firstJumpVel: -1008,
+      secondJumpVel: -948,
+      fastFallVel: 1110,
+
+      // 視差背景捲動偏移
+      bgScroll1: 0,
+      bgScroll2: 0,
+      bgScroll3: 0,
+      roadScroll: 0,
+
+      // 玩家實體
+      player: {
+        x: 140,
+        y: 0,
+        vy: 0,
+        width: 48,
+        height: 68,
+        normalHeight: 68,
+        slideHeight: 36,
+        jumpsUsed: 0,
+        maxJumps: 2,
+        isSliding: false,
+        slideTimer: 0,
+        trickAngle: 0,
+        isTricking: false,
+        trickName: '',
+        trickTextTimer: 0,
+        trail: []
+      },
+
+      // 單字能量門 / 漂浮標靶
+      gates: [],
+      ramps: [],
+      particles: [],
+      floatingTexts: [],
+      speedLines: []
+    };
+
+    // 5. 視窗大小調整、自適應 Canvas 與動態物理重算
+    function resizeCanvas() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const prevGroundY = state.groundY || window.innerHeight * 0.84;
+      const prevOffsetFromGround = prevGroundY - (state.player.y + state.player.height);
+
+      state.width = window.innerWidth;
+      state.height = window.innerHeight;
+      canvas.width = Math.floor(state.width * dpr);
+      canvas.height = Math.floor(state.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      state.groundY = Math.round(state.height * 0.84);
+
+      // 依當前畫布高度動態更新重力與跳躍速度，確保放大螢幕或全螢幕時二段跳高度充足
+      state.gravity = state.height * PHYSICS_RATIOS.gravityFactor;
+      state.firstJumpVel = -state.height * PHYSICS_RATIOS.firstJumpFactor;
+      state.secondJumpVel = -state.height * PHYSICS_RATIOS.secondJumpFactor;
+      state.fastFallVel = state.height * PHYSICS_RATIOS.fastFallFactor;
+
+      // 調整玩家位置與高度
+      const p = state.player;
+      p.x = Math.max(70, Math.min(180, Math.round(state.width * 0.14)));
+      if (state.status === 'playing' && prevOffsetFromGround > 4) {
+        p.y = Math.max(20, state.groundY - p.height - prevOffsetFromGround);
+      } else {
+        p.y = state.groundY - p.height;
+      }
+
+      // 若遊戲進行中，同步調整現有單字能量門的垂直軌道位置
+      if (state.gates && state.gates.length > 0) {
+        const trackCenterYs = TRACK_HEIGHT_RATIOS.map(ratio => state.groundY - state.height * ratio);
+        state.gates.forEach(g => {
+          g.y = trackCenterYs[g.trackIdx] - g.height / 2;
+        });
+      }
+
+      // 初始化或補齊背景速度線
+      if (state.speedLines.length === 0) {
+        for (let i = 0; i < 16; i++) {
+          state.speedLines.push({
+            x: Math.random() * state.width,
+            y: Math.random() * state.groundY,
+            len: 35 + Math.random() * 85,
+            speedMult: 0.7 + Math.random() * 0.9
+          });
+        }
+      }
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // 6. 陣列隨機洗牌工具
+    function shuffleArray(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    // 7. 初始化開始畫面的座號選擇器與 10 個單字預習卡
+    function syncSeatSelectionUI() {
+      // 若目前選取的座號已鎖定，自動切換至第一個尚未鎖定的座號
+      if (state.selectedSeat && state.completedSeats.has(state.selectedSeat)) {
+        const firstAvailable = SEAT_LIST.find(seat => !state.completedSeats.has(seat)) || null;
+        state.selectedSeat = firstAvailable;
+      } else if (!state.selectedSeat) {
+        state.selectedSeat = SEAT_LIST.find(seat => !state.completedSeats.has(seat)) || null;
+      }
+
+      const seatGrid = document.getElementById('seatGrid');
+      seatGrid.innerHTML = '';
+
+      SEAT_LIST.forEach(seat => {
+        const isLocked = state.completedSeats.has(seat);
+        const isSelected = state.selectedSeat === seat && !isLocked;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+
+        if (isLocked) {
+          btn.className = 'relative flex flex-col items-center justify-center py-2 px-1 rounded-xl border border-emerald-400/50 bg-emerald-950/60 text-emerald-300/80 cursor-not-allowed opacity-85';
+          btn.innerHTML = `
+            <span class="font-sport text-xs sm:text-sm font-black">${seat}號</span>
+            <span class="text-[10px] font-black text-emerald-300 flex items-center gap-0.5 mt-0.5">🔒 已通關</span>
+          `;
+          btn.title = `${seat}號 已 100% 正確通關並鎖定`;
+          btn.addEventListener('click', () => {
+            sfx.locked();
+            const helper = document.getElementById('seatHelperMsg');
+            helper.textContent = `🔒 ${seat}號 已經 100% 滿分通關並鎖定，不能重複選擇喔！`;
+            helper.className = 'mt-2 text-xs text-amber-300 font-black';
+          });
+        } else if (isSelected) {
+          btn.className = 'relative flex flex-col items-center justify-center py-2 px-1 rounded-xl border-2 border-cyan-300 bg-gradient-to-b from-cyan-500/35 to-blue-600/35 text-white shadow-[0_0_15px_rgba(0,245,212,0.5)] scale-105 transition cursor-pointer';
+          btn.innerHTML = `
+            <span class="font-sport text-xs sm:text-sm font-black text-cyan-200">${seat}號</span>
+            <span class="text-[10px] font-black text-amber-300 mt-0.5">★ 挑戰中</span>
+          `;
+        } else {
+          btn.className = 'relative flex flex-col items-center justify-center py-2 px-1 rounded-xl border border-white/15 bg-white/5 hover:bg-cyan-500/15 hover:border-cyan-400/50 text-slate-200 transition cursor-pointer active:scale-95';
+          btn.innerHTML = `
+            <span class="font-sport text-xs sm:text-sm font-black">${seat}號</span>
+            <span class="text-[10px] text-slate-400 mt-0.5">可選擇</span>
+          `;
+          btn.addEventListener('click', () => {
+            sfx.init();
+            sfx.playTone(580, 'sine', 0.08, 0.1);
+            state.selectedSeat = seat;
+            const helper = document.getElementById('seatHelperMsg');
+            helper.textContent = `✅ 已選擇 ${seat}號！全部 10 題一次答對通關後將自動鎖定該號碼。`;
+            helper.className = 'mt-2 text-xs text-cyan-200 font-bold';
+            syncSeatSelectionUI();
+          });
+        }
+
+        seatGrid.appendChild(btn);
+      });
+
+      document.getElementById('completedCountBadge').textContent = `已滿分鎖定：${state.completedSeats.size} / 16`;
+
+      const startBtn = document.getElementById('startGameBtn');
+      if (state.selectedSeat) {
+        startBtn.disabled = false;
+        startBtn.textContent = `🚀 ${state.selectedSeat}號 開始極限跑酷！`;
+      } else {
+        startBtn.disabled = true;
+        startBtn.textContent = '🏆 全班 16 個座號皆已滿分通關！';
+        const helper = document.getElementById('seatHelperMsg');
+        helper.textContent = '🎉 太棒了！01號－16號 全部都已 100% 滿分通關鎖定！如需重新測驗請點右上角「重置紀錄」。';
+        helper.className = 'mt-2 text-xs text-emerald-300 font-black';
+      }
+    }
+
+    function renderVocabPreview() {
+      const grid = document.getElementById('vocabPreviewGrid');
+      grid.innerHTML = '';
+      VOCAB_LIST.forEach(item => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'vocab-pill flex flex-col items-center justify-center p-2.5 rounded-2xl text-center cursor-pointer';
+        btn.innerHTML = `
+          <div class="flex items-center gap-1">
+            <span class="font-sport text-sm sm:text-base font-black text-white">${item.en}</span>
+            <span class="text-xs text-cyan-300">🔊</span>
+          </div>
+          <span class="text-xs text-slate-300 font-bold mt-0.5">${item.zh}</span>
+        `;
+        btn.addEventListener('click', () => {
+          sfx.init();
+          speakWord(item.en);
+          btn.classList.add('ring-2', 'ring-cyan-400');
+          setTimeout(() => btn.classList.remove('ring-2', 'ring-cyan-400'), 450);
+        });
+        grid.appendChild(btn);
+      });
+    }
+
+    // 8. 生成當前題目的極限單字門波次 (Wave)
+    function spawnWordWave() {
+      const currentVocab = state.questionQueue[state.currentIndex];
+      if (!currentVocab) return;
+
+      // 更新頂部 HUD
+      document.getElementById('targetChinese').textContent = currentVocab.zh;
+      document.getElementById('progressText').textContent = `${state.currentIndex + 1} / ${state.questionQueue.length}`;
+      document.getElementById('progressBar').style.width = `${((state.currentIndex + 1) / state.questionQueue.length) * 100}%`;
+
+      // 提示字元遮罩
+      const letters = currentVocab.en.split('');
+      const mask = letters.map((ch, idx) => {
+        if (state.currentAttempts >= 1 && idx === 0) return ch;
+        if (state.currentAttempts >= 2 && idx === letters.length - 1) return ch;
+        return '_';
+      }).join(' ');
+      document.getElementById('hintMask').textContent = `${mask} (${currentVocab.en.length}字母)`;
+
+      // 自動朗讀目標英文單字
+      speakWord(currentVocab.en);
+
+      // 挑選 2 個干擾單字，組成 3 個選項
+      const distractors = shuffleArray(
+        EXTRA_DISTRACTORS.filter(w => w !== currentVocab.en)
+      ).slice(0, 2);
+
+      const options = shuffleArray([
+        { word: currentVocab.en, isCorrect: true },
+        { word: distractors[0], isCorrect: false },
+        { word: distractors[1], isCorrect: false }
+      ]);
+
+      // 依當前畫布高度比例動態計算三種軌道高度（確保任何解析度下二段跳都能輕鬆觸及最高軌道）
+      const scaleFactor = Math.max(0.9, Math.min(1.3, state.height / 720));
+      const gateW = Math.round(134 * scaleFactor);
+      const gateH = Math.round(54 * scaleFactor);
+
+      const trackCenterYs = TRACK_HEIGHT_RATIOS.map(ratio => state.groundY - state.height * ratio);
+
+      const shuffledTracks = shuffleArray([0, 1, 2]);
+      const startX = state.width + 160;
+      const isStaggered = Math.random() > 0.45;
+      const horizontalSpacing = isStaggered ? Math.max(230, state.width * 0.24) : 45;
+
+      state.gates = options.map((opt, idx) => {
+        const trackIdx = shuffledTracks[idx];
+        return {
+          word: opt.word,
+          isCorrect: opt.isCorrect,
+          x: startX + idx * horizontalSpacing,
+          y: trackCenterYs[trackIdx] - gateH / 2,
+          width: gateW,
+          height: gateH,
+          trackIdx,
+          collected: false,
+          pulsePhase: idx * 1.4
+        };
+      });
+
+      // 在前方放置一個裝飾性極限跳台斜坡
+      state.ramps = [{
+        x: startX - 150,
+        y: state.groundY,
+        width: 95,
+        height: 28
+      }];
+    }
+
+    // 9. 粒子特效生成器
+    function spawnParticles(x, y, colors, count = 24, speedScale = 1) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = (90 + Math.random() * 320) * speedScale;
+        state.particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 80,
+          size: 3 + Math.random() * 5,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          alpha: 1,
+          life: 0.45 + Math.random() * 0.45,
+          maxLife: 0.9
+        });
+      }
+    }
+
+    function spawnFloatingText(x, y, text, color = '#00f5d4', size = 24) {
+      state.floatingTexts.push({
+        x,
+        y,
+        text,
+        color,
+        size,
+        alpha: 1,
+        vy: -85,
+        life: 1.05
+      });
+    }
+
+    // 10. 統一跳躍與滑行動作控制（支援一段跳與二段跳前空翻特技）
+    let lastJumpInputTime = 0; // 防止同一幀內觸控與滑鼠事件重複觸發
+
+    function triggerJump() {
+      if (state.status !== 'playing') return;
+
+      const now = performance.now();
+      if (now - lastJumpInputTime < 65) return; // 防重複觸發保護
+      lastJumpInputTime = now;
+
+      const p = state.player;
+
+      // 若正在滑行，立即起身
+      if (p.isSliding) {
+        p.isSliding = false;
+        p.height = p.normalHeight;
+        p.y = state.groundY - p.height;
+      }
+
+      if (p.jumpsUsed < p.maxJumps) {
+        const isDouble = p.jumpsUsed === 1;
+        // 採用隨畫布高度等比例縮放的跳躍初速度，確保大螢幕二段跳高度充足！
+        p.vy = isDouble ? state.secondJumpVel : state.firstJumpVel;
+        p.jumpsUsed++;
+
+        if (isDouble) {
+          // 觸發空中前空翻特技與衝擊波光環
+          p.isTricking = true;
+          p.trickAngle = 0;
+          spawnParticles(p.x + p.width / 2, p.y + p.height, ['#00f5d4', '#ff2a85', '#ffbe0b', '#ffffff'], 20, 0.85);
+          spawnFloatingText(p.x + p.width / 2, p.y - 10, '二段跳！', '#00f5d4', 18);
+        } else {
+          spawnParticles(p.x + p.width / 2, state.groundY, ['#00f5d4', '#ffb703'], 12, 0.55);
+        }
+        sfx.jump(isDouble);
+      }
+    }
+
+    function triggerSlide() {
+      if (state.status !== 'playing') return;
+      const p = state.player;
+      const onGround = p.y + p.height >= state.groundY - 6;
+
+      if (!onGround) {
+        // 空中快速下墜（Fast Fall），方便精準落入低軌道
+        p.vy = Math.max(p.vy, state.fastFallVel);
+        spawnParticles(p.x + p.width / 2, p.y, ['#8338ec', '#00f5d4'], 10, 0.6);
+        sfx.slide();
+      } else if (!p.isSliding) {
+        p.isSliding = true;
+        p.slideTimer = 0.65;
+        p.height = p.slideHeight;
+        p.y = state.groundY - p.height;
+        spawnParticles(p.x + p.width / 2, state.groundY, ['#ffb703', '#ff2a85'], 12, 0.6);
+        sfx.slide();
+      }
+    }
+
+    // 11. 更新 HUD 介面
+    function updateHUD() {
+      document.getElementById('scoreDisplay').textContent = state.score.toLocaleString();
+
+      // 愛心渲染
+      const heartsEl = document.getElementById('heartsContainer');
+      let heartsHTML = '';
+      for (let i = 0; i < state.maxLives; i++) {
+        if (i < state.lives) {
+          heartsHTML += '<span class="drop-shadow-[0_0_6px_rgba(255,42,133,0.8)]">❤️</span>';
+        } else {
+          heartsHTML += '<span class="opacity-25 grayscale">🖤</span>';
+        }
+      }
+      heartsEl.innerHTML = heartsHTML;
+
+      // 連擊顯示
+      const comboBadge = document.getElementById('comboBadge');
+      if (state.combo >= 2) {
+        comboBadge.classList.remove('hidden');
+        comboBadge.classList.add('flex');
+        document.getElementById('comboCount').textContent = state.combo;
+      } else {
+        comboBadge.classList.add('hidden');
+        comboBadge.classList.remove('flex');
+      }
+    }
+
+    // 12. 碰撞與答題判定邏輯
+    function handleGateCollision(gate) {
+      gate.collected = true;
+      const currentVocab = state.questionQueue[state.currentIndex];
+      const p = state.player;
+
+      if (gate.isCorrect) {
+        // 答對！觸發極限特技與衝刺
+        sfx.correct(state.combo + 1);
+        speakWord(currentVocab.en);
+
+        state.combo++;
+        if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+
+        const bonus = 100 + (state.combo - 1) * 25 + (gate.trackIdx === 2 ? 30 : 0);
+        state.score += bonus;
+        state.boostTimer = 0.75;
+        state.flashColor = '#00f5d4';
+        state.flashAlpha = 0.25;
+
+        // 施展極限特技（繁體中文特技名稱）
+        const tricks = ['360° 空中旋轉！', '超人飛躍特技！', '霓虹極限衝刺！', '後空翻加速！'];
+        p.isTricking = true;
+        p.trickAngle = 0;
+        p.trickName = tricks[Math.floor(Math.random() * tricks.length)];
+        p.trickTextTimer = 1.1;
+
+        spawnParticles(gate.x + gate.width / 2, gate.y + gate.height / 2, ['#00f5d4', '#ffb703', '#ff2a85', '#ffffff'], 36, 1.3);
+        spawnFloatingText(p.x + 50, p.y - 25, `+${bonus} ${p.trickName}`, '#00f5d4', 22);
+
+        state.results.push({
+          en: currentVocab.en,
+          zh: currentVocab.zh,
+          correct: state.currentAttempts === 0
+        });
+
+        updateHUD();
+
+        // 清除本波其餘干擾門並進入下一題
+        state.gates = [];
+        state.currentIndex++;
+        state.currentAttempts = 0;
+
+        if (state.currentIndex >= state.questionQueue.length) {
+          setTimeout(() => endGame(true), 650);
+        } else {
+          setTimeout(() => {
+            if (state.status === 'playing') spawnWordWave();
+          }, 420);
+        }
+      } else {
+        // 撞擊錯誤單字！
+        sfx.wrong();
+        state.combo = 0;
+        state.lives = Math.max(0, state.lives - 1);
+        state.currentAttempts++;
+        state.shakeTimer = 0.35;
+        state.shakeIntensity = 12;
+        state.flashColor = '#ff2a85';
+        state.flashAlpha = 0.35;
+
+        spawnParticles(gate.x + gate.width / 2, gate.y + gate.height / 2, ['#ff2a85', '#ff5400', '#333333'], 24, 1.0);
+        spawnFloatingText(gate.x, gate.y - 15, `✕ ${gate.word}`, '#ff2a85', 22);
+        updateHUD();
+
+        // 更新提示字元線索
+        const letters = currentVocab.en.split('');
+        const mask = letters.map((ch, idx) => {
+          if (state.currentAttempts >= 1 && idx === 0) return ch;
+          if (state.currentAttempts >= 2 && idx === letters.length - 1) return ch;
+          return '_';
+        }).join(' ');
+        document.getElementById('hintMask').textContent = `${mask} (${currentVocab.en.length}字母)`;
+
+        if (state.lives <= 0) {
+          for (let i = state.currentIndex; i < state.questionQueue.length; i++) {
+            state.results.push({
+              en: state.questionQueue[i].en,
+              zh: state.questionQueue[i].zh,
+              correct: false
+            });
+          }
+          setTimeout(() => endGame(false), 450);
+        }
+      }
+    }
+
+    // 13. 開始 / 結束遊戲控制
+    function startGame() {
+      if (!state.selectedSeat || state.completedSeats.has(state.selectedSeat)) {
+        syncSeatSelectionUI();
+        return;
+      }
+      sfx.init();
+      state.status = 'playing';
+      state.baseSpeed = SPEED_CONFIGS[state.speedMode].baseSpeed;
+      state.currentSpeed = state.baseSpeed;
+      state.boostTimer = 0;
+      state.score = 0;
+      state.combo = 0;
+      state.maxCombo = 0;
+      state.lives = state.maxLives;
+      state.questionQueue = shuffleArray(VOCAB_LIST);
+      state.currentIndex = 0;
+      state.currentAttempts = 0;
+      state.results = [];
+      state.particles = [];
+      state.floatingTexts = [];
+
+      document.getElementById('hudSeatBadge').textContent = `${state.selectedSeat}號`;
+
+      const p = state.player;
+      p.height = p.normalHeight;
+      p.y = state.groundY - p.height;
+      p.vy = 0;
+      p.jumpsUsed = 0;
+      p.isSliding = false;
+      p.isTricking = false;
+      p.trickAngle = 0;
+      p.trail = [];
+
+      document.getElementById('startScreen').classList.add('hidden');
+      document.getElementById('endScreen').classList.add('hidden');
+      document.getElementById('pauseScreen').classList.add('hidden');
+      document.getElementById('hudOverlay').classList.remove('hidden');
+
+      updateHUD();
+      spawnWordWave();
+    }
+
+    function endGame(isVictory) {
+      state.status = isVictory ? 'victory' : 'gameover';
+      document.getElementById('hudOverlay').classList.add('hidden');
+      document.getElementById('endScreen').classList.remove('hidden');
+
+      const badge = document.getElementById('endBadge');
+      const title = document.getElementById('endTitle');
+      const subtitle = document.getElementById('endSubtitle');
+
+      if (isVictory) {
+        sfx.victory();
+        badge.textContent = '🏆 極限冠軍';
+        badge.className = 'inline-block px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black tracking-wider mb-2';
+        title.textContent = '極限跑酷大成功！';
+        subtitle.textContent = '太厲害了！你成功衝過所有 U9 單字能量門！';
+      } else {
+        badge.textContent = '⚡ 能量耗盡';
+        badge.className = 'inline-block px-3 py-1 rounded-full bg-pink-500 text-white text-xs font-black tracking-wider mb-2';
+        title.textContent = '能量耗盡，再接再厲！';
+        subtitle.textContent = '別氣餒！先複習一下剛剛的單字，馬上再挑戰一次！';
+      }
+
+      document.getElementById('finalScore').textContent = state.score.toLocaleString();
+      document.getElementById('finalMaxCombo').textContent = `${state.maxCombo}x`;
+
+      const correctCount = state.results.filter(r => r.correct).length;
+      const accuracy = Math.round((correctCount / VOCAB_LIST.length) * 100);
+      document.getElementById('finalAccuracy').textContent = `${accuracy}%`;
+
+      // 判定是否達到「完全正確答題完成（10題全對、0失誤）」並鎖定該座號
+      const seatLabel = `${state.selectedSeat}號`;
+      document.getElementById('endSeatBadge').textContent = `選手：${seatLabel}`;
+      const lockBanner = document.getElementById('seatLockStatusBanner');
+      const isPerfectRun = isVictory && correctCount === VOCAB_LIST.length && state.lives === state.maxLives;
+
+      if (isPerfectRun) {
+        state.completedSeats.add(state.selectedSeat);
+        saveCompletedSeats(state.completedSeats);
+        lockBanner.textContent = `🔒 ${seatLabel} 100% 滿分通關！號碼已永久鎖定，不能再選`;
+        lockBanner.className = 'mt-3 inline-block px-4 py-1.5 rounded-2xl text-xs sm:text-sm font-black border bg-emerald-500/25 border-emerald-400 text-emerald-200 shadow-lg';
+      } else {
+        lockBanner.textContent = `🔓 尚有答錯題目（${correctCount}/10 題一次答對），${seatLabel} 未鎖定，可再次挑戰！`;
+        lockBanner.className = 'mt-3 inline-block px-4 py-1.5 rounded-2xl text-xs sm:text-sm font-black border bg-amber-500/20 border-amber-400/60 text-amber-200';
+      }
+
+      // 生成單字複習清單
+      const reviewList = document.getElementById('reviewList');
+      reviewList.innerHTML = '';
+      state.results.forEach(item => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = `flex items-center justify-between p-2.5 rounded-xl border text-left transition active:scale-95 ${
+          item.correct
+            ? 'bg-emerald-950/50 border-emerald-400/40 hover:bg-emerald-900/60'
+            : 'bg-pink-950/60 border-pink-400/60 hover:bg-pink-900/70'
+        }`;
+        card.innerHTML = `
+          <div class="flex items-center gap-2.5">
+            <span class="text-base">${item.correct ? '✅' : '❗'}</span>
+            <div>
+              <div class="font-sport font-black text-white text-sm sm:text-base">${item.en}</div>
+              <div class="text-xs text-slate-300 font-bold">${item.zh}</div>
+            </div>
+          </div>
+          <span class="text-xs bg-white/10 px-2.5 py-1 rounded-full text-cyan-300 font-bold">🔊 發音</span>
+        `;
+        card.addEventListener('click', () => {
+          sfx.init();
+          speakWord(item.en);
+        });
+        reviewList.appendChild(card);
+      });
+    }
+
+    // 14. 遊戲主物理更新迴圈 (Update)
+    function update(dt) {
+      const activeSpeed = state.status === 'playing'
+        ? (state.boostTimer > 0 ? state.baseSpeed * 1.48 : state.baseSpeed)
+        : 120;
+
+      if (state.status === 'paused') return;
+
+      // 視差層滾動
+      state.bgScroll1 = (state.bgScroll1 + activeSpeed * 0.08 * dt) % 1200;
+      state.bgScroll2 = (state.bgScroll2 + activeSpeed * 0.22 * dt) % 1200;
+      state.bgScroll3 = (state.bgScroll3 + activeSpeed * 0.45 * dt) % 1200;
+      state.roadScroll = (state.roadScroll + activeSpeed * dt) % 80;
+
+      // 速度線更新
+      state.speedLines.forEach(line => {
+        line.x -= activeSpeed * line.speedMult * dt;
+        if (line.x + line.len < 0) {
+          line.x = state.width + Math.random() * 120;
+          line.y = Math.random() * state.groundY;
+        }
+      });
+
+      // 計時器遞減
+      if (state.boostTimer > 0) state.boostTimer -= dt;
+      if (state.shakeTimer > 0) state.shakeTimer -= dt;
+      if (state.flashAlpha > 0) state.flashAlpha = Math.max(0, state.flashAlpha - dt * 0.9);
+
+      // 更新粒子特效
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const pt = state.particles[i];
+        pt.x += pt.vx * dt;
+        pt.y += pt.vy * dt;
+        pt.vy += state.gravity * 0.28 * dt;
+        pt.life -= dt;
+        pt.alpha = Math.max(0, pt.life / pt.maxLife);
+        if (pt.life <= 0) state.particles.splice(i, 1);
+      }
+
+      // 更新浮動得分文字
+      for (let i = state.floatingTexts.length - 1; i >= 0; i--) {
+        const ft = state.floatingTexts[i];
+        ft.y += ft.vy * dt;
+        ft.life -= dt;
+        ft.alpha = Math.max(0, ft.life);
+        if (ft.life <= 0) state.floatingTexts.splice(i, 1);
+      }
+
+      if (state.status !== 'playing') return;
+
+      // 玩家物理更新（使用動態比例重力 state.gravity）
+      const p = state.player;
+      p.vy += state.gravity * dt;
+      p.y += p.vy * dt;
+
+      // 防止飛出頂部畫面之外（保留極限緩衝）
+      if (p.y < 12) {
+        p.y = 12;
+        if (p.vy < 0) p.vy = 0;
+      }
+
+      // 滑行計時器
+      if (p.isSliding) {
+        p.slideTimer -= dt;
+        if (p.slideTimer <= 0) {
+          p.isSliding = false;
+          p.height = p.normalHeight;
+          p.y = state.groundY - p.height;
+        }
+      }
+
+      // 著地判定
+      if (p.y + p.height >= state.groundY) {
+        p.y = state.groundY - p.height;
+        p.vy = 0;
+        p.jumpsUsed = 0;
+        if (p.isTricking && p.trickTextTimer <= 0.4) {
+          p.isTricking = false;
+          p.trickAngle = 0;
+        }
+      }
+
+      // 空中前空翻特技旋轉動畫
+      if (p.isTricking) {
+        p.trickAngle += Math.PI * 4.5 * dt;
+        if (p.trickAngle >= Math.PI * 2) {
+          p.trickAngle = 0;
+          p.isTricking = false;
+        }
+      }
+      if (p.trickTextTimer > 0) p.trickTextTimer -= dt;
+
+      // 霓虹滑板殘影軌跡
+      p.trail.push({
+        x: p.x + p.width * 0.4,
+        y: p.y + p.height - 6,
+        alpha: 0.75
+      });
+      if (p.trail.length > 14) p.trail.shift();
+      p.trail.forEach(t => {
+        t.x -= activeSpeed * dt;
+        t.alpha *= 0.9;
+      });
+
+      // 更新裝飾跳台斜坡
+      for (let i = state.ramps.length - 1; i >= 0; i--) {
+        const r = state.ramps[i];
+        r.x -= activeSpeed * dt;
+        if (r.x + r.width < -50) state.ramps.splice(i, 1);
+      }
+
+      // 更新單字能量門與碰撞檢測
+      let allMissed = true;
+      for (let i = state.gates.length - 1; i >= 0; i--) {
+        const g = state.gates[i];
+        g.x -= activeSpeed * dt;
+        g.pulsePhase += dt * 5;
+
+        if (!g.collected) {
+          // 友善寬容碰撞框（稍微擴大垂直判定範圍，讓手感更流暢）
+          const padX = 4;
+          const padY = -6;
+          const hit =
+            p.x + padX < g.x + g.width &&
+            p.x + p.width - padX > g.x &&
+            p.y + padY < g.y + g.height &&
+            p.y + p.height - padY > g.y;
+
+          if (hit) {
+            handleGateCollision(g);
+            break;
+          }
+        }
+
+        if (g.x + g.width > -40) {
+          allMissed = false;
+        }
+      }
+
+      // 若玩家完整錯過整波能量門，自動循環再生成同題讓玩家練習
+      if (state.gates.length > 0 && allMissed) {
+        spawnFloatingText(p.x + 60, p.y - 40, '再試一次！鎖定目標單字！', '#ffb703', 18);
+        spawnWordWave();
+      }
+    }
+
+    // 15. 遊戲視覺渲染引擎 (Render)
+    function drawBackground() {
+      const w = state.width;
+      const h = state.height;
+      const gy = state.groundY;
+
+      // 1. 霓虹夕陽 / 賽博夜空漸層
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, gy);
+      skyGrad.addColorStop(0, '#090418');
+      skyGrad.addColorStop(0.42, '#1e0b3b');
+      skyGrad.addColorStop(0.78, '#5a185c');
+      skyGrad.addColorStop(1, '#ff4d6d');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, w, gy);
+
+      // 2. 巨型復古極限夕陽圓盤
+      const sunX = w * 0.72;
+      const sunY = gy * 0.44;
+      const sunR = Math.min(w, h) * 0.19;
+      const sunGrad = ctx.createLinearGradient(sunX, sunY - sunR, sunX, sunY + sunR);
+      sunGrad.addColorStop(0, '#ffbe0b');
+      sunGrad.addColorStop(0.55, '#fb5607');
+      sunGrad.addColorStop(1, '#ff006e');
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2);
+      ctx.fillStyle = sunGrad;
+      ctx.shadowColor = '#ff006e';
+      ctx.shadowBlur = 40;
+      ctx.fill();
+      ctx.restore();
+
+      // 3. 遠景摩天大樓剪影 (視差層 1)
+      ctx.fillStyle = '#13092b';
+      const b1Width = 120;
+      const count1 = Math.ceil(w / b1Width) + 2;
+      for (let i = -1; i < count1; i++) {
+        const bx = i * b1Width - (state.bgScroll1 % b1Width);
+        const seed = Math.abs(Math.floor((i * b1Width + state.bgScroll1) / b1Width));
+        const bh = 90 + ((seed * 53) % 160);
+        ctx.fillRect(bx, gy - bh, b1Width - 8, bh);
+      }
+
+      // 4. 中景霓虹城市天際線 + 窗燈 (視差層 2)
+      const b2Width = 150;
+      const count2 = Math.ceil(w / b2Width) + 2;
+      for (let i = -1; i < count2; i++) {
+        const bx = i * b2Width - (state.bgScroll2 % b2Width);
+        const seed = Math.abs(Math.floor((i * b2Width + state.bgScroll2) / b2Width));
+        const bh = 65 + ((seed * 79) % 130);
+
+        ctx.fillStyle = '#1b1042';
+        ctx.fillRect(bx, gy - bh, b2Width - 14, bh);
+
+        // 大樓頂部霓虹邊線
+        ctx.fillStyle = seed % 2 === 0 ? '#00f5d4' : '#ff2a85';
+        ctx.fillRect(bx, gy - bh, b2Width - 14, 3);
+
+        // 零星霓虹窗戶
+        ctx.fillStyle = 'rgba(255, 214, 10, 0.35)';
+        for (let wy = gy - bh + 14; wy < gy - 16; wy += 22) {
+          if ((seed + wy) % 3 === 0) {
+            ctx.fillRect(bx + 16, wy, 14, 8);
+            ctx.fillRect(bx + 48, wy, 14, 8);
+          }
+        }
+      }
+
+      // 5. 動態速度線
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+      ctx.lineWidth = 2;
+      state.speedLines.forEach(line => {
+        ctx.beginPath();
+        ctx.moveTo(line.x, line.y);
+        ctx.lineTo(line.x + line.len, line.y);
+        ctx.stroke();
+      });
+
+      // 6. 極限運動高架跑道（賽博網格地面）
+      const roadGrad = ctx.createLinearGradient(0, gy, 0, h);
+      roadGrad.addColorStop(0, '#160d35');
+      roadGrad.addColorStop(1, '#070312');
+      ctx.fillStyle = roadGrad;
+      ctx.fillRect(0, gy, w, h - gy);
+
+      // 跑道頂部發光邊緣線
+      ctx.save();
+      ctx.strokeStyle = '#00f5d4';
+      ctx.lineWidth = 4;
+      ctx.shadowColor = '#00f5d4';
+      ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.moveTo(0, gy);
+      ctx.lineTo(w, gy);
+      ctx.stroke();
+      ctx.restore();
+
+      // 跑道動態透視斜線
+      ctx.strokeStyle = 'rgba(0, 245, 212, 0.25)';
+      ctx.lineWidth = 2;
+      for (let rx = -80; rx < w + 80; rx += 80) {
+        const xTop = rx - state.roadScroll;
+        ctx.beginPath();
+        ctx.moveTo(xTop, gy);
+        ctx.lineTo(xTop - 45, h);
+        ctx.stroke();
+      }
+    }
+
+    function drawRamps() {
+      state.ramps.forEach(r => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(r.x, r.y);
+        ctx.lineTo(r.x + r.width, r.y - r.height);
+        ctx.lineTo(r.x + r.width, r.y);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(255, 183, 3, 0.25)';
+        ctx.fill();
+        ctx.strokeStyle = '#ffb703';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.restore();
+      });
+    }
+
+    function drawGates() {
+      const scaleFactor = Math.max(0.9, Math.min(1.3, state.height / 720));
+      const fontSize = Math.round(24 * scaleFactor);
+
+      state.gates.forEach(g => {
+        if (g.collected) return;
+
+        const floatOffset = Math.sin(g.pulsePhase) * 4;
+        const gx = g.x;
+        const gy = g.y + floatOffset;
+        const gw = g.width;
+        const gh = g.height;
+
+        const palette = [
+          { border: '#00f5d4', bg1: 'rgba(6, 40, 61, 0.92)', bg2: 'rgba(13, 92, 117, 0.92)', glow: 'rgba(0, 245, 212, 0.55)' },
+          { border: '#ffbe0b', bg1: 'rgba(48, 25, 52, 0.92)', bg2: 'rgba(95, 39, 80, 0.92)', glow: 'rgba(255, 190, 11, 0.55)' },
+          { border: '#ff2a85', bg1: 'rgba(36, 16, 66, 0.92)', bg2: 'rgba(84, 24, 112, 0.92)', glow: 'rgba(255, 42, 133, 0.55)' }
+        ][g.trackIdx];
+
+        ctx.save();
+        ctx.shadowColor = palette.glow;
+        ctx.shadowBlur = 18;
+
+        // 能量門圓角主體
+        const grad = ctx.createLinearGradient(gx, gy, gx + gw, gy + gh);
+        grad.addColorStop(0, palette.bg1);
+        grad.addColorStop(1, palette.bg2);
+
+        roundRect(ctx, gx, gy, gw, gh, 16);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = palette.border;
+        ctx.stroke();
+
+        // 左右能量柱裝飾
+        ctx.fillStyle = palette.border;
+        ctx.fillRect(gx + 6, gy + 10, 4, gh - 20);
+        ctx.fillRect(gx + gw - 10, gy + 10, 4, gh - 20);
+
+        // 英文單字文字
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `900 ${fontSize}px "Orbitron", "Noto Sans TC", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(g.word, gx + gw / 2, gy + gh / 2 + 1);
+
+        ctx.restore();
+      });
+    }
+
+    function drawPlayer() {
+      const p = state.player;
+
+      // 1. 繪製滑板霓虹殘影軌跡
+      if (p.trail.length > 1) {
+        ctx.save();
+        for (let i = 1; i < p.trail.length; i++) {
+          const prev = p.trail[i - 1];
+          const curr = p.trail[i];
+          ctx.strokeStyle = state.boostTimer > 0
+            ? `rgba(255, 190, 11, ${curr.alpha})`
+            : `rgba(0, 245, 212, ${curr.alpha})`;
+          ctx.lineWidth = 6 * (i / p.trail.length);
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(prev.x, prev.y);
+          ctx.lineTo(curr.x, curr.y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // 2. 繪製極限滑板跑酷選手
+      ctx.save();
+      const cx = p.x + p.width / 2;
+      const cy = p.y + p.height / 2;
+      ctx.translate(cx, cy);
+      if (p.isTricking) {
+        ctx.rotate(p.trickAngle);
+      } else if (p.isSliding) {
+        ctx.rotate(-0.28);
+      } else {
+        ctx.rotate(0.12);
+      }
+
+      const w = p.width;
+      const h = p.height;
+
+      // 霓虹懸浮滑板
+      ctx.save();
+      ctx.shadowColor = '#00f5d4';
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = '#ff2a85';
+      roundRect(ctx, -w * 0.62, h * 0.34, w * 1.24, 9, 5);
+      ctx.fill();
+      ctx.fillStyle = '#00f5d4';
+      ctx.fillRect(-w * 0.45, h * 0.36, w * 0.9, 3);
+      ctx.fillStyle = '#ffbe0b';
+      ctx.beginPath();
+      ctx.arc(-w * 0.35, h * 0.48, 5, 0, Math.PI * 2);
+      ctx.arc(w * 0.35, h * 0.48, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // 選手身體
+      if (p.isSliding) {
+        ctx.fillStyle = '#00bbf9';
+        roundRect(ctx, -w * 0.35, -h * 0.15, w * 0.75, h * 0.48, 10);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(w * 0.15, -h * 0.25, 13, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#00f5d4';
+        roundRect(ctx, w * 0.12, -h * 0.32, 14, 7, 3);
+        ctx.fill();
+      } else {
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 7;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-6, h * 0.08);
+        ctx.lineTo(-12, h * 0.34);
+        ctx.moveTo(8, h * 0.08);
+        ctx.lineTo(14, h * 0.34);
+        ctx.stroke();
+
+        const jacketGrad = ctx.createLinearGradient(-15, -18, 15, 15);
+        jacketGrad.addColorStop(0, '#00f5d4');
+        jacketGrad.addColorStop(1, '#3a86ff');
+        ctx.fillStyle = jacketGrad;
+        roundRect(ctx, -14, -18, 28, 30, 9);
+        ctx.fill();
+
+        ctx.strokeStyle = '#ff2a85';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(-8, -14);
+        ctx.quadraticCurveTo(-24, -18 + Math.sin(Date.now() * 0.015) * 5, -34, -8);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(2, -30, 13, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffbe0b';
+        roundRect(ctx, 2, -34, 14, 7, 3);
+        ctx.fill();
+
+        ctx.strokeStyle = '#00f5d4';
+        ctx.lineWidth = 5.5;
+        ctx.beginPath();
+        ctx.moveTo(-10, -10);
+        ctx.lineTo(-24, -2);
+        ctx.moveTo(10, -10);
+        ctx.lineTo(24, -18);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+
+      // 3. 頭頂特技名稱徽章
+      if (p.trickTextTimer > 0 && p.trickName) {
+        ctx.save();
+        ctx.font = '900 16px "Noto Sans TC", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ffbe0b';
+        ctx.shadowColor = '#ff2a85';
+        ctx.shadowBlur = 10;
+        ctx.fillText(`★ ${p.trickName} ★`, p.x + p.width / 2, p.y - 16);
+        ctx.restore();
+      }
+    }
+
+    function drawEffects() {
+      state.particles.forEach(pt => {
+        ctx.save();
+        ctx.globalAlpha = pt.alpha;
+        ctx.fillStyle = pt.color;
+        ctx.shadowColor = pt.color;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      state.floatingTexts.forEach(ft => {
+        ctx.save();
+        ctx.globalAlpha = ft.alpha;
+        ctx.font = `900 ${ft.size}px "Orbitron", "Noto Sans TC", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = ft.color;
+        ctx.shadowColor = 'rgba(0,0,0,0.85)';
+        ctx.shadowBlur = 8;
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.restore();
+      });
+
+      if (state.flashAlpha > 0 && state.flashColor) {
+        ctx.save();
+        ctx.globalAlpha = state.flashAlpha;
+        ctx.fillStyle = state.flashColor;
+        ctx.fillRect(0, 0, state.width, state.height);
+        ctx.restore();
+      }
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function render() {
+      ctx.save();
+      if (state.shakeTimer > 0) {
+        const dx = (Math.random() - 0.5) * state.shakeIntensity;
+        const dy = (Math.random() - 0.5) * state.shakeIntensity;
+        ctx.translate(dx, dy);
+      }
+
+      drawBackground();
+      drawRamps();
+      drawGates();
+      drawPlayer();
+      drawEffects();
+
+      ctx.restore();
+    }
+
+    // 16. 60fps 動畫主迴圈
+    let lastTime = 0;
+    function gameLoop(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+      lastTime = timestamp;
+
+      update(dt);
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // 17. 輸入事件綁定（統一鍵盤、滑鼠點擊、手機觸控與滑動，防重複觸發）
+    window.addEventListener('keydown', (e) => {
+      if (['Space', 'ArrowUp', 'ArrowDown', 'KeyW', 'KeyS'].includes(e.code)) {
+        e.preventDefault();
+      }
+      if (e.repeat) return; // 防止按住空白鍵不放導致瞬間連跳兩次消耗掉二段跳
+      if (state.status !== 'playing') return;
+
+      if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+        triggerJump();
+      } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+        triggerSlide();
+      } else if (e.code === 'KeyR') {
+        const currentVocab = state.questionQueue[state.currentIndex];
+        if (currentVocab) speakWord(currentVocab.en);
+      }
+    });
+
+    // Canvas 區域統一使用 pointerdown（支援滑鼠與多點觸控，無 mousedown/touchstart 重複觸發問題）
+    let touchStartY = 0;
+    canvas.addEventListener('pointerdown', (e) => {
+      if (state.status !== 'playing') return;
+      e.preventDefault();
+      touchStartY = e.clientY;
+      // 點擊畫面任何處（除左下極小滑行區外）皆觸發跳躍 / 二段跳，確保觸控二段跳靈敏精準
+      if (e.clientX < state.width * 0.22 && e.clientY > state.height * 0.65) {
+        triggerSlide();
+      } else {
+        triggerJump();
+      }
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+      if (state.status !== 'playing' || !e.touches[0]) return;
+      const dy = e.touches[0].clientY - touchStartY;
+      if (dy > 50) {
+        triggerSlide();
+        touchStartY = e.touches[0].clientY;
+      } else if (dy < -50) {
+        triggerJump();
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    // 虛擬控制按鈕綁定
+    document.getElementById('touchJumpBtn').addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      triggerJump();
+    });
+
+    document.getElementById('touchSlideBtn').addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      triggerSlide();
+    });
+
+    // 介面按鈕事件
+    document.getElementById('speakTargetBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      sfx.init();
+      const currentVocab = state.questionQueue[state.currentIndex];
+      if (currentVocab) speakWord(currentVocab.en);
+    });
+
+    document.getElementById('playAllVocabBtn').addEventListener('click', () => {
+      sfx.init();
+      VOCAB_LIST.forEach((item, idx) => {
+        setTimeout(() => speakWord(item.en, 0.95), idx * 950);
+      });
+    });
+
+    // 速度選擇切換
+    document.querySelectorAll('.speed-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.speed-opt').forEach(b => {
+          b.className = 'speed-opt py-2 px-2 rounded-xl text-xs font-black border border-white/15 bg-white/5 text-slate-300 transition';
+        });
+        btn.className = 'speed-opt py-2 px-2 rounded-xl text-xs font-black border-2 border-cyan-400 bg-cyan-500/25 text-white transition';
+        state.speedMode = btn.dataset.speed;
+      });
+    });
+
+    document.getElementById('startGameBtn').addEventListener('click', startGame);
+    document.getElementById('playAgainBtn').addEventListener('click', startGame);
+    document.getElementById('restartFromPauseBtn').addEventListener('click', startGame);
+
+    document.getElementById('backToHomeBtn').addEventListener('click', () => {
+      state.status = 'start';
+      document.getElementById('endScreen').classList.add('hidden');
+      document.getElementById('startScreen').classList.remove('hidden');
+      syncSeatSelectionUI();
+    });
+
+    // 重置座號紀錄彈窗互動
+    document.getElementById('openResetModalBtn').addEventListener('click', () => {
+      document.getElementById('resetConfirmModal').classList.remove('hidden');
+    });
+
+    document.getElementById('cancelResetBtn').addEventListener('click', () => {
+      document.getElementById('resetConfirmModal').classList.add('hidden');
+    });
+
+    document.getElementById('confirmResetBtn').addEventListener('click', () => {
+      state.completedSeats.clear();
+      saveCompletedSeats(state.completedSeats);
+      state.selectedSeat = '01';
+      document.getElementById('resetConfirmModal').classList.add('hidden');
+      const helper = document.getElementById('seatHelperMsg');
+      helper.textContent = '✨ 已重置所有座號紀錄！01號－16號 皆已重新開放選擇。';
+      helper.className = 'mt-2 text-xs text-cyan-200 font-bold';
+      syncSeatSelectionUI();
+    });
+
+    document.getElementById('pauseBtn').addEventListener('click', () => {
+      if (state.status === 'playing') {
+        state.status = 'paused';
+        document.getElementById('pauseScreen').classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('resumeBtn').addEventListener('click', () => {
+      if (state.status === 'paused') {
+        state.status = 'playing';
+        lastTime = performance.now();
+        document.getElementById('pauseScreen').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('muteBtn').addEventListener('click', () => {
+      sfx.muted = !sfx.muted;
+      document.getElementById('muteIcon').textContent = sfx.muted ? '🔇 靜音' : '🔊 音效';
+    });
+
+    // 視窗載入完成啟動
+    window.onload = function () {
+      resizeCanvas();
+      syncSeatSelectionUI();
+      renderVocabPreview();
+      requestAnimationFrame(gameLoop);
+    };
+  </script>
+</body>
+</html>
