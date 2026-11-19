@@ -1,0 +1,1815 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>U9單字跑酷：極限運動</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Extreme Sports & Traditional Chinese -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet" />
+
+  <style>
+    /* =========================================
+       全域基礎與極限運動視覺風格
+       ========================================= */
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #070918;
+      font-family: 'Noto Sans TC', 'Chakra Petch', sans-serif;
+      touch-action: none;
+    }
+
+    .font-sport {
+      font-family: 'Chakra Petch', 'Noto Sans TC', sans-serif;
+    }
+
+    /* 主遊戲畫布 */
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+    }
+
+    /* 霓虹文字與邊框發光效果 */
+    .neon-title {
+      background: linear-gradient(135deg, #22d3ee 0%, #f8fafc 45%, #f43f5e 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 18px rgba(34, 211, 238, 0.55));
+    }
+
+    .neon-card {
+      background: rgba(10, 15, 36, 0.82);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1.5px solid rgba(56, 189, 248, 0.35);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55), inset 0 0 24px rgba(56, 189, 248, 0.08);
+    }
+
+    /* 極限運動按鈕特效 */
+    .btn-sport {
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.14s ease, box-shadow 0.14s ease, filter 0.14s ease;
+    }
+    .btn-sport:not(:disabled):active {
+      transform: scale(0.95);
+    }
+    .btn-sport-primary {
+      background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #ec4899 100%);
+      box-shadow: 0 6px 24px rgba(236, 72, 153, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.25) inset;
+    }
+    .btn-sport-primary:not(:disabled):hover {
+      filter: brightness(1.1);
+      box-shadow: 0 8px 30px rgba(6, 182, 212, 0.6);
+      transform: translateY(-1px);
+    }
+    .btn-sport-primary:disabled {
+      background: linear-gradient(135deg, #334155, #1e293b);
+      box-shadow: none;
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    /* 號碼按鈕樣式 */
+    .seat-btn {
+      transition: all 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+      background: rgba(15, 23, 42, 0.85);
+      border: 1.5px solid rgba(148, 163, 184, 0.3);
+    }
+    .seat-btn:not(:disabled):hover {
+      border-color: #38bdf8;
+      background: rgba(30, 41, 59, 0.95);
+      transform: translateY(-2px);
+    }
+    .seat-btn.selected {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.92), rgba(59, 130, 246, 0.92));
+      border-color: #e0f2fe;
+      box-shadow: 0 0 18px rgba(34, 211, 238, 0.75);
+      transform: scale(1.04);
+    }
+    .seat-btn.locked {
+      background: rgba(6, 78, 59, 0.48);
+      border-color: rgba(52, 211, 153, 0.55);
+      color: #a7f3d0;
+      cursor: not-allowed;
+      opacity: 0.92;
+    }
+
+    /* 橫式矮螢幕 (如手機橫拿) 自動壓縮介面間距 */
+    @media (max-height: 540px) and (orientation: landscape) {
+      .title-wrapper {
+        padding: 0.5rem 1rem !important;
+      }
+      .title-heading {
+        font-size: 1.55rem !important;
+        line-height: 1.15 !important;
+      }
+      .seat-grid {
+        grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+        gap: 0.35rem !important;
+      }
+      .seat-btn {
+        padding: 0.3rem 0.2rem !important;
+      }
+      .hud-prompt-card {
+        padding: 0.3rem 0.9rem !important;
+      }
+      .hud-prompt-word {
+        font-size: 1.35rem !important;
+      }
+      .touch-controls {
+        bottom: 0.5rem !important;
+      }
+    }
+
+    /* 動畫 */
+    @keyframes popIn {
+      0% { transform: scale(0.85); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.28s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 12px rgba(34, 211, 238, 0.45); }
+      50% { box-shadow: 0 0 24px rgba(244, 63, 94, 0.7); }
+    }
+    .pulse-glow {
+      animation: pulseGlow 2.2s infinite ease-in-out;
+    }
+
+    /* 自訂捲軸 (用於結果頁錯題清單) */
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.4);
+      border-radius: 999px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.5);
+      border-radius: 999px;
+    }
+  </style>
+</head>
+<body class="text-slate-100 select-none">
+
+  <!-- 3D 透視跑酷主畫布 -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- =========================================================
+       全域右上角音效開關 (隨時可用)
+       ========================================================= -->
+  <button id="soundToggleBtn"
+          aria-label="切換音效"
+          class="fixed top-3 right-3 z-50 btn-sport flex items-center justify-center w-11 h-11 rounded-xl bg-slate-900/80 border border-cyan-400/40 text-cyan-300 shadow-lg backdrop-blur-md hover:border-cyan-300">
+    <!-- 開啟音效圖示 -->
+    <svg id="soundOnIcon" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5z" />
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14" />
+    </svg>
+    <!-- 靜音圖示 -->
+    <svg id="soundOffIcon" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 hidden text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5z" />
+      <path stroke-linecap="round" stroke-linejoin="round" d="M23 9l-6 6M17 9l6 6" />
+    </svg>
+  </button>
+
+  <!-- =========================================================
+       1. 片頭畫面 (Title Screen + 01號-16號 號碼選擇與鎖定)
+       ========================================================= -->
+  <div id="titleScreen" class="fixed inset-0 z-30 flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+    <div class="title-wrapper neon-card w-full max-w-3xl rounded-3xl p-4 sm:p-6 md:p-7 flex flex-col gap-3 sm:gap-4 my-auto animate-pop">
+
+      <!-- 標題區 -->
+      <div class="text-center relative">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 text-xs sm:text-sm font-bold tracking-wider mb-1.5">
+          <span>⚡ EXTREME VOCAB PARKOUR</span>
+          <span class="text-rose-400">•</span>
+          <span>10 題滿分即鎖定通關</span>
+        </div>
+        <h1 class="title-heading font-sport italic font-black text-3xl sm:text-4xl md:text-5xl tracking-tight neon-title">
+          U9單字跑酷：極限運動
+        </h1>
+        <p class="text-slate-300 text-xs sm:text-sm mt-1">
+          選擇你的座號開始挑戰！左右切換跑道衝向正確單字門，跳躍閃避極限障礙。
+        </p>
+      </div>
+
+      <!-- 號碼選擇區 (01號 - 16號) -->
+      <div class="bg-slate-950/55 rounded-2xl p-3 sm:p-4 border border-slate-700/60">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></span>
+            <span class="font-bold text-sm sm:text-base text-slate-100">請選擇座號 (01號 – 16號)</span>
+          </div>
+          <div class="flex items-center gap-3 text-xs text-slate-300">
+            <span id="lockedCounterBadge" class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold">
+              已通關：0 / 16
+            </span>
+          </div>
+        </div>
+
+        <!-- 響應式 16 格按鈕：直式 4x4，橫式寬螢幕 8x2 -->
+        <div id="seatGrid" class="seat-grid grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-2 sm:gap-2.5">
+          <!-- 由 JS 動態產生 01號 ~ 16號 -->
+        </div>
+      </div>
+
+      <!-- 底部操作區：開始跑酷 + 重置紀錄 -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+        <!-- 操作說明提示 -->
+        <div class="text-xs text-slate-400 flex items-center gap-2 flex-wrap justify-center sm:justify-start">
+          <span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-200">← / → 或 A / D</span>
+          <span>換道</span>
+          <span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-200">↑ / Space</span>
+          <span>跳躍</span>
+          <span class="hidden sm:inline text-slate-500">|</span>
+          <span>手機可滑動或點擊按鈕</span>
+        </div>
+
+        <div class="flex items-center gap-2.5 w-full sm:w-auto">
+          <!-- 重置紀錄按鈕 (角落低調設計，供教師管理) -->
+          <button id="openResetModalBtn"
+                  class="btn-sport px-3 py-2.5 rounded-xl bg-slate-800/90 hover:bg-rose-950/80 border border-slate-600/70 hover:border-rose-500/60 text-slate-300 hover:text-rose-300 text-xs sm:text-sm font-bold whitespace-nowrap">
+            🗑️ 重置紀錄
+          </button>
+
+          <!-- 開始跑酷主按鈕 -->
+          <button id="startGameBtn" disabled
+                  class="btn-sport btn-sport-primary flex-1 sm:flex-none px-7 py-2.5 sm:py-3 rounded-xl font-black text-base sm:text-lg tracking-wider text-white flex items-center justify-center gap-2 whitespace-nowrap">
+            <span>🏂</span>
+            <span id="startBtnText">請先選擇號碼</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       2. 遊戲中 HUD (自動適應直式與橫式)
+       ========================================================= -->
+  <div id="gameHud" class="fixed inset-0 z-20 pointer-events-none hidden flex-col justify-between p-2.5 sm:p-4">
+    <!-- 頂部資訊列與目標單字提示卡 -->
+    <div class="w-full max-w-4xl mx-auto flex flex-col items-center gap-2 pr-12 sm:pr-0">
+      <!-- 狀態列：座號 / 進度 / 正確數 / 分數 -->
+      <div class="w-full flex items-center justify-between gap-2 text-xs sm:text-sm font-bold">
+        <div class="flex items-center gap-1.5 sm:gap-2">
+          <span id="hudSeatBadge" class="px-2.5 py-1 rounded-xl bg-cyan-500/25 border border-cyan-400/60 text-cyan-200 backdrop-blur-md">
+            01號
+          </span>
+          <span id="hudProgressBadge" class="px-2.5 py-1 rounded-xl bg-slate-900/75 border border-slate-600/60 text-white backdrop-blur-md">
+            題目 1 / 10
+          </span>
+        </div>
+
+        <div class="flex items-center gap-1.5 sm:gap-2">
+          <span id="hudCorrectBadge" class="px-2.5 py-1 rounded-xl bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 backdrop-blur-md">
+            ✓ 0
+          </span>
+          <span id="hudScoreBadge" class="px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-400/50 text-amber-300 font-sport backdrop-blur-md">
+            0 PTS
+          </span>
+        </div>
+      </div>
+
+      <!-- 目標中文單字提示卡 + 發音提示按鈕 -->
+      <div class="hud-prompt-card pointer-events-auto pulse-glow flex items-center gap-3 px-5 py-2 sm:px-7 sm:py-2.5 rounded-2xl bg-slate-950/85 border-2 border-cyan-400/75 backdrop-blur-md shadow-2xl">
+        <div class="flex flex-col items-center">
+          <span class="text-[10px] sm:text-xs uppercase tracking-widest text-cyan-300 font-bold">衝向正確英文單字</span>
+          <span id="hudTargetZh" class="hud-prompt-word text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-wider">
+            使用
+          </span>
+        </div>
+        <!-- 語音提示按鈕 -->
+        <button id="speakHintBtn"
+                title="聽英文發音提示"
+                class="btn-sport w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-cyan-500/25 hover:bg-cyan-400/35 border border-cyan-300/60 text-cyan-200 flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 中央回饋快閃訊息 (答對/答錯正確解答提示) -->
+    <div id="feedbackBanner" class="mx-auto my-auto opacity-0 transition-opacity duration-200 pointer-events-none text-center">
+      <div id="feedbackInner" class="px-6 py-2.5 rounded-2xl font-black text-xl sm:text-3xl shadow-2xl border-2 backdrop-blur-md">
+      </div>
+    </div>
+
+    <!-- 底部觸控輔助按鈕 (手機/平板點按用，同時支援全螢幕滑動) -->
+    <div class="touch-controls w-full max-w-3xl mx-auto flex items-end justify-between pb-2 px-1 sm:px-4 pointer-events-none">
+      <div class="flex items-center gap-3 pointer-events-auto">
+        <button id="touchLeftBtn"
+                aria-label="向左換道"
+                class="btn-sport w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-slate-900/60 active:bg-cyan-500/50 border border-cyan-400/40 text-cyan-200 flex items-center justify-center backdrop-blur-sm shadow-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <button id="touchRightBtn"
+                aria-label="向右換道"
+                class="btn-sport w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-slate-900/60 active:bg-cyan-500/50 border border-cyan-400/40 text-cyan-200 flex items-center justify-center backdrop-blur-sm shadow-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+
+      <button id="touchJumpBtn"
+              aria-label="跳躍"
+              class="btn-sport pointer-events-auto w-16 h-16 sm:w-20 sm:h-16 rounded-2xl bg-rose-500/35 active:bg-rose-500/70 border border-rose-400/60 text-rose-100 font-black text-sm sm:text-base flex flex-col items-center justify-center backdrop-blur-sm shadow-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+        </svg>
+        <span class="text-[11px] leading-none">JUMP</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       3. 結算畫面 (Results Screen)
+       ========================================================= -->
+  <div id="resultScreen" class="fixed inset-0 z-30 hidden items-center justify-center p-3 sm:p-5 overflow-y-auto bg-slate-950/60 backdrop-blur-sm">
+    <div class="neon-card w-full max-w-xl rounded-3xl p-5 sm:p-7 flex flex-col gap-4 my-auto animate-pop">
+      <!-- 狀態橫幅 -->
+      <div id="resultStatusBanner" class="rounded-2xl p-3.5 sm:p-4 text-center border-2">
+        <div id="resultEmoji" class="text-3xl sm:text-4xl mb-1">🏆</div>
+        <h2 id="resultHeadline" class="text-xl sm:text-2xl font-black"></h2>
+        <p id="resultSubtext" class="text-xs sm:text-sm mt-1 opacity-90"></p>
+      </div>
+
+      <!-- 數據卡片 -->
+      <div class="grid grid-cols-3 gap-2.5 text-center">
+        <div class="bg-slate-900/80 rounded-2xl p-3 border border-slate-700/70">
+          <div class="text-xs text-slate-400">挑戰座號</div>
+          <div id="resSeat" class="text-xl sm:text-2xl font-black text-cyan-300 mt-0.5">01號</div>
+        </div>
+        <div class="bg-slate-900/80 rounded-2xl p-3 border border-slate-700/70">
+          <div class="text-xs text-slate-400">答對題數</div>
+          <div id="resAccuracy" class="text-xl sm:text-2xl font-black text-emerald-400 mt-0.5">10 / 10</div>
+        </div>
+        <div class="bg-slate-900/80 rounded-2xl p-3 border border-slate-700/70">
+          <div class="text-xs text-slate-400">極限總分</div>
+          <div id="resScore" class="text-xl sm:text-2xl font-black text-amber-300 font-sport mt-0.5">1200</div>
+        </div>
+      </div>
+
+      <!-- 錯題複習區 (若有答錯才顯示) -->
+      <div id="missedWordsBox" class="hidden bg-rose-950/35 border border-rose-500/40 rounded-2xl p-3.5">
+        <div class="text-xs sm:text-sm font-bold text-rose-300 mb-2 flex items-center gap-1.5">
+          <span>📝 需加強複習單字（點擊可聽發音）</span>
+        </div>
+        <div id="missedWordsList" class="custom-scroll max-h-36 overflow-y-auto flex flex-col gap-1.5 pr-1">
+          <!-- 動態填入 -->
+        </div>
+      </div>
+
+      <!-- 返回主畫面按鈕 -->
+      <button id="backToTitleBtn"
+              class="btn-sport btn-sport-primary w-full py-3.5 rounded-2xl font-black text-lg text-white tracking-wider">
+        返回主畫面
+      </button>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       4. 自訂重置紀錄確認視窗 (不使用 alert/confirm)
+       ========================================================= -->
+  <div id="resetModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm">
+    <div class="neon-card w-full max-w-sm rounded-2xl p-5 sm:p-6 flex flex-col gap-4 animate-pop border-rose-500/50">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-rose-500/20 border border-rose-400/50 flex items-center justify-center text-2xl">
+          ⚠️
+        </div>
+        <div>
+          <h3 class="text-lg font-black text-white">確定要重置所有紀錄？</h3>
+          <p class="text-xs text-slate-300 mt-0.5">將會解除 01號–16號 所有已通關的鎖定狀態。</p>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2.5 pt-1">
+        <button id="cancelResetBtn"
+                class="btn-sport px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold border border-slate-600">
+          取消
+        </button>
+        <button id="confirmResetBtn"
+                class="btn-sport px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-black shadow-lg shadow-rose-600/30">
+          確定重置
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       主遊戲邏輯與 3D 透視渲染引擎
+       ========================================================= -->
+  <script>
+    (function () {
+      'use strict';
+
+      /* =======================================================
+         1. 單字題庫與常數設定
+         ======================================================= */
+      const VOCAB_LIST = [
+        { en: 'use', zh: '使用' },
+        { en: 'cute', zh: '可愛的' },
+        { en: 'each', zh: '每個' },
+        { en: 'teach', zh: '教' },
+        { en: 'much', zh: '許多' },
+        { en: 'inch', zh: '英吋' },
+        { en: 'rich', zh: '富有的' },
+        { en: 'high', zh: '高的' },
+        { en: 'light', zh: '燈光' },
+        { en: 'night', zh: '夜晚' }
+      ];
+
+      const STORAGE_KEY = 'u9_vocab_parkour_locked_seats_v1';
+      const TOTAL_SEATS = 16;
+
+      /* =======================================================
+         2. DOM 參照
+         ======================================================= */
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+
+      const titleScreen = document.getElementById('titleScreen');
+      const seatGrid = document.getElementById('seatGrid');
+      const lockedCounterBadge = document.getElementById('lockedCounterBadge');
+      const startGameBtn = document.getElementById('startGameBtn');
+      const startBtnText = document.getElementById('startBtnText');
+
+      const gameHud = document.getElementById('gameHud');
+      const hudSeatBadge = document.getElementById('hudSeatBadge');
+      const hudProgressBadge = document.getElementById('hudProgressBadge');
+      const hudCorrectBadge = document.getElementById('hudCorrectBadge');
+      const hudScoreBadge = document.getElementById('hudScoreBadge');
+      const hudTargetZh = document.getElementById('hudTargetZh');
+      const speakHintBtn = document.getElementById('speakHintBtn');
+      const feedbackBanner = document.getElementById('feedbackBanner');
+      const feedbackInner = document.getElementById('feedbackInner');
+
+      const resultScreen = document.getElementById('resultScreen');
+      const resultStatusBanner = document.getElementById('resultStatusBanner');
+      const resultEmoji = document.getElementById('resultEmoji');
+      const resultHeadline = document.getElementById('resultHeadline');
+      const resultSubtext = document.getElementById('resultSubtext');
+      const resSeat = document.getElementById('resSeat');
+      const resAccuracy = document.getElementById('resAccuracy');
+      const resScore = document.getElementById('resScore');
+      const missedWordsBox = document.getElementById('missedWordsBox');
+      const missedWordsList = document.getElementById('missedWordsList');
+      const backToTitleBtn = document.getElementById('backToTitleBtn');
+
+      const soundToggleBtn = document.getElementById('soundToggleBtn');
+      const soundOnIcon = document.getElementById('soundOnIcon');
+      const soundOffIcon = document.getElementById('soundOffIcon');
+
+      const openResetModalBtn = document.getElementById('openResetModalBtn');
+      const resetModal = document.getElementById('resetModal');
+      const cancelResetBtn = document.getElementById('cancelResetBtn');
+      const confirmResetBtn = document.getElementById('confirmResetBtn');
+
+      const touchLeftBtn = document.getElementById('touchLeftBtn');
+      const touchRightBtn = document.getElementById('touchRightBtn');
+      const touchJumpBtn = document.getElementById('touchJumpBtn');
+
+      /* =======================================================
+         3. 音效系統 (Web Audio API + Web Speech API)
+         ======================================================= */
+      let soundEnabled = true;
+      let audioCtx = null;
+
+      function ensureAudioContext() {
+        if (!soundEnabled) return null;
+        try {
+          if (!audioCtx) {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (AudioContextClass) {
+              audioCtx = new AudioContextClass();
+            }
+          }
+          if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+          return audioCtx;
+        } catch (err) {
+          return null;
+        }
+      }
+
+      function playTone(freq, duration, type = 'sine', volume = 0.14, slideTo = null) {
+        const ctxAudio = ensureAudioContext();
+        if (!ctxAudio) return;
+        try {
+          const now = ctxAudio.currentTime;
+          const osc = ctxAudio.createOscillator();
+          const gain = ctxAudio.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, now);
+          if (slideTo) {
+            osc.frequency.exponentialRampToValueAtTime(slideTo, now + duration);
+          }
+          gain.gain.setValueAtTime(volume, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+          osc.connect(gain);
+          gain.connect(ctxAudio.destination);
+          osc.start(now);
+          osc.stop(now + duration);
+        } catch (err) {
+          // 略過不支援環境的音訊錯誤
+        }
+      }
+
+      const SFX = {
+        switchLane() {
+          playTone(320, 0.08, 'triangle', 0.1, 520);
+        },
+        jump() {
+          playTone(220, 0.18, 'sine', 0.14, 620);
+        },
+        coin() {
+          playTone(880, 0.09, 'sine', 0.11, 1320);
+        },
+        stumble() {
+          playTone(130, 0.22, 'sawtooth', 0.14, 60);
+        },
+        correct() {
+          playTone(523.25, 0.12, 'triangle', 0.15);
+          setTimeout(() => playTone(659.25, 0.14, 'triangle', 0.15), 75);
+          setTimeout(() => playTone(783.99, 0.22, 'triangle', 0.17), 150);
+        },
+        wrong() {
+          playTone(210, 0.18, 'sawtooth', 0.14, 150);
+          setTimeout(() => playTone(155, 0.26, 'sawtooth', 0.14, 110), 140);
+        },
+        victory() {
+          const notes = [523.25, 659.25, 783.99, 1046.5];
+          notes.forEach((n, idx) => {
+            setTimeout(() => playTone(n, 0.24, 'triangle', 0.16), idx * 110);
+          });
+        }
+      };
+
+      function speakEnglishWord(word) {
+        if (!soundEnabled || !word) return;
+        try {
+          if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(word);
+            utter.lang = 'en-US';
+            utter.rate = 0.92;
+            utter.pitch = 1.02;
+            window.speechSynthesis.speak(utter);
+          }
+        } catch (err) {
+          // 略過語音合成不支援錯誤
+        }
+      }
+
+      /* =======================================================
+         4. 座號紀錄持久化管理 (01號 - 16號)
+         ======================================================= */
+      let lockedSeats = new Set();
+      let selectedSeat = null;
+
+      function loadLockedSeats() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const arr = JSON.parse(raw);
+            if (Array.isArray(arr)) {
+              lockedSeats = new Set(arr);
+            }
+          }
+        } catch (err) {
+          lockedSeats = new Set();
+        }
+      }
+
+      function saveLockedSeats() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(lockedSeats)));
+        } catch (err) {
+          // 儲存失敗時不中斷遊戲
+        }
+      }
+
+      function formatSeat(num) {
+        return String(num).padStart(2, '0');
+      }
+
+      function renderSeatGrid() {
+        seatGrid.innerHTML = '';
+        lockedCounterBadge.textContent = `已通關：${lockedSeats.size} / ${TOTAL_SEATS}`;
+
+        for (let i = 1; i <= TOTAL_SEATS; i++) {
+          const code = formatSeat(i);
+          const isLocked = lockedSeats.has(code);
+          const isSelected = selectedSeat === code && !isLocked;
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `seat-btn rounded-xl py-2 sm:py-2.5 px-1.5 flex flex-col items-center justify-center gap-0.5 relative ${
+            isLocked ? 'locked' : isSelected ? 'selected' : 'text-slate-100'
+          }`;
+          btn.disabled = isLocked;
+
+          if (isLocked) {
+            btn.innerHTML = `
+              <div class="flex items-center gap-1 font-sport font-black text-sm sm:text-base">
+                <span>🔒</span>
+                <span>${code}號</span>
+              </div>
+              <span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 leading-tight">
+                已通關
+              </span>
+            `;
+          } else {
+            btn.innerHTML = `
+              <span class="font-sport font-black text-base sm:text-lg leading-tight">${code}號</span>
+              <span class="text-[10px] ${isSelected ? 'text-cyan-100 font-bold' : 'text-slate-400'} leading-tight">
+                ${isSelected ? '已選擇' : '可挑戰'}
+              </span>
+            `;
+            btn.addEventListener('click', () => {
+              ensureAudioContext();
+              SFX.switchLane();
+              selectedSeat = code;
+              renderSeatGrid();
+              updateStartButtonState();
+            });
+          }
+
+          seatGrid.appendChild(btn);
+        }
+
+        updateStartButtonState();
+      }
+
+      function updateStartButtonState() {
+        if (selectedSeat && !lockedSeats.has(selectedSeat)) {
+          startGameBtn.disabled = false;
+          startBtnText.textContent = `${selectedSeat}號 開始跑酷`;
+        } else {
+          startGameBtn.disabled = true;
+          startBtnText.textContent = lockedSeats.size >= TOTAL_SEATS ? '全員已通關！' : '請先選擇號碼';
+        }
+      }
+
+      /* =======================================================
+         5. 遊戲狀態與 3D 透視參數 (直式/橫式自適應)
+         ======================================================= */
+      const STATE = {
+        TITLE: 'TITLE',
+        PLAYING: 'PLAYING',
+        RESULTS: 'RESULTS'
+      };
+
+      let gameState = STATE.TITLE;
+      let width = window.innerWidth;
+      let height = window.innerHeight;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let isPortrait = height >= width;
+
+      // 3D 投影設定 (會在 resize 時動態重新計算)
+      const cam = {
+        horizonY: 0,
+        centerX: 0,
+        focalLength: 360,
+        cameraOffset: 240,
+        cameraHeight: 165,
+        laneSpacing: 140,
+        maxZ: 2100
+      };
+
+      // 背景城市剪影資料
+      const cityBuildings = [];
+      function generateCitySkyline() {
+        cityBuildings.length = 0;
+        const count = 26;
+        for (let i = 0; i < count; i++) {
+          cityBuildings.push({
+            xRatio: i / count,
+            wRatio: 0.035 + Math.random() * 0.045,
+            hRatio: 0.08 + Math.random() * 0.18,
+            hue: Math.random() > 0.5 ? 195 : 325,
+            windows: Math.floor(2 + Math.random() * 4)
+          });
+        }
+      }
+
+      function resizeCanvas() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        isPortrait = height >= width;
+
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        // 依據直式或橫式螢幕，最佳化 3D 透視與車道寬度，確保三車道與單字門不裁切
+        cam.centerX = width * 0.5;
+        if (isPortrait) {
+          cam.horizonY = height * 0.35;
+          cam.focalLength = width * 0.85;
+          cam.cameraOffset = 230;
+          cam.cameraHeight = height * 0.24;
+          cam.laneSpacing = 128;
+        } else {
+          cam.horizonY = height * 0.33;
+          cam.focalLength = Math.min(width * 0.58, height * 0.92);
+          cam.cameraOffset = 230;
+          cam.cameraHeight = height * 0.27;
+          cam.laneSpacing = 148;
+        }
+      }
+
+      // 將 3D 世界座標 (worldX, worldY, z) 投影到 2D 畫布座標
+      function project3D(worldX, worldY, z) {
+        const safeZ = Math.max(-cam.cameraOffset + 25, z);
+        const scale = cam.focalLength / (safeZ + cam.cameraOffset);
+        return {
+          x: cam.centerX + worldX * scale,
+          y: cam.horizonY + (cam.cameraHeight - worldY) * scale,
+          scale: scale
+        };
+      }
+
+      /* =======================================================
+         6. 遊戲物件與動態實體
+         ======================================================= */
+      let trackScroll = 0;
+      let runSpeed = 680; // 世界單位/秒
+      let screenShake = 0;
+      let feedbackTimeout = null;
+
+      // 玩家狀態
+      const player = {
+        lane: 1,          // 0: 左, 1: 中, 2: 右
+        x: 0,             // 平滑插值中的 worldX
+        y: 0,             // 跳躍高度
+        vy: 0,
+        isJumping: false,
+        tilt: 0,          // 轉向傾斜角度
+        stumbleTimer: 0,  // 撞到障礙物時的閃爍時間
+        bobPhase: 0
+      };
+
+      // 本局題目與進度
+      let shuffledWords = [];
+      let currentWordIndex = 0;
+      let correctCount = 0;
+      let score = 0;
+      let missedWords = [];
+      let waitingForNextWave = false;
+      let nextWaveTimer = 0;
+
+      // 跑道上生成的物件
+      let wordGates = [];     // 單字門組 { z, wordObj, options: [en0, en1, en2], correctLane, resolved }
+      let obstacles = [];     // 極限障礙物 { z, lane, hit }
+      let coins = [];         // 能量星幣 { z, lane, y, collected, phase }
+      let particles = [];     // 粒子特效
+      let floatingTexts = []; // 浮動加分文字
+      let confettiList = [];  // 滿分彩帶粒子
+
+      /* =======================================================
+         7. 遊戲流程控制
+         ======================================================= */
+      function shuffleArray(list) {
+        const arr = list.slice();
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      }
+
+      function startGame() {
+        if (!selectedSeat || lockedSeats.has(selectedSeat)) return;
+        ensureAudioContext();
+
+        // 重置遊戲數據
+        shuffledWords = shuffleArray(VOCAB_LIST);
+        currentWordIndex = 0;
+        correctCount = 0;
+        score = 0;
+        missedWords = [];
+        wordGates = [];
+        obstacles = [];
+        coins = [];
+        particles = [];
+        floatingTexts = [];
+        confettiList = [];
+        screenShake = 0;
+        runSpeed = 660;
+
+        // 重置玩家位置
+        player.lane = 1;
+        player.x = 0;
+        player.y = 0;
+        player.vy = 0;
+        player.isJumping = false;
+        player.tilt = 0;
+        player.stumbleTimer = 0;
+
+        // 切換介面
+        gameState = STATE.PLAYING;
+        titleScreen.classList.add('hidden');
+        resultScreen.classList.add('hidden');
+        resultScreen.classList.remove('flex');
+        gameHud.classList.remove('hidden');
+        gameHud.classList.add('flex');
+
+        updateHud();
+        spawnWaveForCurrentWord(true);
+      }
+
+      function updateHud() {
+        hudSeatBadge.textContent = `${selectedSeat}號`;
+        const displayIdx = Math.min(currentWordIndex + 1, shuffledWords.length);
+        hudProgressBadge.textContent = `題目 ${displayIdx} / ${shuffledWords.length}`;
+        hudCorrectBadge.textContent = `✓ ${correctCount}`;
+        hudScoreBadge.textContent = `${score} PTS`;
+
+        if (currentWordIndex < shuffledWords.length) {
+          hudTargetZh.textContent = shuffledWords[currentWordIndex].zh;
+        }
+      }
+
+      // 生成單字門與前導障礙/能量幣
+      function spawnWaveForCurrentWord(isFirst = false) {
+        if (currentWordIndex >= shuffledWords.length) return;
+        const target = shuffledWords[currentWordIndex];
+
+        // 挑選 2 個不同的干擾單字
+        const distractors = shuffleArray(VOCAB_LIST.filter(w => w.en !== target.en)).slice(0, 2);
+        const correctLane = Math.floor(Math.random() * 3);
+        const options = new Array(3);
+        let dIdx = 0;
+        for (let lane = 0; lane < 3; lane++) {
+          if (lane === correctLane) {
+            options[lane] = target.en;
+          } else {
+            options[lane] = distractors[dIdx++].en;
+          }
+        }
+
+        const gateZ = isFirst ? 1750 : 2050;
+        wordGates.push({
+          z: gateZ,
+          wordObj: target,
+          options: options,
+          correctLane: correctLane,
+          resolved: false
+        });
+
+        // 在單字門前方加入極限跳躍障礙與能量星幣，增加跑酷樂趣
+        const obsZ = gateZ - 820;
+        const obsLane = Math.floor(Math.random() * 3);
+        obstacles.push({
+          z: obsZ,
+          lane: obsLane,
+          hit: false
+        });
+
+        // 在障礙物上方放一顆跳躍獎勵星幣，另在安全跑道放 3 顆連續星幣
+        coins.push({ z: obsZ, lane: obsLane, y: 105, collected: false, phase: 0 });
+        const safeLane = (obsLane + 1 + Math.floor(Math.random() * 2)) % 3;
+        for (let c = 0; c < 3; c++) {
+          coins.push({
+            z: obsZ - 200 + c * 150,
+            lane: safeLane,
+            y: 35,
+            collected: false,
+            phase: c * 0.6
+          });
+        }
+      }
+
+      function showFeedback(text, isSuccess) {
+        if (feedbackTimeout) clearTimeout(feedbackTimeout);
+        feedbackInner.textContent = text;
+        if (isSuccess) {
+          feedbackInner.className = 'px-6 py-2.5 rounded-2xl font-black text-xl sm:text-3xl shadow-2xl border-2 backdrop-blur-md bg-emerald-500/30 border-emerald-300 text-emerald-100';
+        } else {
+          feedbackInner.className = 'px-6 py-2.5 rounded-2xl font-black text-lg sm:text-2xl shadow-2xl border-2 backdrop-blur-md bg-rose-600/45 border-rose-300 text-white';
+        }
+        feedbackBanner.style.opacity = '1';
+        feedbackTimeout = setTimeout(() => {
+          feedbackBanner.style.opacity = '0';
+        }, 1200);
+      }
+
+      function spawnBurstParticles(screenX, screenY, color, count = 24) {
+        for (let i = 0; i < count; i++) {
+          const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
+          const speed = 120 + Math.random() * 260;
+          particles.push({
+            x: screenX,
+            y: screenY,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 60,
+            size: 3 + Math.random() * 5,
+            life: 0.55 + Math.random() * 0.35,
+            maxLife: 0.9,
+            color: color
+          });
+        }
+      }
+
+      function addFloatingText(text, screenX, screenY, color) {
+        floatingTexts.push({
+          text: text,
+          x: screenX,
+          y: screenY,
+          vy: -85,
+          life: 0.95,
+          maxLife: 0.95,
+          color: color
+        });
+      }
+
+      function finishGame() {
+        gameState = STATE.RESULTS;
+        gameHud.classList.add('hidden');
+        gameHud.classList.remove('flex');
+
+        const total = shuffledWords.length;
+        const isPerfect = correctCount === total && missedWords.length === 0;
+
+        resSeat.textContent = `${selectedSeat}號`;
+        resAccuracy.textContent = `${correctCount} / ${total}`;
+        resScore.textContent = `${score}`;
+
+        if (isPerfect) {
+          // 100% 完全正確 -> 永久鎖定此號碼
+          lockedSeats.add(selectedSeat);
+          saveLockedSeats();
+          SFX.victory();
+          spawnConfetti();
+
+          resultStatusBanner.className = 'rounded-2xl p-3.5 sm:p-4 text-center border-2 bg-emerald-500/20 border-emerald-400 text-emerald-100';
+          resultEmoji.textContent = '🏆🔒';
+          resultHeadline.textContent = `${selectedSeat}號 完全正確！已鎖定通關紀錄`;
+          resultSubtext.textContent = '太強了！全部 10 個單字零失誤過關，此座號已永久標記為已通關。';
+          missedWordsBox.classList.add('hidden');
+        } else {
+          // 未滿分 -> 維持解鎖可再次挑戰
+          resultStatusBanner.className = 'rounded-2xl p-3.5 sm:p-4 text-center border-2 bg-amber-500/20 border-amber-400 text-amber-100';
+          resultEmoji.textContent = '🔥';
+          resultHeadline.textContent = '未達 100% 正確，號碼未鎖定，請再挑戰一次！';
+          resultSubtext.textContent = '複習下方答錯的單字，再次起跑拿下滿分鎖定通關吧！';
+
+          // 列出答錯單字供複習
+          missedWordsBox.classList.remove('hidden');
+          missedWordsList.innerHTML = '';
+          missedWords.forEach(item => {
+            const row = document.createElement('button');
+            row.type = 'button';
+            row.className = 'w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-rose-500/30 text-left transition';
+            row.innerHTML = `
+              <div class="flex items-center gap-2.5">
+                <span class="font-sport font-black text-base sm:text-lg text-cyan-300">${item.en}</span>
+                <span class="text-sm text-slate-200">${item.zh}</span>
+              </div>
+              <span class="text-xs px-2 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-200 border border-cyan-400/40">🔊 發音</span>
+            `;
+            row.addEventListener('click', () => speakEnglishWord(item.en));
+            missedWordsList.appendChild(row);
+          });
+        }
+
+        resultScreen.classList.remove('hidden');
+        resultScreen.classList.add('flex');
+      }
+
+      function spawnConfetti() {
+        confettiList = [];
+        const colors = ['#22d3ee', '#f43f5e', '#facc15', '#34d399', '#a78bfa', '#ffffff'];
+        for (let i = 0; i < 120; i++) {
+          confettiList.push({
+            x: Math.random() * width,
+            y: -20 - Math.random() * height * 0.6,
+            vx: (Math.random() - 0.5) * 140,
+            vy: 140 + Math.random() * 220,
+            rot: Math.random() * Math.PI * 2,
+            vRot: (Math.random() - 0.5) * 8,
+            w: 7 + Math.random() * 6,
+            h: 4 + Math.random() * 5,
+            color: colors[i % colors.length]
+          });
+        }
+      }
+
+      function returnToTitle() {
+        gameState = STATE.TITLE;
+        resultScreen.classList.add('hidden');
+        resultScreen.classList.remove('flex');
+        gameHud.classList.add('hidden');
+        gameHud.classList.remove('flex');
+        titleScreen.classList.remove('hidden');
+
+        // 如果剛才的座號已被鎖定，清除目前選取
+        if (selectedSeat && lockedSeats.has(selectedSeat)) {
+          selectedSeat = null;
+        }
+        renderSeatGrid();
+      }
+
+      /* =======================================================
+         8. 玩家操控 (鍵盤 + 觸控滑動 + 螢幕按鈕)
+         ======================================================= */
+      function moveLeft() {
+        if (gameState !== STATE.PLAYING) return;
+        if (player.lane > 0) {
+          player.lane--;
+          player.tilt = -0.35;
+          SFX.switchLane();
+        }
+      }
+
+      function moveRight() {
+        if (gameState !== STATE.PLAYING) return;
+        if (player.lane < 2) {
+          player.lane++;
+          player.tilt = 0.35;
+          SFX.switchLane();
+        }
+      }
+
+      function triggerJump() {
+        if (gameState !== STATE.PLAYING) return;
+        if (!player.isJumping) {
+          player.isJumping = true;
+          player.vy = 620;
+          SFX.jump();
+        }
+      }
+
+      // 鍵盤事件
+      window.addEventListener('keydown', (e) => {
+        if (gameState !== STATE.PLAYING) return;
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+          e.preventDefault();
+          moveLeft();
+        } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+          e.preventDefault();
+          moveRight();
+        } else if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') {
+          e.preventDefault();
+          triggerJump();
+        }
+      });
+
+      // 觸控滑動偵測
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let touchActive = false;
+
+      canvas.addEventListener('touchstart', (e) => {
+        if (gameState !== STATE.PLAYING || e.touches.length === 0) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchActive = true;
+      }, { passive: true });
+
+      canvas.addEventListener('touchmove', (e) => {
+        if (!touchActive || gameState !== STATE.PLAYING || e.touches.length === 0) return;
+        const dx = e.touches[0].clientX - touchStartX;
+        const dy = e.touches[0].clientY - touchStartY;
+        const threshold = 32;
+
+        if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) {
+          if (Math.abs(dx) > Math.abs(dy)) {
+            if (dx < 0) moveLeft();
+            else moveRight();
+          } else if (dy < -threshold) {
+            triggerJump();
+          }
+          touchActive = false;
+        }
+      }, { passive: true });
+
+      canvas.addEventListener('touchend', () => {
+        touchActive = false;
+      }, { passive: true });
+
+      // 螢幕輔助按鈕 (使用 pointerdown 獲得零延遲手感)
+      touchLeftBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); moveLeft(); });
+      touchRightBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); moveRight(); });
+      touchJumpBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); triggerJump(); });
+
+      // 其他 UI 事件
+      startGameBtn.addEventListener('click', startGame);
+      backToTitleBtn.addEventListener('click', returnToTitle);
+
+      speakHintBtn.addEventListener('click', () => {
+        if (gameState === STATE.PLAYING && currentWordIndex < shuffledWords.length) {
+          speakEnglishWord(shuffledWords[currentWordIndex].en);
+        }
+      });
+
+      soundToggleBtn.addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        soundOnIcon.classList.toggle('hidden', !soundEnabled);
+        soundOffIcon.classList.toggle('hidden', soundEnabled);
+        if (soundEnabled) {
+          ensureAudioContext();
+          SFX.coin();
+        }
+      });
+
+      openResetModalBtn.addEventListener('click', () => {
+        resetModal.classList.remove('hidden');
+        resetModal.classList.add('flex');
+      });
+
+      cancelResetBtn.addEventListener('click', () => {
+        resetModal.classList.add('hidden');
+        resetModal.classList.remove('flex');
+      });
+
+      confirmResetBtn.addEventListener('click', () => {
+        lockedSeats.clear();
+        saveLockedSeats();
+        selectedSeat = null;
+        renderSeatGrid();
+        resetModal.classList.add('hidden');
+        resetModal.classList.remove('flex');
+        SFX.switchLane();
+      });
+
+      /* =======================================================
+         9. 更新邏輯 (固定時間步長保護)
+         ======================================================= */
+      function update(dt) {
+        const effectiveSpeed = gameState === STATE.PLAYING ? runSpeed : 360;
+        trackScroll = (trackScroll + effectiveSpeed * dt) % 160;
+
+        if (screenShake > 0) {
+          screenShake = Math.max(0, screenShake - dt * 28);
+        }
+
+        // 更新彩帶 (結算畫面滿分慶祝)
+        if (confettiList.length > 0) {
+          for (const c of confettiList) {
+            c.x += c.vx * dt;
+            c.y += c.vy * dt;
+            c.rot += c.vRot * dt;
+            if (c.y > height + 30) {
+              c.y = -20;
+              c.x = Math.random() * width;
+            }
+          }
+        }
+
+        // 更新粒子與浮動文字
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vy += 420 * dt;
+          p.life -= dt;
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+        for (let i = floatingTexts.length - 1; i >= 0; i--) {
+          const ft = floatingTexts[i];
+          ft.y += ft.vy * dt;
+          ft.life -= dt;
+          if (ft.life <= 0) floatingTexts.splice(i, 1);
+        }
+
+        if (gameState !== STATE.PLAYING) return;
+
+        // 玩家平滑換道與跳躍物理
+        const targetX = (player.lane - 1) * cam.laneSpacing;
+        player.x += (targetX - player.x) * Math.min(1, dt * 16);
+        player.tilt *= Math.pow(0.08, dt);
+        player.bobPhase += dt * 12;
+
+        if (player.isJumping) {
+          player.y += player.vy * dt;
+          player.vy -= 1750 * dt;
+          if (player.y <= 0) {
+            player.y = 0;
+            player.vy = 0;
+            player.isJumping = false;
+          }
+        }
+
+        if (player.stumbleTimer > 0) {
+          player.stumbleTimer = Math.max(0, player.stumbleTimer - dt);
+        }
+
+        // 玩家在畫布上的基準投影點 (用於粒子特效位置)
+        const playerProj = project3D(player.x, player.y + 45, 70);
+
+        // 更新能量星幣
+        for (let i = coins.length - 1; i >= 0; i--) {
+          const c = coins[i];
+          c.z -= effectiveSpeed * dt;
+          c.phase += dt * 5;
+
+          if (!c.collected && c.z < 110 && c.z > 10) {
+            const coinX = (c.lane - 1) * cam.laneSpacing;
+            if (Math.abs(player.x - coinX) < cam.laneSpacing * 0.45 && Math.abs(player.y + 40 - c.y) < 75) {
+              c.collected = true;
+              score += 15;
+              SFX.coin();
+              updateHud();
+              spawnBurstParticles(playerProj.x, playerProj.y, '#facc15', 10);
+              addFloatingText('+15', playerProj.x, playerProj.y - 30, '#fde047');
+            }
+          }
+
+          if (c.z < -120 || c.collected) {
+            coins.splice(i, 1);
+          }
+        }
+
+        // 更新極限跳躍障礙物 (撞到扣額外分數與震動，不影響單字答對率)
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          const obs = obstacles[i];
+          obs.z -= effectiveSpeed * dt;
+
+          if (!obs.hit && obs.z < 95 && obs.z > 25) {
+            const obsX = (obs.lane - 1) * cam.laneSpacing;
+            if (Math.abs(player.x - obsX) < cam.laneSpacing * 0.42 && player.y < 52) {
+              obs.hit = true;
+              player.stumbleTimer = 0.7;
+              screenShake = 11;
+              score = Math.max(0, score - 20);
+              SFX.stumble();
+              updateHud();
+              spawnBurstParticles(playerProj.x, playerProj.y, '#fb7185', 14);
+              addFloatingText('-20 絆倒!', playerProj.x, playerProj.y - 35, '#fda4af');
+            }
+          }
+
+          if (obs.z < -150) {
+            obstacles.splice(i, 1);
+          }
+        }
+
+        // 更新單字門判定
+        for (let i = wordGates.length - 1; i >= 0; i--) {
+          const gate = wordGates[i];
+          gate.z -= effectiveSpeed * dt;
+
+          if (!gate.resolved && gate.z <= 85) {
+            gate.resolved = true;
+            const chosenLane = player.lane;
+            const isCorrect = chosenLane === gate.correctLane;
+
+            if (isCorrect) {
+              correctCount++;
+              score += 100;
+              runSpeed = Math.min(840, runSpeed + 14);
+              SFX.correct();
+              speakEnglishWord(gate.wordObj.en);
+              spawnBurstParticles(playerProj.x, playerProj.y - 20, '#34d399', 28);
+              addFloatingText('+100', playerProj.x, playerProj.y - 50, '#6ee7b7');
+              showFeedback(`✓ ${gate.wordObj.en} (${gate.wordObj.zh})`, true);
+            } else {
+              screenShake = 15;
+              missedWords.push(gate.wordObj);
+              SFX.wrong();
+              spawnBurstParticles(playerProj.x, playerProj.y - 20, '#f43f5e', 22);
+              showFeedback(`✗ 正解：${gate.wordObj.en} (${gate.wordObj.zh})`, false);
+            }
+
+            currentWordIndex++;
+            updateHud();
+
+            if (currentWordIndex >= shuffledWords.length) {
+              waitingForNextWave = true;
+              nextWaveTimer = 1.05;
+            } else {
+              waitingForNextWave = true;
+              nextWaveTimer = 0.35;
+            }
+          }
+
+          if (gate.z < -200) {
+            wordGates.splice(i, 1);
+          }
+        }
+
+        // 切換下一題或進入結算
+        if (waitingForNextWave) {
+          nextWaveTimer -= dt;
+          if (nextWaveTimer <= 0) {
+            waitingForNextWave = false;
+            if (currentWordIndex >= shuffledWords.length) {
+              finishGame();
+            } else {
+              spawnWaveForCurrentWord(false);
+            }
+          }
+        }
+      }
+
+      /* =======================================================
+         10. 3D 透視畫面繪製 (霓虹都市、地鐵軌道、單字門、滑板跑者)
+         ======================================================= */
+      function drawBackground() {
+        // 夜空漸層
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, cam.horizonY + 40);
+        skyGrad.addColorStop(0, '#050816');
+        skyGrad.addColorStop(0.55, '#111638');
+        skyGrad.addColorStop(0.88, '#2d144d');
+        skyGrad.addColorStop(1, '#6d1b58');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, width, cam.horizonY + 40);
+
+        // 地平線霓虹光暈太陽
+        const sunRadius = Math.min(width, height) * 0.14;
+        const sunGrad = ctx.createRadialGradient(
+          cam.centerX, cam.horizonY, sunRadius * 0.1,
+          cam.centerX, cam.horizonY, sunRadius * 1.6
+        );
+        sunGrad.addColorStop(0, 'rgba(253, 224, 71, 0.85)');
+        sunGrad.addColorStop(0.45, 'rgba(244, 63, 94, 0.55)');
+        sunGrad.addColorStop(1, 'rgba(244, 63, 94, 0)');
+        ctx.fillStyle = sunGrad;
+        ctx.beginPath();
+        ctx.arc(cam.centerX, cam.horizonY, sunRadius * 1.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 遠景城市天際線
+        for (const b of cityBuildings) {
+          const bx = b.xRatio * width;
+          const bw = b.wRatio * width;
+          const bh = b.hRatio * height;
+          const by = cam.horizonY - bh + 4;
+
+          ctx.fillStyle = '#090d24';
+          ctx.fillRect(bx, by, bw, bh);
+
+          ctx.strokeStyle = `hsla(${b.hue}, 90%, 60%, 0.25)`;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(bx, by, bw, bh);
+
+          // 建築霓虹窗格
+          ctx.fillStyle = `hsla(${b.hue}, 95%, 70%, 0.35)`;
+          const winW = Math.max(2, bw / (b.windows * 2 + 1));
+          for (let wy = by + 8; wy < cam.horizonY - 8; wy += 12) {
+            for (let wx = 0; wx < b.windows; wx++) {
+              ctx.fillRect(bx + winW * (wx * 2 + 1), wy, winW, 4);
+            }
+          }
+        }
+
+        // 地面暗色基底
+        const groundGrad = ctx.createLinearGradient(0, cam.horizonY, 0, height);
+        groundGrad.addColorStop(0, '#120f2c');
+        groundGrad.addColorStop(0.4, '#0c1228');
+        groundGrad.addColorStop(1, '#060a18');
+        ctx.fillStyle = groundGrad;
+        ctx.fillRect(0, cam.horizonY, width, height - cam.horizonY);
+      }
+
+      function drawTrack() {
+        const halfTrackW = cam.laneSpacing * 1.62;
+        const nearZ = -120;
+        const farZ = cam.maxZ;
+
+        const pNearL = project3D(-halfTrackW, 0, nearZ);
+        const pNearR = project3D(halfTrackW, 0, nearZ);
+        const pFarL = project3D(-halfTrackW, 0, farZ);
+        const pFarR = project3D(halfTrackW, 0, farZ);
+
+        // 主跑道梯形路面
+        const roadGrad = ctx.createLinearGradient(0, cam.horizonY, 0, height);
+        roadGrad.addColorStop(0, '#1b1e42');
+        roadGrad.addColorStop(1, '#0f172a');
+        ctx.fillStyle = roadGrad;
+        ctx.beginPath();
+        ctx.moveTo(pFarL.x, pFarL.y);
+        ctx.lineTo(pFarR.x, pFarR.y);
+        ctx.lineTo(pNearR.x, pNearR.y);
+        ctx.lineTo(pNearL.x, pNearL.y);
+        ctx.closePath();
+        ctx.fill();
+
+        // 地鐵枕木 / 動態速度橫紋
+        const stepZ = 160;
+        for (let z = farZ - (trackScroll % stepZ); z > nearZ; z -= stepZ) {
+          const pl = project3D(-halfTrackW * 0.96, 0, z);
+          const pr = project3D(halfTrackW * 0.96, 0, z);
+          const alpha = Math.max(0.06, Math.min(0.45, 1 - z / farZ));
+          ctx.strokeStyle = `rgba(56, 189, 248, ${alpha * 0.45})`;
+          ctx.lineWidth = Math.max(1, pl.scale * 4.5);
+          ctx.beginPath();
+          ctx.moveTo(pl.x, pl.y);
+          ctx.lineTo(pr.x, pr.y);
+          ctx.stroke();
+        }
+
+        // 三條地鐵軌道雙金屬軌
+        for (let lane = 0; lane < 3; lane++) {
+          const laneCenterX = (lane - 1) * cam.laneSpacing;
+          const railOffset = cam.laneSpacing * 0.28;
+          [-railOffset, railOffset].forEach(offset => {
+            const pF = project3D(laneCenterX + offset, 0, farZ);
+            const pN = project3D(laneCenterX + offset, 0, nearZ);
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(pF.x, pF.y);
+            ctx.lineTo(pN.x, pN.y);
+            ctx.stroke();
+          });
+        }
+
+        // 車道分隔發光線
+        [-0.5, 0.5].forEach(div => {
+          const wx = div * cam.laneSpacing;
+          const pF = project3D(wx, 0, farZ);
+          const pN = project3D(wx, 0, nearZ);
+          ctx.strokeStyle = 'rgba(34, 211, 238, 0.5)';
+          ctx.lineWidth = 2.5;
+          ctx.setLineDash([16, 14]);
+          ctx.beginPath();
+          ctx.moveTo(pF.x, pF.y);
+          ctx.lineTo(pN.x, pN.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        });
+
+        // 跑道左右霓虹護欄邊界
+        [-halfTrackW, halfTrackW].forEach((wx, idx) => {
+          const pF = project3D(wx, 0, farZ);
+          const pN = project3D(wx, 0, nearZ);
+          ctx.strokeStyle = idx === 0 ? '#22d3ee' : '#f43f5e';
+          ctx.lineWidth = 4;
+          ctx.shadowColor = ctx.strokeStyle;
+          ctx.shadowBlur = 14;
+          ctx.beginPath();
+          ctx.moveTo(pF.x, pF.y);
+          ctx.lineTo(pN.x, pN.y);
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        });
+      }
+
+      // 繪製單顆能量星幣
+      function drawCoin(c) {
+        if (c.z > cam.maxZ || c.z < -50) return;
+        const wx = (c.lane - 1) * cam.laneSpacing;
+        const bob = Math.sin(c.phase) * 8;
+        const p = project3D(wx, c.y + bob, c.z);
+        const r = Math.max(3, 18 * p.scale);
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        const spinWidth = Math.max(0.25, Math.abs(Math.cos(c.phase)));
+        ctx.scale(spinWidth, 1);
+
+        ctx.fillStyle = '#facc15';
+        ctx.shadowColor = '#f59e0b';
+        ctx.shadowBlur = 12 * p.scale;
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#fef9c3';
+        ctx.lineWidth = Math.max(1.2, 2.5 * p.scale);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 繪製極限運動跳躍柵欄障礙物
+      function drawObstacle(obs) {
+        if (obs.z > cam.maxZ || obs.z < -60) return;
+        const wx = (obs.lane - 1) * cam.laneSpacing;
+        const halfW = cam.laneSpacing * 0.4;
+        const h = 58;
+
+        const pBL = project3D(wx - halfW, 0, obs.z);
+        const pBR = project3D(wx + halfW, 0, obs.z);
+        const pTL = project3D(wx - halfW, h, obs.z);
+        const pTR = project3D(wx + halfW, h, obs.z);
+
+        const barW = pBR.x - pBL.x;
+        const barH = pBL.y - pTL.y;
+
+        ctx.save();
+        // 底座陰影
+        ctx.fillStyle = 'rgba(0,0,0,0.45)';
+        ctx.fillRect(pBL.x, pBL.y - barH * 0.12, barW, barH * 0.18);
+
+        // 支架腳
+        ctx.fillStyle = '#94a3b8';
+        const legW = Math.max(3, barW * 0.1);
+        ctx.fillRect(pTL.x + legW * 0.4, pTL.y, legW, barH);
+        ctx.fillRect(pTR.x - legW * 1.4, pTR.y, legW, barH);
+
+        // 紅白警示橫桿 (極限運動護欄)
+        const beamH = barH * 0.48;
+        ctx.fillStyle = '#f43f5e';
+        ctx.strokeStyle = '#ffe4e6';
+        ctx.lineWidth = Math.max(1.2, 2 * pBL.scale);
+        ctx.beginPath();
+        ctx.roundRect(pTL.x, pTL.y, barW, beamH, Math.max(3, 6 * pBL.scale));
+        ctx.fill();
+        ctx.stroke();
+
+        // 警示斜紋
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        const stripes = 4;
+        const sw = barW / (stripes * 2);
+        for (let s = 0; s < stripes; s++) {
+          ctx.fillRect(pTL.x + sw * (s * 2 + 0.5), pTL.y + beamH * 0.18, sw * 0.7, beamH * 0.64);
+        }
+
+        // 跳躍提示小箭頭
+        if (obs.z < 1100 && obs.z > 150) {
+          ctx.fillStyle = '#fde047';
+          ctx.font = `900 ${Math.max(10, Math.floor(18 * pBL.scale))}px "Chakra Petch", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText('▲ JUMP', (pTL.x + pTR.x) * 0.5, pTL.y - 6 * pBL.scale);
+        }
+        ctx.restore();
+      }
+
+      // 繪製三車道發光單字門 (確保文字清晰大字易讀)
+      function drawWordGate(gate) {
+        if (gate.z > cam.maxZ + 100 || gate.z < -80) return;
+
+        for (let lane = 0; lane < 3; lane++) {
+          const wx = (lane - 1) * cam.laneSpacing;
+          const halfW = cam.laneSpacing * 0.44;
+          const gateH = 148;
+          const panelBottomY = 48;
+
+          const pBL = project3D(wx - halfW, 0, gate.z);
+          const pBR = project3D(wx + halfW, 0, gate.z);
+          const pTL = project3D(wx - halfW, gateH, gate.z);
+          const pTR = project3D(wx + halfW, gateH, gate.z);
+          const pMidL = project3D(wx - halfW, panelBottomY, gate.z);
+
+          const w = pBR.x - pBL.x;
+          const totalH = pBL.y - pTL.y;
+          const panelH = pMidL.y - pTL.y;
+          const isPlayerLane = (gameState === STATE.PLAYING && player.lane === lane);
+
+          ctx.save();
+          // 左右霓虹門柱
+          const pillarW = Math.max(3, w * 0.075);
+          ctx.fillStyle = isPlayerLane ? '#22d3ee' : '#818cf8';
+          ctx.shadowColor = isPlayerLane ? '#22d3ee' : '#6366f1';
+          ctx.shadowBlur = isPlayerLane ? 16 : 8;
+          ctx.fillRect(pTL.x, pTL.y, pillarW, totalH);
+          ctx.fillRect(pTR.x - pillarW, pTR.y, pillarW, totalH);
+
+          // 單字全息光屏面板
+          const panelGrad = ctx.createLinearGradient(pTL.x, pTL.y, pTL.x, pMidL.y);
+          if (isPlayerLane) {
+            panelGrad.addColorStop(0, 'rgba(6, 182, 212, 0.92)');
+            panelGrad.addColorStop(1, 'rgba(15, 23, 42, 0.92)');
+          } else {
+            panelGrad.addColorStop(0, 'rgba(49, 46, 129, 0.88)');
+            panelGrad.addColorStop(1, 'rgba(15, 23, 42, 0.9)');
+          }
+
+          ctx.fillStyle = panelGrad;
+          ctx.strokeStyle = isPlayerLane ? '#a5f3fc' : '#818cf8';
+          ctx.lineWidth = Math.max(1.5, (isPlayerLane ? 3.5 : 2) * pBL.scale);
+          ctx.beginPath();
+          ctx.roundRect(pTL.x, pTL.y, w, panelH, Math.max(4, 10 * pBL.scale));
+          ctx.fill();
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+
+          // 單字文字 (自動縮放，避免長字超出面板)
+          const wordText = gate.options[lane];
+          const maxFont = Math.min(panelH * 0.56, w * 0.34);
+          const fontSize = Math.max(10, Math.floor(maxFont));
+          ctx.font = `900 ${fontSize}px "Chakra Petch", "Noto Sans TC", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#ffffff';
+          ctx.shadowColor = 'rgba(0,0,0,0.8)';
+          ctx.shadowBlur = 4;
+          ctx.fillText(wordText, (pTL.x + pTR.x) * 0.5, pTL.y + panelH * 0.52, w * 0.88);
+          ctx.restore();
+        }
+      }
+
+      // 繪製懸浮滑板跑酷角色
+      function drawPlayer() {
+        const z = 75;
+        const groundP = project3D(player.x, 0, z);
+        const p = project3D(player.x, player.y, z);
+        const s = p.scale;
+
+        // 絆倒時閃爍效果
+        if (player.stumbleTimer > 0 && Math.floor(player.stumbleTimer * 18) % 2 === 0) {
+          ctx.globalAlpha = 0.5;
+        }
+
+        // 地面投影陰影
+        const shadowShrink = Math.max(0.45, 1 - player.y / 220);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.beginPath();
+        ctx.ellipse(groundP.x, groundP.y + 4 * s, 32 * s * shadowShrink, 10 * s * shadowShrink, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.save();
+        const bob = player.isJumping ? 0 : Math.sin(player.bobPhase) * 3.5 * s;
+        ctx.translate(p.x, p.y - 12 * s + bob);
+        ctx.rotate(player.tilt);
+
+        // 1. 懸浮滑板噴射光暈
+        const hoverGrad = ctx.createRadialGradient(0, 8 * s, 2 * s, 0, 10 * s, 36 * s);
+        hoverGrad.addColorStop(0, 'rgba(34, 211, 238, 0.95)');
+        hoverGrad.addColorStop(0.5, 'rgba(236, 72, 153, 0.5)');
+        hoverGrad.addColorStop(1, 'rgba(236, 72, 153, 0)');
+        ctx.fillStyle = hoverGrad;
+        ctx.beginPath();
+        ctx.ellipse(0, 10 * s, 36 * s, 12 * s, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 2. 霓虹懸浮滑板本體
+        ctx.fillStyle = '#0f172a';
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = Math.max(2, 3 * s);
+        ctx.beginPath();
+        ctx.roundRect(-28 * s, -4 * s, 56 * s, 12 * s, 6 * s);
+        ctx.fill();
+        ctx.stroke();
+
+        // 3. 跑者雙腿
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = Math.max(4, 9 * s);
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-10 * s, -3 * s);
+        ctx.lineTo(-7 * s, -28 * s);
+        ctx.moveTo(10 * s, -3 * s);
+        ctx.lineTo(7 * s, -28 * s);
+        ctx.stroke();
+
+        // 4. 極限運動夾克身體
+        const jacketGrad = ctx.createLinearGradient(0, -64 * s, 0, -24 * s);
+        jacketGrad.addColorStop(0, '#f43f5e');
+        jacketGrad.addColorStop(1, '#fb7185');
+        ctx.fillStyle = jacketGrad;
+        ctx.beginPath();
+        ctx.roundRect(-18 * s, -62 * s, 36 * s, 36 * s, 10 * s);
+        ctx.fill();
+
+        // 夾克霓虹背條紋
+        ctx.fillStyle = '#22d3ee';
+        ctx.fillRect(-4 * s, -60 * s, 8 * s, 32 * s);
+
+        // 5. 飄揚霓虹圍巾
+        const scarfWave = Math.sin(player.bobPhase * 1.4) * 8 * s;
+        ctx.strokeStyle = '#fde047';
+        ctx.lineWidth = Math.max(3, 6 * s);
+        ctx.beginPath();
+        ctx.moveTo(0, -60 * s);
+        ctx.quadraticCurveTo(16 * s, -55 * s + scarfWave, 28 * s, -46 * s - scarfWave * 0.5);
+        ctx.stroke();
+
+        // 6. 運動頭盔與護目鏡
+        ctx.fillStyle = '#f8fafc';
+        ctx.beginPath();
+        ctx.arc(0, -76 * s, 16 * s, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 頭盔條紋
+        ctx.fillStyle = '#06b6d4';
+        ctx.beginPath();
+        ctx.roundRect(-13 * s, -82 * s, 26 * s, 7 * s, 3 * s);
+        ctx.fill();
+
+        ctx.restore();
+        ctx.globalAlpha = 1;
+      }
+
+      function drawParticlesAndOverlays() {
+        // 粒子
+        for (const p of particles) {
+          ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // 浮動加分文字
+        for (const ft of floatingTexts) {
+          ctx.globalAlpha = Math.max(0, ft.life / ft.maxLife);
+          ctx.font = '900 22px "Chakra Petch", "Noto Sans TC", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = ft.color;
+          ctx.shadowColor = 'rgba(0,0,0,0.85)';
+          ctx.shadowBlur = 6;
+          ctx.fillText(ft.text, ft.x, ft.y);
+          ctx.shadowBlur = 0;
+        }
+        ctx.globalAlpha = 1;
+
+        // 滿分彩帶
+        if (gameState === STATE.RESULTS && confettiList.length > 0) {
+          for (const c of confettiList) {
+            ctx.save();
+            ctx.translate(c.x, c.y);
+            ctx.rotate(c.rot);
+            ctx.fillStyle = c.color;
+            ctx.fillRect(-c.w * 0.5, -c.h * 0.5, c.w, c.h);
+            ctx.restore();
+          }
+        }
+      }
+
+      function render() {
+        ctx.save();
+
+        // 畫面震動效果
+        if (screenShake > 0) {
+          const sx = (Math.random() - 0.5) * screenShake;
+          const sy = (Math.random() - 0.5) * screenShake;
+          ctx.translate(sx, sy);
+        }
+
+        drawBackground();
+        drawTrack();
+
+        // 依據深度 (由遠到近) 排序繪製 3D 物件，確保遮擋關係正確
+        const renderables = [];
+        for (const g of wordGates) renderables.push({ z: g.z, type: 'gate', obj: g });
+        for (const o of obstacles) renderables.push({ z: o.z, type: 'obs', obj: o });
+        for (const c of coins) renderables.push({ z: c.z, type: 'coin', obj: c });
+        if (gameState === STATE.PLAYING) {
+          renderables.push({ z: 75, type: 'player', obj: null });
+        }
+
+        renderables.sort((a, b) => b.z - a.z);
+
+        for (const item of renderables) {
+          if (item.type === 'gate') drawWordGate(item.obj);
+          else if (item.type === 'obs') drawObstacle(item.obj);
+          else if (item.type === 'coin') drawCoin(item.obj);
+          else if (item.type === 'player') drawPlayer();
+        }
+
+        ctx.restore();
+
+        drawParticlesAndOverlays();
+      }
+
+      /* =======================================================
+         11. 主動畫迴圈與啟動初始化
+         ======================================================= */
+      let lastTimestamp = 0;
+      function gameLoop(timestamp) {
+        if (!lastTimestamp) lastTimestamp = timestamp;
+        const dt = Math.min(0.05, (timestamp - lastTimestamp) / 1000);
+        lastTimestamp = timestamp;
+
+        update(dt);
+        render();
+        requestAnimationFrame(gameLoop);
+      }
+
+      window.addEventListener('resize', resizeCanvas);
+      window.addEventListener('orientationchange', () => {
+        setTimeout(resizeCanvas, 120);
+      });
+
+      window.onload = function () {
+        generateCitySkyline();
+        loadLockedSeats();
+        renderSeatGrid();
+        resizeCanvas();
+        requestAnimationFrame(gameLoop);
+      };
+    })();
+  </script>
+</body>
+</html>
