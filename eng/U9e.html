@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>U9單字密室：破解逃脫</title>
+  <!-- 載入 Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 載入 Google Fonts (Noto Sans TC & JetBrains Mono) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans TC"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'shake': 'shake 0.45s cubic-bezier(.36,.07,.19,.97) both',
+            'float': 'float 3s ease-in-out infinite',
+            'glow': 'glow 2s ease-in-out infinite alternate',
+          },
+          keyframes: {
+            shake: {
+              '10%, 90%': { transform: 'translate3d(-2px, 0, 0)' },
+              '20%, 80%': { transform: 'translate3d(4px, 0, 0)' },
+              '30%, 50%, 70%': { transform: 'translate3d(-6px, 0, 0)' },
+              '40%, 60%': { transform: 'translate3d(6px, 0, 0)' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-6px)' },
+            },
+            glow: {
+              'from': { boxShadow: '0 0 10px rgba(34, 211, 238, 0.2), inset 0 0 8px rgba(34, 211, 238, 0.1)' },
+              'to': { boxShadow: '0 0 22px rgba(34, 211, 238, 0.55), inset 0 0 12px rgba(34, 211, 238, 0.25)' },
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      background-color: #070b14;
+      background-image:
+        radial-gradient(circle at 15% 20%, rgba(14, 165, 233, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(245, 158, 11, 0.10) 0%, transparent 45%),
+        linear-gradient(to bottom, #070b14, #0d1526);
+      color: #f1f5f9;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* 密室科技網格背景 */
+    .cyber-grid {
+      background-size: 36px 36px;
+      background-image: 
+        linear-gradient(to right, rgba(56, 189, 248, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
+    }
+
+    /* 3D 遊戲按鈕風格 */
+    .btn-game {
+      transition: all 0.15s ease;
+      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.45);
+    }
+    .btn-game:active:not(:disabled) {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+    }
+
+    /* 自訂捲軸 */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+  </style>
+</head>
+<body class="cyber-grid antialiased selection:bg-cyan-500 selection:text-slate-950">
+
+  <!-- 頂部全域導覽列 -->
+  <header class="sticky top-0 z-30 border-b border-cyan-500/20 bg-slate-950/85 backdrop-blur-md">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center shadow-lg shadow-cyan-500/20 border border-cyan-300/30">
+          <!-- 鎖頭 SVG 圖示 -->
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-base sm:text-xl font-black tracking-wide bg-gradient-to-r from-cyan-300 via-sky-200 to-amber-300 bg-clip-text text-transparent">
+            U9單字密室：破解逃脫
+          </h1>
+          <p class="text-[11px] sm:text-xs text-slate-400">UNIT 9 ESCAPE ROOM // 零失誤通關鎖定系統</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!-- 音效開關 -->
+        <button id="soundToggleBtn" onclick="toggleMute()" title="切換音效"
+          class="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-cyan-300 transition flex items-center gap-1.5 text-xs font-bold">
+          <span id="soundIcon">🔊</span>
+          <span class="hidden sm:inline" id="soundLabel">音效開啟</span>
+        </button>
+
+        <!-- 返回片頭按鈕 (遊戲中顯示) -->
+        <button id="headerHomeBtn" onclick="confirmReturnHome()" class="hidden p-2.5 rounded-xl bg-slate-800/90 hover:bg-rose-950/80 border border-slate-700 hover:border-rose-500/50 text-slate-300 hover:text-rose-300 transition text-xs font-bold">
+          退出密室
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主要內容容器 -->
+  <main class="max-w-5xl mx-auto px-4 py-6 sm:py-8">
+
+    <!-- ==================== 畫面一：片頭與座號選擇 (01號 - 16號) ==================== -->
+    <section id="introScreen" class="space-y-6">
+      <!-- 密室任務簡報卡片 -->
+      <div class="relative overflow-hidden rounded-3xl border border-cyan-500/30 bg-slate-900/80 p-6 sm:p-8 shadow-2xl">
+        <div class="absolute -right-12 -top-12 w-48 h-48 rounded-full bg-cyan-500/10 blur-2xl pointer-events-none"></div>
+        <div class="absolute -left-12 -bottom-12 w-48 h-48 rounded-full bg-amber-500/10 blur-2xl pointer-events-none"></div>
+
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+          <div class="space-y-3 max-w-2xl">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-xs font-bold tracking-wider">
+              <span>⚠️ 機密檔案 // 任務代號：UNIT-09</span>
+            </div>
+            <h2 class="text-2xl sm:text-4xl font-black text-white leading-tight">
+              歡迎來到 <span class="text-cyan-400">U9單字密室：破解逃脫</span>
+            </h2>
+            <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+              你被反鎖在語言密碼實驗室中！前方共有 <strong class="text-cyan-300">10 道隨機電子單字機關</strong> 封鎖了出口大門。請先選擇你的 <strong class="text-amber-300">座號 (01號～16號)</strong> 登入終端機。
+            </p>
+            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-emerald-500/30 flex items-start gap-3">
+              <span class="text-xl mt-0.5">🛡️</span>
+              <div class="text-xs sm:text-sm text-slate-300">
+                <strong class="text-emerald-400 block mb-0.5">【重要通關鎖定規則】</strong>
+                只有在單次挑戰中<span class="text-amber-300 font-bold underline decoration-amber-400/60">「10 題完全正確（0 失誤）」</span>成功逃脫，你的座號才會被系統<span class="text-emerald-300 font-bold">永久鎖定為已通關</span>，不可重複選擇！若有答錯仍可繼續練習，或隨時重新挑戰零失誤紀錄。
+              </div>
+            </div>
+          </div>
+
+          <!-- 通關進度儀表板 -->
+          <div class="shrink-0 bg-slate-950/90 border border-slate-800 rounded-2xl p-5 text-center min-w-[200px] shadow-inner">
+            <div class="text-xs text-slate-400 font-bold tracking-wider mb-1">已成功鎖定座號</div>
+            <div class="text-4xl font-mono font-extrabold text-cyan-400">
+              <span id="lockedCountDisplay">0</span><span class="text-lg text-slate-500"> / 16</span>
+            </div>
+            <div class="w-full bg-slate-800 h-2.5 rounded-full mt-3 overflow-hidden">
+              <div id="lockedProgressBar" class="bg-gradient-to-r from-cyan-400 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <div class="mt-3 text-[11px] text-slate-400">
+              點擊下方未鎖定座號立即開始
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 座號選擇網格 (01號 - 16號) -->
+      <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6 sm:p-8 shadow-xl">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-5">
+          <h3 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+            <span class="w-2.5 h-6 rounded-full bg-cyan-400 inline-block"></span>
+            請選擇挑戰者座號（01號 - 16號）
+          </h3>
+          <div class="flex items-center gap-4 text-xs">
+            <span class="flex items-center gap-1.5 text-cyan-300">
+              <span class="w-3 h-3 rounded-sm bg-slate-800 border border-cyan-500/60 inline-block"></span> 可挑戰
+            </span>
+            <span class="flex items-center gap-1.5 text-emerald-400">
+              <span class="w-3 h-3 rounded-sm bg-emerald-950 border border-emerald-500/60 inline-block"></span> 已完美通關鎖定
+            </span>
+          </div>
+        </div>
+
+        <!-- 16 個座號按鈕網格 -->
+        <div id="seatGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <!-- 由 JavaScript 動態生成 01號 ~ 16號 -->
+        </div>
+
+        <!-- 教師管理重置區 (低調放置於底部) -->
+        <div class="mt-8 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+          <span>系統自動儲存本機通關紀錄 (LocalStorage)</span>
+          <button onclick="openResetModal()" class="text-slate-500 hover:text-rose-400 transition underline underline-offset-4">
+            教師管理：重置所有座號鎖定紀錄
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 畫面二：密室逃脫關卡進行中 ==================== -->
+    <section id="gameScreen" class="hidden space-y-5">
+      <!-- 頂部狀態列：挑戰者座號、進度條、失誤狀態 -->
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/90 p-4 shadow-lg flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="px-3.5 py-2 rounded-xl bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 font-mono font-extrabold text-base sm:text-lg">
+            座號：<span id="activeSeatBadge">01號</span>
+          </div>
+          <div>
+            <div class="text-xs text-slate-400">密室破解進度</div>
+            <div class="text-sm sm:text-base font-bold text-white">
+              第 <span id="currentStageNum" class="text-cyan-400 font-mono text-lg">1</span> / 10 道機關
+            </div>
+          </div>
+        </div>
+
+        <!-- 零失誤資格指示燈 -->
+        <div id="flawlessStatusBox" class="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs sm:text-sm font-bold transition-all">
+          <span id="flawlessIcon" class="text-base">✨</span>
+          <div>
+            <div id="flawlessTitle">零失誤完美狀態（可鎖定座號）</div>
+            <div class="text-[11px] opacity-80 font-mono">目前失誤次數：<span id="mistakeCountText">0</span> 次</div>
+          </div>
+        </div>
+
+        <!-- 計時器 -->
+        <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 font-mono text-amber-300 text-sm sm:text-base font-bold">
+          <span>⏱️</span>
+          <span id="timerDisplay">00:00</span>
+        </div>
+      </div>
+
+      <!-- 10 道關卡視覺化進度燈號 -->
+      <div class="grid grid-cols-10 gap-1.5 sm:gap-2" id="stageLedBar">
+        <!-- JS 動態生成 10 顆機關狀態燈 -->
+      </div>
+
+      <!-- 若已失誤，顯示重新挑戰零失誤的提示橫幅 -->
+      <div id="mistakeWarningBanner" class="hidden rounded-2xl border border-amber-500/40 bg-amber-950/40 p-3.5 sm:px-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 text-amber-200 text-xs sm:text-sm">
+          <span class="text-lg">⚠️</span>
+          <span>本次挑戰已有失誤，通關後<strong class="text-amber-300">不會鎖定座號</strong>。你可以繼續完成練習，或立即重新開始挑戰「零失誤鎖定」！</span>
+        </div>
+        <button onclick="restartCurrentSeat()" class="shrink-0 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm btn-game">
+          🔄 立即重新挑戰零失誤
+        </button>
+      </div>
+
+      <!-- 密室機關主舞台卡片 -->
+      <div id="puzzleCard" class="relative rounded-3xl border border-cyan-500/30 bg-slate-900/90 p-5 sm:p-8 shadow-2xl transition-all">
+        <!-- 關卡頂部標籤與語音按鈕 -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-5 mb-6 border-b border-slate-800">
+          <div>
+            <span id="zoneBadge" class="inline-block px-3 py-1 rounded-lg bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 text-xs font-bold mb-1.5">
+              區域 A // 電子密碼門
+            </span>
+            <h3 id="puzzleTitle" class="text-xl sm:text-2xl font-black text-white">
+              機關 #01：輸入正確單字解鎖
+            </h3>
+          </div>
+
+          <!-- 單字發音提示按鈕 -->
+          <button onclick="speakCurrentWord()" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm btn-game border border-sky-400/30">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            </svg>
+            <span>聆聽單字發音</span>
+          </button>
+        </div>
+
+        <!-- 密室線索提示區 -->
+        <div class="rounded-2xl bg-slate-950/90 border border-slate-800 p-5 sm:p-6 mb-6 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono uppercase tracking-wider text-amber-400 font-bold">🔍 密室線索掃描結果</span>
+            <span id="puzzleTypeTag" class="text-xs px-2.5 py-0.5 rounded-md bg-slate-800 text-slate-300">拼字密碼鎖</span>
+          </div>
+
+          <!-- 中文詞義與情境線索 -->
+          <div id="clueContent" class="space-y-2">
+            <!-- JS 動態填入題目與線索 -->
+          </div>
+        </div>
+
+        <!-- 互動答題區 (依題型動態渲染：字母方塊重組 / 鍵盤輸入 / 四選一解碼) -->
+        <div id="interactionArea" class="space-y-5">
+          <!-- JS 動態生成 -->
+        </div>
+
+        <!-- 即時回饋訊息區 -->
+        <div id="feedbackBanner" class="hidden mt-6 p-4 rounded-2xl font-bold text-center text-sm sm:text-base transition-all">
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 畫面三：逃脫成功結算畫面 ==================== -->
+    <section id="victoryScreen" class="hidden">
+      <div class="relative overflow-hidden rounded-3xl border border-cyan-500/40 bg-slate-900/95 p-6 sm:p-10 text-center shadow-2xl space-y-6">
+        <div class="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-emerald-400 to-cyan-600 flex items-center justify-center text-4xl shadow-lg shadow-emerald-500/30 animate-float">
+          🔓
+        </div>
+
+        <div class="space-y-2">
+          <div class="inline-block px-4 py-1 rounded-full bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 text-xs font-bold tracking-widest">
+            MISSION COMPLETE // 密室大門已開啟
+          </div>
+          <h2 class="text-3xl sm:text-4xl font-black text-white">
+            恭喜 <span id="victorySeatText" class="text-cyan-400 font-mono">01號</span> 成功逃脫！
+          </h2>
+        </div>
+
+        <!-- 鎖定結果狀態大卡片 -->
+        <div id="lockResultCard" class="max-w-xl mx-auto rounded-2xl p-5 sm:p-6 border text-left space-y-2">
+          <!-- JS 動態填入：完全正確已鎖定 OR 有失誤未鎖定 -->
+        </div>
+
+        <!-- 數據統計面板 -->
+        <div class="max-w-xl mx-auto grid grid-cols-3 gap-3 sm:gap-4">
+          <div class="rounded-2xl bg-slate-950/80 border border-slate-800 p-4">
+            <div class="text-xs text-slate-400 mb-1">挑戰座號</div>
+            <div id="statSeat" class="text-xl sm:text-2xl font-mono font-black text-cyan-300">01號</div>
+          </div>
+          <div class="rounded-2xl bg-slate-950/80 border border-slate-800 p-4">
+            <div class="text-xs text-slate-400 mb-1">通關耗時</div>
+            <div id="statTime" class="text-xl sm:text-2xl font-mono font-black text-amber-300">01:25</div>
+          </div>
+          <div class="rounded-2xl bg-slate-950/80 border border-slate-800 p-4">
+            <div class="text-xs text-slate-400 mb-1">失誤次數</div>
+            <div id="statMistakes" class="text-xl sm:text-2xl font-mono font-black text-emerald-400">0 次</div>
+          </div>
+        </div>
+
+        <!-- U9 單字總複習列表 -->
+        <div class="max-w-2xl mx-auto text-left rounded-2xl bg-slate-950/70 border border-slate-800 p-5">
+          <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center justify-between">
+            <span>📖 本次破解的 10 個 U9 核心單字（點擊可聽發音）</span>
+            <span class="text-cyan-400">🔊 點擊朗讀</span>
+          </div>
+          <div id="reviewWordGrid" class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <!-- JS 動態生成 10 個單字小卡 -->
+          </div>
+        </div>
+
+        <!-- 底部行動按鈕 -->
+        <div class="pt-2 flex flex-wrap items-center justify-center gap-4">
+          <button id="retryIfFailedBtn" onclick="restartCurrentSeat()" class="hidden px-6 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-base btn-game">
+            🔄 再挑戰一次（力拼零失誤鎖定）
+          </button>
+          <button onclick="goToIntroScreen()" class="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-base btn-game shadow-lg shadow-cyan-500/25">
+            🏠 返回片頭座號選擇畫面
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== 自訂互動彈窗 (取代 alert/confirm) ==================== -->
+  <div id="customModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="max-w-md w-full rounded-3xl border border-slate-700 bg-slate-900 p-6 shadow-2xl space-y-4">
+      <div class="flex items-center gap-3">
+        <span id="modalIcon" class="text-2xl">⚠️</span>
+        <h3 id="modalTitle" class="text-lg font-black text-white">系統確認</h3>
+      </div>
+      <p id="modalMessage" class="text-sm text-slate-300 leading-relaxed">
+        確定要執行此操作嗎？
+      </p>
+      <div class="pt-2 flex items-center justify-end gap-3">
+        <button onclick="closeCustomModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold">
+          取消
+        </button>
+        <button id="modalConfirmBtn" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold btn-game">
+          確定執行
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 遊戲核心邏輯腳本 ==================== -->
+  <script>
+    // 1. 題庫資料：全部 10 個單字皆完整具備「字母重組密碼鎖、語境四選一解碼、終端機拼字輸入」三大密室互動機關
+    const VOCAB_DATA = [
+      {
+        en: 'use',
+        zh: '使用',
+        zone: '區域 01 // 雷射控制台',
+        scramble: {
+          clueTitle: '中文意義：【 使用 】',
+          clueHint: '請依照正確順序點擊下方打亂的英文字母，啟動雷射控制台！',
+          example: 'Can I ___ your pen? (我可以「使用」你的筆嗎？)'
+        },
+        choice: {
+          clueTitle: '語境密碼破解：【 使用 】',
+          clueHint: '請根據句子前後文與語音提示，選出代表「使用」的正確單字：',
+          example: 'We ___ a computer to study English. (我們「使用」電腦學英文。)',
+          options: ['use', 'us', 'up', 'run']
+        },
+        spell: {
+          clueTitle: '終端機解碼：【 使用 】',
+          clueHint: '提示：字首為 u，結尾為不發音的 e，共 3 個字母。',
+          example: 'May I ___ the restroom? (我可以「使用」洗手間嗎？)'
+        }
+      },
+      {
+        en: 'cute',
+        zh: '可愛的',
+        zone: '區域 02 // 生物觀察艙',
+        scramble: {
+          clueTitle: '中文意義：【 可愛的 】',
+          clueHint: '觀察艙裡的這隻小狗非常「可愛的」，請重組這 4 個字母開啟艙門！',
+          example: 'Look at that puppy! It is so ___. (看那隻小狗！牠好「可愛的」。)'
+        },
+        choice: {
+          clueTitle: '語境密碼破解：【 可愛的 】',
+          clueHint: '觀察艙裡的小貓模樣十分「可愛的」，請選出對應的英文單字：',
+          example: 'The little cat has ___ big eyes. (這隻小貓有一雙「可愛的」大眼睛。)',
+          options: ['cute', 'cold', 'cool', 'cat']
+        },
+        spell: {
+          clueTitle: '終端機解碼：【 可愛的 】',
+          clueHint: '提示：以 c 開頭、字尾為 e，中間為 ut（共 4 個字母）。',
+          example: 'Your baby sister is very ___! (你的小妹妹非常「可愛的」！)'
+        }
+      },
+      {
+        en: 'each',
+        zh: '每個',
+        zone: '區域 03 // 分配能量閥',
+        scramble: {
+          clueTitle: '中文意義：【 每個 】',
+          clueHint: '能量閥需要平均分配給「每個」核心，請點擊字母依序拼出密碼！',
+          example: '___ student has a new book. (「每個」學生都有一本新書。)'
+        },
+        choice: {
+          clueTitle: '語境密碼破解：【 每個 】',
+          clueHint: '請選出句子中代表「每個」的正確英文單字：',
+          example: '___ boy in our class likes sports. (我們班上「每個」男孩都喜歡運動。)',
+          options: ['each', 'eat', 'ear', 'easy']
+        },
+        spell: {
+          clueTitle: '終端機解碼：【 每個 】',
+          clueHint: '提示：字首為 e，包含長母音 ea 與字尾 ch（共 4 個字母）。',
+          example: 'Please check ___ door carefully. (請仔細檢查「每個」門。)'
+        }
+      },
+      {
+        en: 'teach',
+        zh: '教',
+        zone: '區域 04 // 智慧黑板終端',
+        scramble: {
+          clueTitle: '中文意義：【 教 】',
+          clueHint: '提示：老師在課堂上「教」導學生，請重組這 5 個字母啟動黑板！',
+          example: 'Miss Lin will ___ us English today. (林老師今天要「教」我們英文。)'
+        },
+        choice: {
+          clueTitle: '語境密碼破解：【 教 】',
+          clueHint: '智慧黑板顯示著「教」學指令，請選出代表「教」的單字：',
+          example: 'Can you ___ me how to swim? (你可以「教」我怎麼游泳嗎？)',
+          options: ['teach', 'team', 'tea', 'touch']
+        },
+        spell: {
+          clueTitle: '終端機解碼：【 教 】',
+          clueHint: '提示：由 t 開頭，後方接 ea 與 ch（共 5 個字母）。',
+          example: 'My dad can ___ me to ride a bike. (我爸爸可以「教」我騎腳踏車。)'
+        }
+      },
+      {
+        en: 'much',
+        zh: '許多',
+        zone: '區域 05 // 壓力計量室',
+        scramble: {
+          clueTitle: '中文意義：【 許多 】',
+          clueHint: '壓力計量室需要精算「許多」能量值，請重組這 4 個字母！',
+          example: 'Thank you very ___! (非常感謝你！)'
+        },
+        choice: {
+          clueTitle: '語境密碼破解：【 許多 】',
+          clueHint: '「非常感謝！」英文常說 Thank you very ___，意思為「許多」：',
+          example: 'How ___ water do you need? (你需要多少水？)',
+          options: ['many', 'much', 'more', 'most']
+        },
+        spell: {
+          clueTitle: '終端機解碼：【 許多 】',
+          clueHint: '提示：字首為 m，包含短母音 u 與字尾 ch（共 4 個字母）。',
+          example: 'We do not have ___ time left. (我們剩下的時間不「多」了。)'
+        }
+      },
+      {
+        en: 'inch',
+        zh: '英吋',
+        zone: '區域 06 // 精密測量儀',
+        scramble: {
+          clueTitle: '中文意義：【 英吋 】',
+          clueHint: '測量儀顯示長度單位「英吋」，請重組這 4 個字母解鎖！',
+          example: 'One foot is twelve ___es. (一英呎等於十二「英吋」。)'
+        },
+        choice: {
+          clueTitle: '語境密碼破解：【 英吋 】',
+          clueHint: '精密儀器螢幕寬度以「英吋」計算，請選出正確單字：',
+          example: 'The tablet screen is ten ___es wide. (這台平板螢幕有十「英吋」寬。)',
+          options: ['inch', 'into', 'ink', 'ice']
+        },
+        spell: {
+          clueTitle: '終端機解碼：【 英吋 】',
+          clueHint: '提示：長度單位（1 英呎 = 12 英吋），由 i 開頭、ch 結尾（共 4 個字母）。',
+          example: 'Move the key one ___ to the left. (把鑰匙向左移動一「英吋」。)'
+        }
+      },
+      {
+        en: 'rich',
+        zh: '富有的',
+        zone: '區域 07 // 黃金金庫門',
+        scramble: {
+          clueTitle: '中文意義：【 富有的 】',
+          clueHint: '金庫門上刻著「富有的」密碼，請重組這 4 個字母開啟金庫！',
+          example: 'The king is very ___ and kind. (這位國王非常「富有的」又仁慈。)'
+        },
+        choice: {
+          clueTitle: '語境密碼破解：【 富有的 】',
+          clueHint: '黃金金庫的主人非常「富有的」，請選出對應的單字：',
+          example: 'He works hard and becomes a ___ man. (他努力工作成為一位「富有的」人。)',
+          options: ['rich', 'rice', 'ride', 'ring']
+        },
+        spell: {
+          clueTitle: '終端機解碼：【 富有的 】',
+          clueHint: '提示：字首為 r，包含短母音 i 與字尾 ch（共 4 個字母）。',
+          example: 'The museum is ___ in history. (這座博物館擁有「豐富的」歷史。)'
+        }
+      },
+      {
+        en: 'high',
+        zh: '高的',
+        zone: '區域 08 // 高空通風井',
+        scramble: {
+          clueTitle: '中文意義：【 高的 】',
+          clueHint: '通風井位於非常「高的」牆面上，請重組這 4 個字母（注意不發音的 gh）！',
+          example: 'The mountain is very ___. (這座山非常「高的」。)'
+        },
+        choice: {
+          clueTitle: '語境密碼破解：【 高的 】',
+          clueHint: '通風井位於非常「高的」地方，注意不發音的 gh 組合！',
+          example: 'The bird is flying ___ in the sky. (小鳥正在天空中「高」飛。)',
+          options: ['hill', 'hide', 'high', 'huge']
+        },
+        spell: {
+          clueTitle: '終端機解碼：【 高的 】',
+          clueHint: '提示：字首為 h，後方接 i 與不發音的 gh（共 4 個字母）。',
+          example: 'Can you jump ___? (你能跳得「高」嗎？)'
+        }
+      },
+      {
+        en: 'light',
+        zh: '燈光',
+        zone: '區域 09 // 暗房光學鎖',
+        scramble: {
+          clueTitle: '中文意義：【 燈光 】',
+          clueHint: '黑暗密室需要「燈光」才能看清密碼，請重組這 5 個字母！',
+          example: 'Turn on the ___, please. (請打開「燈光」。)'
+        },
+        choice: {
+          clueTitle: '語境密碼破解：【 燈光 】',
+          clueHint: '暗房感應器偵測到「燈光」訊號，請選出代表「燈光」的單字：',
+          example: 'The room is dark. We need some ___. (房間很暗，我們需要一些「燈光」。)',
+          options: ['light', 'lion', 'line', 'like']
+        },
+        spell: {
+          clueTitle: '終端機解碼：【 燈光 】',
+          clueHint: '提示：黑暗密室需要「燈光」照明，字尾為 -ight（共 5 個字母）。',
+          example: 'Please turn off the ___ before sleeping. (睡前請關掉「燈光」。)'
+        }
+      },
+      {
+        en: 'night',
+        zh: '夜晚',
+        zone: '區域 10 // 最終出口大門',
+        scramble: {
+          clueTitle: '最終密碼：【 夜晚 】',
+          clueHint: '最後一道大門！請重組代表「夜晚」的 5 個字母，即可逃出密室！',
+          example: 'Good ___! See you tomorrow. (晚安！明天見。)'
+        },
+        choice: {
+          clueTitle: '語境密碼破解：【 夜晚 】',
+          clueHint: '窗外已進入寧靜的「夜晚」，請選出代表「夜晚」的單字開啟出口：',
+          example: 'We can see many stars at ___. (我們在「夜晚」可以看到許多星星。)',
+          options: ['night', 'nine', 'nice', 'neck']
+        },
+        spell: {
+          clueTitle: '終端機解碼：【 夜晚 】',
+          clueHint: '提示：由 n 開頭，字尾為 -ight（共 5 個字母）。',
+          example: 'Have a good ___! (祝你有個美好的「夜晚」！)'
+        }
+      }
+    ];
+
+    // 2. 全域狀態變數
+    const STORAGE_KEY = 'u9_escape_room_locked_seats';
+    const PUZZLE_MODES = ['scramble', 'choice', 'spell'];
+    let lockedSeats = {}; // 格式: { "01": { time: "01:12", timestamp: ... } }
+    let currentSeat = null; // 例如 "01"
+    let stageList = []; // 當前遊戲的 10 道關卡順序（每次洗牌並隨機分配機關類型）
+    let currentStageIndex = 0;
+    let mistakesCount = 0;
+    let isMuted = false;
+    let timerInterval = null;
+    let elapsedSeconds = 0;
+    let isStageLocked = false; // 防止連點過關
+
+    // 拼字 / 重組題型的暫存輸入
+    let currentInputLetters = [];
+    let scrambledPool = [];
+
+    // 3. Web Audio API 音效合成器 (無需外部音檔)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playTone(freq, type = 'sine', duration = 0.12, delay = 0, gainVal = 0.15) {
+      if (isMuted) return;
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+        gain.gain.setValueAtTime(gainVal, audioCtx.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime + delay);
+        osc.stop(audioCtx.currentTime + delay + duration);
+      } catch (e) {
+        // 忽略瀏覽器音訊限制錯誤
+      }
+    }
+
+    function playClickSound() {
+      playTone(620, 'triangle', 0.07, 0, 0.12);
+    }
+
+    function playSuccessSound() {
+      playTone(523.25, 'sine', 0.15, 0, 0.16);    // C5
+      playTone(659.25, 'sine', 0.15, 0.08, 0.16); // E5
+      playTone(783.99, 'sine', 0.25, 0.16, 0.18); // G5
+    }
+
+    function playErrorSound() {
+      playTone(190, 'sawtooth', 0.22, 0, 0.18);
+      playTone(150, 'sawtooth', 0.28, 0.14, 0.18);
+    }
+
+    function playVictoryFanfare() {
+      const notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50];
+      const times = [0, 0.12, 0.24, 0.36, 0.54, 0.68];
+      notes.forEach((n, idx) => playTone(n, 'triangle', 0.28, times[idx], 0.2));
+    }
+
+    function toggleMute() {
+      isMuted = !isMuted;
+      document.getElementById('soundIcon').textContent = isMuted ? '🔇' : '🔊';
+      document.getElementById('soundLabel').textContent = isMuted ? '音效靜音' : '音效開啟';
+      if (!isMuted) playClickSound();
+    }
+
+    // 4. 英語語音朗讀 (Web Speech API)
+    function speakWord(word) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(word);
+      utter.lang = 'en-US';
+      utter.rate = 0.88; // 稍微放慢語速讓學生聽得更清楚
+      utter.pitch = 1.05;
+      window.speechSynthesis.speak(utter);
+    }
+
+    function speakCurrentWord() {
+      if (stageList[currentStageIndex]) {
+        playClickSound();
+        speakWord(stageList[currentStageIndex].en);
+      }
+    }
+
+    // 5. LocalStorage 讀取與儲存座號鎖定紀錄
+    function loadLockedSeats() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        lockedSeats = raw ? JSON.parse(raw) : {};
+      } catch (e) {
+        lockedSeats = {};
+      }
+    }
+
+    function saveLockedSeats() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(lockedSeats));
+      } catch (e) {
+        console.error('無法儲存紀錄', e);
+      }
+    }
+
+    // 6. 渲染片頭座號網格 (01號 - 16號)
+    function renderSeatGrid() {
+      loadLockedSeats();
+      const grid = document.getElementById('seatGrid');
+      grid.innerHTML = '';
+
+      const lockedCount = Object.keys(lockedSeats).length;
+      document.getElementById('lockedCountDisplay').textContent = lockedCount;
+      document.getElementById('lockedProgressBar').style.width = `${(lockedCount / 16) * 100}%`;
+
+      for (let i = 1; i <= 16; i++) {
+        const seatCode = String(i).padStart(2, '0');
+        const seatLabel = `${seatCode}號`;
+        const isLocked = Boolean(lockedSeats[seatCode]);
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+
+        if (isLocked) {
+          // 已完全正確通關 -> 永久鎖定不可再選
+          btn.disabled = true;
+          btn.className = `
+            relative overflow-hidden rounded-2xl p-4 border-2 border-emerald-500/40 bg-emerald-950/35
+            text-left cursor-not-allowed opacity-85 select-none flex flex-col justify-between min-h-[92px]
+          `;
+          btn.innerHTML = `
+            <div class="flex items-center justify-between w-full">
+              <span class="font-mono text-xl sm:text-2xl font-black text-emerald-400/80 line-through decoration-emerald-500/60">
+                ${seatLabel}
+              </span>
+              <span class="px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-bold flex items-center gap-1">
+                🔒 已鎖定
+              </span>
+            </div>
+            <div class="text-xs text-emerald-300/80 font-medium mt-2">
+              ✅ 完全正確通關 (${lockedSeats[seatCode].time || '完成'})
+            </div>
+          `;
+        } else {
+          // 尚未鎖定 -> 可點擊進入密室
+          btn.className = `
+            group relative overflow-hidden rounded-2xl p-4 border-2 border-slate-700/90 hover:border-cyan-400
+            bg-slate-800/80 hover:bg-slate-800 text-left transition-all duration-200 btn-game
+            flex flex-col justify-between min-h-[92px] hover:shadow-lg hover:shadow-cyan-500/15
+          `;
+          btn.onclick = () => startEscapeRoom(seatCode);
+          btn.innerHTML = `
+            <div class="flex items-center justify-between w-full">
+              <span class="font-mono text-xl sm:text-2xl font-black text-white group-hover:text-cyan-300 transition">
+                ${seatLabel}
+              </span>
+              <span class="w-8 h-8 rounded-xl bg-slate-900/90 group-hover:bg-cyan-500/20 border border-slate-700 group-hover:border-cyan-400/50 flex items-center justify-center text-sm transition">
+                🔑
+              </span>
+            </div>
+            <div class="text-xs text-slate-400 group-hover:text-cyan-200 mt-2 flex items-center justify-between">
+              <span>點擊進入密室</span>
+              <span class="opacity-0 group-hover:opacity-100 transition transform group-hover:translate-x-1">→</span>
+            </div>
+          `;
+        }
+
+        grid.appendChild(btn);
+      }
+    }
+
+    // 7. 開始遊戲流程
+    function startEscapeRoom(seatCode) {
+      // 雙重防護：若該號碼已鎖定則拒絕進入
+      if (lockedSeats[seatCode]) return;
+
+      playClickSound();
+      currentSeat = seatCode;
+      currentStageIndex = 0;
+      mistakesCount = 0;
+      elapsedSeconds = 0;
+      isStageLocked = false;
+
+      // 隨機洗牌 10 個單字順序，並為每個單字隨機從三大互動機關中抽取一種出題
+      const shuffledVocab = [...VOCAB_DATA].sort(() => Math.random() - 0.5);
+      stageList = shuffledVocab.map((item, idx) => {
+        const randomMode = PUZZLE_MODES[Math.floor(Math.random() * PUZZLE_MODES.length)];
+        const modePayload = item[randomMode];
+        return {
+          en: item.en,
+          zh: item.zh,
+          zone: `區域 ${String(idx + 1).padStart(2, '0')} // ${item.zone.split('//')[1].trim()}`,
+          type: randomMode,
+          clueTitle: modePayload.clueTitle,
+          clueHint: modePayload.clueHint,
+          example: modePayload.example,
+          options: modePayload.options || []
+        };
+      });
+
+      // 切換畫面
+      document.getElementById('introScreen').classList.add('hidden');
+      document.getElementById('victoryScreen').classList.add('hidden');
+      document.getElementById('gameScreen').classList.remove('hidden');
+      document.getElementById('headerHomeBtn').classList.remove('hidden');
+
+      document.getElementById('activeSeatBadge').textContent = `${currentSeat}號`;
+      updateMistakeUI();
+      startTimer();
+      renderStage();
+    }
+
+    function restartCurrentSeat() {
+      if (!currentSeat) return;
+      startEscapeRoom(currentSeat);
+    }
+
+    function startTimer() {
+      stopTimer();
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        elapsedSeconds++;
+        updateTimerDisplay();
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    function formatSeconds(sec) {
+      const m = String(Math.floor(sec / 60)).padStart(2, '0');
+      const s = String(sec % 60).padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function updateTimerDisplay() {
+      document.getElementById('timerDisplay').textContent = formatSeconds(elapsedSeconds);
+    }
+
+    // 8. 更新零失誤狀態 UI
+    function updateMistakeUI() {
+      const box = document.getElementById('flawlessStatusBox');
+      const icon = document.getElementById('flawlessIcon');
+      const title = document.getElementById('flawlessTitle');
+      const countText = document.getElementById('mistakeCountText');
+      const warningBanner = document.getElementById('mistakeWarningBanner');
+
+      countText.textContent = mistakesCount;
+
+      if (mistakesCount === 0) {
+        box.className = 'flex items-center gap-2.5 px-4 py-2 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs sm:text-sm font-bold transition-all';
+        icon.textContent = '✨';
+        title.textContent = '零失誤完美狀態（可鎖定座號）';
+        warningBanner.classList.add('hidden');
+      } else {
+        box.className = 'flex items-center gap-2.5 px-4 py-2 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs sm:text-sm font-bold transition-all';
+        icon.textContent = '⚠️';
+        title.textContent = '已有失誤（本次通關不會鎖定座號）';
+        warningBanner.classList.remove('hidden');
+      }
+    }
+
+    // 9. 渲染目前關卡 (第 1 ~ 10 題)
+    function renderStage() {
+      isStageLocked = false;
+      const stage = stageList[currentStageIndex];
+      document.getElementById('currentStageNum').textContent = currentStageIndex + 1;
+      document.getElementById('zoneBadge').textContent = stage.zone;
+      document.getElementById('puzzleTitle').textContent = `機關 #${String(currentStageIndex + 1).padStart(2, '0')}：破解單字密碼`;
+
+      // 隱藏上一題回饋
+      const feedback = document.getElementById('feedbackBanner');
+      feedback.classList.add('hidden');
+
+      // 渲染 10 顆進度燈號
+      const ledBar = document.getElementById('stageLedBar');
+      ledBar.innerHTML = '';
+      for (let i = 0; i < 10; i++) {
+        const led = document.createElement('div');
+        if (i < currentStageIndex) {
+          led.className = 'h-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50';
+        } else if (i === currentStageIndex) {
+          led.className = 'h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-sm shadow-cyan-400/70';
+        } else {
+          led.className = 'h-2.5 rounded-full bg-slate-800 border border-slate-700';
+        }
+        ledBar.appendChild(led);
+      }
+
+      // 渲染線索內容
+      const clueContent = document.getElementById('clueContent');
+      clueContent.innerHTML = `
+        <div class="text-xl sm:text-2xl font-black text-cyan-300">${stage.clueTitle}</div>
+        <p class="text-slate-300 text-sm sm:text-base">${stage.clueHint}</p>
+        <div class="mt-2 p-3 rounded-xl bg-slate-900/90 border border-slate-800 font-mono text-xs sm:text-sm text-amber-200/90">
+          💡 密室例句線索：${stage.example}
+        </div>
+      `;
+
+      // 自動朗讀一次單字提示（延遲 250ms 體驗更佳）
+      setTimeout(() => speakWord(stage.en), 250);
+
+      // 根據題型渲染互動區域
+      const interactionArea = document.getElementById('interactionArea');
+      const typeTag = document.getElementById('puzzleTypeTag');
+
+      if (stage.type === 'scramble') {
+        typeTag.textContent = '🔤 字母重組密碼鎖';
+        renderScramblePuzzle(stage, interactionArea);
+      } else if (stage.type === 'choice') {
+        typeTag.textContent = '🎯 語境四選一解碼';
+        renderChoicePuzzle(stage, interactionArea);
+      } else {
+        typeTag.textContent = '⌨️ 終端機拼字輸入';
+        renderSpellPuzzle(stage, interactionArea);
+      }
+    }
+
+    // 題型 A：字母重組密碼鎖
+    function renderScramblePuzzle(stage, container) {
+      const letters = stage.en.split('');
+      // 確保打亂後的順序不等於原單字
+      let shuffled = [...letters];
+      do {
+        shuffled.sort(() => Math.random() - 0.5);
+      } while (shuffled.join('') === stage.en && letters.length > 1);
+
+      scrambledPool = shuffled.map((char, idx) => ({ id: idx, char, used: false }));
+      currentInputLetters = [];
+
+      container.innerHTML = `
+        <div class="space-y-4">
+          <!-- 密碼顯示槽 -->
+          <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 min-h-[64px] p-4 rounded-2xl bg-slate-950 border-2 border-cyan-500/40" id="scrambleSlots">
+          </div>
+
+          <!-- 打亂的字母按鈕池 -->
+          <div class="flex flex-wrap items-center justify-center gap-3 pt-2" id="scrambleButtons">
+          </div>
+
+          <!-- 清除與確認按鈕 -->
+          <div class="flex items-center justify-center gap-3 pt-2">
+            <button type="button" onclick="resetScrambleInput()" class="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm btn-game">
+              ⌫ 清除重填
+            </button>
+          </div>
+        </div>
+      `;
+
+      updateScrambleUI();
+    }
+
+    function updateScrambleUI() {
+      const stage = stageList[currentStageIndex];
+      const slotsEl = document.getElementById('scrambleSlots');
+      const btnsEl = document.getElementById('scrambleButtons');
+      if (!slotsEl || !btnsEl) return;
+
+      // 渲染上方密碼槽
+      slotsEl.innerHTML = '';
+      for (let i = 0; i < stage.en.length; i++) {
+        const item = currentInputLetters[i];
+        const slot = document.createElement('button');
+        slot.type = 'button';
+        if (item) {
+          slot.className = 'w-12 h-14 sm:w-14 sm:h-16 rounded-xl bg-cyan-500/20 border-2 border-cyan-400 text-cyan-200 font-mono text-2xl sm:text-3xl font-black flex items-center justify-center shadow-md hover:bg-rose-500/20 hover:border-rose-400 transition';
+          slot.textContent = item.char;
+          slot.title = '點擊退回此字母';
+          slot.onclick = () => removeScrambleLetter(i);
+        } else {
+          slot.className = 'w-12 h-14 sm:w-14 sm:h-16 rounded-xl bg-slate-900 border-2 border-dashed border-slate-700 text-slate-600 font-mono text-xl flex items-center justify-center';
+          slot.textContent = '_';
+          slot.disabled = true;
+        }
+        slotsEl.appendChild(slot);
+      }
+
+      // 渲染下方可點擊的字母方塊
+      btnsEl.innerHTML = '';
+      scrambledPool.forEach((tile) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.disabled = tile.used || isStageLocked;
+        if (tile.used) {
+          btn.className = 'w-13 h-14 sm:w-15 sm:h-16 px-4 py-3 rounded-2xl bg-slate-900/50 border border-slate-800 text-slate-700 font-mono text-2xl font-black cursor-not-allowed';
+        } else {
+          btn.className = 'w-13 h-14 sm:w-15 sm:h-16 px-5 py-3 rounded-2xl bg-gradient-to-b from-slate-700 to-slate-800 hover:from-cyan-600 hover:to-blue-700 border border-slate-600 hover:border-cyan-300 text-white font-mono text-2xl sm:text-3xl font-black btn-game';
+        }
+        btn.textContent = tile.char;
+        btn.onclick = () => pickScrambleTile(tile.id);
+        btnsEl.appendChild(btn);
+      });
+    }
+
+    function pickScrambleTile(tileId) {
+      if (isStageLocked) return;
+      const tile = scrambledPool.find(t => t.id === tileId);
+      if (!tile || tile.used) return;
+
+      playClickSound();
+      tile.used = true;
+      currentInputLetters.push(tile);
+      updateScrambleUI();
+
+      // 當填滿所有字母時自動驗證
+      const stage = stageList[currentStageIndex];
+      if (currentInputLetters.length === stage.en.length) {
+        const answer = currentInputLetters.map(t => t.char).join('');
+        setTimeout(() => checkAnswer(answer), 180);
+      }
+    }
+
+    function removeScrambleLetter(slotIndex) {
+      if (isStageLocked) return;
+      playClickSound();
+      const removed = currentInputLetters.splice(slotIndex, 1)[0];
+      if (removed) {
+        const tile = scrambledPool.find(t => t.id === removed.id);
+        if (tile) tile.used = false;
+      }
+      updateScrambleUI();
+    }
+
+    function resetScrambleInput() {
+      if (isStageLocked) return;
+      playClickSound();
+      currentInputLetters = [];
+      scrambledPool.forEach(t => t.used = false);
+      updateScrambleUI();
+    }
+
+    // 題型 B：語境四選一解碼
+    function renderChoicePuzzle(stage, container) {
+      // 打亂選項順序
+      const shuffledOptions = [...stage.options].sort(() => Math.random() - 0.5);
+
+      container.innerHTML = `
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5" id="choiceGrid">
+          ${shuffledOptions.map((opt, idx) => `
+            <button type="button" onclick="handleChoiceClick('${opt}', this)"
+              class="group p-4 sm:p-5 rounded-2xl bg-slate-800/90 hover:bg-cyan-950/70 border-2 border-slate-700 hover:border-cyan-400 text-left flex items-center justify-between transition btn-game">
+              <div class="flex items-center gap-3.5">
+                <span class="w-9 h-9 rounded-xl bg-slate-900 group-hover:bg-cyan-500/20 border border-slate-700 group-hover:border-cyan-400 text-cyan-300 font-mono font-bold flex items-center justify-center">
+                  ${['A', 'B', 'C', 'D'][idx]}
+                </span>
+                <span class="font-mono text-xl sm:text-2xl font-black text-white group-hover:text-cyan-200">
+                  ${opt}
+                </span>
+              </div>
+              <span class="text-xs text-slate-500 group-hover:text-cyan-300 font-bold">選擇解鎖 →</span>
+            </button>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function handleChoiceClick(selectedWord, btnEl) {
+      if (isStageLocked) return;
+      playClickSound();
+      checkAnswer(selectedWord, btnEl);
+    }
+
+    // 題型 C：終端機拼字輸入 (支援實體鍵盤與虛擬字母鍵盤)
+    function renderSpellPuzzle(stage, container) {
+      const keyboardRows = [
+        ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+        ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+        ['z', 'x', 'c', 'v', 'b', 'n', 'm']
+      ];
+
+      container.innerHTML = `
+        <form onsubmit="handleSpellSubmit(event)" class="space-y-4">
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <input id="spellInputBox" type="text" autocomplete="off" autocapitalize="none" spellcheck="false"
+              maxlength="${stage.en.length + 2}"
+              placeholder="請輸入 ${stage.en.length} 個英文字母..."
+              class="w-full sm:w-80 px-5 py-3.5 rounded-2xl bg-slate-950 border-2 border-cyan-500/50 focus:border-cyan-300 focus:outline-none text-center font-mono text-2xl sm:text-3xl font-black text-cyan-200 tracking-widest placeholder:text-slate-600 placeholder:text-base placeholder:tracking-normal" />
+            <button type="submit"
+              class="w-full sm:w-auto px-7 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-base btn-game">
+              🔓 驗證密碼
+            </button>
+          </div>
+
+          <!-- 貼心觸控虛擬鍵盤（適合平板與觸控螢幕） -->
+          <div class="pt-2 space-y-1.5 select-none">
+            ${keyboardRows.map(row => `
+              <div class="flex justify-center gap-1 sm:gap-1.5">
+                ${row.map(ch => `
+                  <button type="button" onclick="appendSpellChar('${ch}')"
+                    class="w-8 h-10 sm:w-10 sm:h-11 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-cyan-600 border border-slate-700 text-slate-200 font-mono font-bold text-sm sm:text-base">
+                    ${ch}
+                  </button>
+                `).join('')}
+              </div>
+            `).join('')}
+            <div class="flex justify-center gap-2 pt-1">
+              <button type="button" onclick="backspaceSpellChar()"
+                class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-rose-950/70 border border-slate-700 text-slate-300 text-xs font-bold">
+                ⌫ 退格
+              </button>
+              <button type="button" onclick="clearSpellChar()"
+                class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-bold">
+                清空
+              </button>
+            </div>
+          </div>
+        </form>
+      `;
+
+      setTimeout(() => {
+        const input = document.getElementById('spellInputBox');
+        if (input) input.focus();
+      }, 100);
+    }
+
+    function appendSpellChar(ch) {
+      if (isStageLocked) return;
+      const input = document.getElementById('spellInputBox');
+      if (!input) return;
+      playClickSound();
+      input.value += ch;
+      input.focus();
+    }
+
+    function backspaceSpellChar() {
+      if (isStageLocked) return;
+      const input = document.getElementById('spellInputBox');
+      if (!input) return;
+      playClickSound();
+      input.value = input.value.slice(0, -1);
+      input.focus();
+    }
+
+    function clearSpellChar() {
+      if (isStageLocked) return;
+      const input = document.getElementById('spellInputBox');
+      if (!input) return;
+      playClickSound();
+      input.value = '';
+      input.focus();
+    }
+
+    function handleSpellSubmit(e) {
+      e.preventDefault();
+      if (isStageLocked) return;
+      const input = document.getElementById('spellInputBox');
+      if (!input) return;
+      const val = input.value.trim().toLowerCase();
+      if (!val) return;
+      checkAnswer(val);
+    }
+
+    // 10. 驗證答案核心邏輯
+    function checkAnswer(userAnswer, btnEl = null) {
+      if (isStageLocked) return;
+      const stage = stageList[currentStageIndex];
+      const normalized = userAnswer.trim().toLowerCase();
+      const feedback = document.getElementById('feedbackBanner');
+      const card = document.getElementById('puzzleCard');
+
+      if (normalized === stage.en.toLowerCase()) {
+        // 答對！
+        isStageLocked = true;
+        playSuccessSound();
+        speakWord(stage.en);
+
+        if (btnEl) {
+          btnEl.classList.remove('border-slate-700', 'bg-slate-800/90');
+          btnEl.classList.add('border-emerald-400', 'bg-emerald-950/70');
+        }
+
+        feedback.className = 'mt-6 p-4 rounded-2xl bg-emerald-950/80 border border-emerald-400/50 text-emerald-300 font-bold text-center text-sm sm:text-base';
+        feedback.innerHTML = `✅ 機關破解成功！正確密碼為 <span class="font-mono text-xl text-white underline mx-1">${stage.en}</span>（${stage.zh}）`;
+        feedback.classList.remove('hidden');
+
+        setTimeout(() => {
+          currentStageIndex++;
+          if (currentStageIndex < stageList.length) {
+            renderStage();
+          } else {
+            completeEscapeRoom();
+          }
+        }, 1050);
+
+      } else {
+        // 答錯！累計失誤次數並給予明確回饋
+        mistakesCount++;
+        updateMistakeUI();
+        playErrorSound();
+
+        // 卡片震動動畫
+        card.classList.remove('animate-shake');
+        void card.offsetWidth; // 觸發重繪
+        card.classList.add('animate-shake');
+
+        if (btnEl) {
+          btnEl.classList.add('border-rose-500', 'bg-rose-950/60', 'opacity-60');
+          btnEl.disabled = true;
+        }
+
+        feedback.className = 'mt-6 p-4 rounded-2xl bg-rose-950/80 border border-rose-500/50 text-rose-200 font-bold text-center text-sm sm:text-base';
+        feedback.innerHTML = `❌ 密碼錯誤！「<span class="font-mono text-rose-300">${userAnswer}</span>」無法開啟機關（已記錄 1 次失誤）。請再試一次！`;
+        feedback.classList.remove('hidden');
+
+        // 若是字母重組題，自動退回方便重試
+        if (stage.type === 'scramble') {
+          setTimeout(() => {
+            resetScrambleInput();
+          }, 650);
+        } else if (stage.type === 'spell') {
+          const input = document.getElementById('spellInputBox');
+          if (input) {
+            input.select();
+          }
+        }
+      }
+    }
+
+    // 11. 全部 10 關通關結算
+    function completeEscapeRoom() {
+      stopTimer();
+      playVictoryFanfare();
+
+      const timeStr = formatSeconds(elapsedSeconds);
+      const isPerfect = (mistakesCount === 0);
+
+      // 切換畫面
+      document.getElementById('gameScreen').classList.add('hidden');
+      document.getElementById('victoryScreen').classList.remove('hidden');
+      document.getElementById('headerHomeBtn').classList.add('hidden');
+
+      document.getElementById('victorySeatText').textContent = `${currentSeat}號`;
+      document.getElementById('statSeat').textContent = `${currentSeat}號`;
+      document.getElementById('statTime').textContent = timeStr;
+      document.getElementById('statMistakes').textContent = `${mistakesCount} 次`;
+
+      const lockCard = document.getElementById('lockResultCard');
+      const retryBtn = document.getElementById('retryIfFailedBtn');
+      const statMistakesEl = document.getElementById('statMistakes');
+
+      if (isPerfect) {
+        // 完全正確 (0 失誤) -> 永久鎖定該座號！
+        lockedSeats[currentSeat] = {
+          time: timeStr,
+          completedAt: new Date().toISOString()
+        };
+        saveLockedSeats();
+
+        statMistakesEl.className = 'text-xl sm:text-2xl font-mono font-black text-emerald-400';
+        lockCard.className = 'max-w-xl mx-auto rounded-2xl p-5 sm:p-6 border-2 border-emerald-400/60 bg-emerald-950/50 text-left space-y-2 shadow-lg shadow-emerald-500/10';
+        lockCard.innerHTML = `
+          <div class="flex items-center gap-2.5 text-emerald-300 font-black text-lg sm:text-xl">
+            <span>🔒</span>
+            <span>完全正確！${currentSeat}號 已永久鎖定通關</span>
+          </div>
+          <p class="text-sm text-emerald-100/90 leading-relaxed">
+            太厲害了！你在零失誤的狀態下破解了全部 10 道單字機關。系統已將 <strong class="text-white">${currentSeat}號</strong> 標記為「已通關鎖定」，返回片頭後將不可再重複選擇。
+          </p>
+        `;
+        retryBtn.classList.add('hidden');
+      } else {
+        // 有失誤 -> 不鎖定座號，鼓勵再挑戰
+        statMistakesEl.className = 'text-xl sm:text-2xl font-mono font-black text-rose-400';
+        lockCard.className = 'max-w-xl mx-auto rounded-2xl p-5 sm:p-6 border-2 border-amber-400/60 bg-amber-950/40 text-left space-y-2';
+        lockCard.innerHTML = `
+          <div class="flex items-center gap-2.5 text-amber-300 font-black text-lg sm:text-xl">
+            <span>⚠️</span>
+            <span>通關完成，但 ${currentSeat}號 尚未鎖定</span>
+          </div>
+          <p class="text-sm text-amber-100/90 leading-relaxed">
+            本次挑戰共發生 <strong class="text-rose-300">${mistakesCount} 次失誤</strong>。依據密室規則，必須「10 題完全正確（0 失誤）」才能鎖定座號！請點擊下方按鈕重新挑戰。
+          </p>
+        `;
+        retryBtn.classList.remove('hidden');
+      }
+
+      // 渲染 10 個單字總複習小卡
+      const reviewGrid = document.getElementById('reviewWordGrid');
+      reviewGrid.innerHTML = VOCAB_DATA.map(w => `
+        <button type="button" onclick="speakWord('${w.en}')"
+          class="p-2.5 rounded-xl bg-slate-900 hover:bg-cyan-950/60 border border-slate-800 hover:border-cyan-400/50 text-center transition group">
+          <div class="font-mono font-black text-cyan-300 group-hover:text-white text-sm sm:text-base">${w.en}</div>
+          <div class="text-xs text-slate-400 mt-0.5">${w.zh}</div>
+        </button>
+      `).join('');
+    }
+
+    // 12. 畫面切換與自訂確認視窗
+    function goToIntroScreen() {
+      stopTimer();
+      playClickSound();
+      document.getElementById('gameScreen').classList.add('hidden');
+      document.getElementById('victoryScreen').classList.add('hidden');
+      document.getElementById('headerHomeBtn').classList.add('hidden');
+      document.getElementById('introScreen').classList.remove('hidden');
+      renderSeatGrid();
+    }
+
+    function confirmReturnHome() {
+      showCustomModal(
+        '退出密室確認',
+        `確定要放棄目前 ${currentSeat}號 的逃脫進度並返回片頭座號選擇畫面嗎？`,
+        '確定退出',
+        () => {
+          closeCustomModal();
+          goToIntroScreen();
+        }
+      );
+    }
+
+    function openResetModal() {
+      showCustomModal(
+        '教師管理：重置所有座號紀錄',
+        '確定要清除所有已鎖定（01號～16號）的通關紀錄嗎？清除後所有座號將恢復為可選擇狀態。',
+        '全部重置',
+        () => {
+          localStorage.removeItem(STORAGE_KEY);
+          lockedSeats = {};
+          closeCustomModal();
+          renderSeatGrid();
+          playSuccessSound();
+        }
+      );
+    }
+
+    function showCustomModal(title, message, confirmText, onConfirm) {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalMessage').textContent = message;
+      const btn = document.getElementById('modalConfirmBtn');
+      btn.textContent = confirmText;
+      btn.onclick = onConfirm;
+      document.getElementById('customModal').classList.remove('hidden');
+    }
+
+    function closeCustomModal() {
+      document.getElementById('customModal').classList.add('hidden');
+    }
+
+    // 頁面載入完成初始化
+    window.addEventListener('DOMContentLoaded', () => {
+      renderSeatGrid();
+    });
+  </script>
+</body>
+</html>
