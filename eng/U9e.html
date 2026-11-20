@@ -615,6 +615,7 @@
     // 拼字 / 重組題型的暫存輸入
     let currentInputLetters = [];
     let scrambledPool = [];
+    let spellBuffer = ''; // 終端機無焦點輸入緩衝字串（徹底阻絕 Windows IME 跳出）
 
     // 3. Web Audio API 音效合成器 (無需外部音檔)
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -978,93 +979,91 @@
         slotsEl.appendChild(slot);
       }
 
-      // 渲染下方可點擊的字母方塊
+      // 渲染下方打亂的字母按鈕池
       btnsEl.innerHTML = '';
-      scrambledPool.forEach((tile) => {
+      scrambledPool.forEach((poolItem) => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.disabled = tile.used || isStageLocked;
-        if (tile.used) {
-          btn.className = 'w-13 h-14 sm:w-15 sm:h-16 px-4 py-3 rounded-2xl bg-slate-900/50 border border-slate-800 text-slate-700 font-mono text-2xl font-black cursor-not-allowed';
+        btn.textContent = poolItem.char;
+        if (poolItem.used) {
+          btn.disabled = true;
+          btn.className = 'w-12 h-14 sm:w-14 sm:h-16 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-700 font-mono text-2xl font-black cursor-not-allowed';
         } else {
-          btn.className = 'w-13 h-14 sm:w-15 sm:h-16 px-5 py-3 rounded-2xl bg-gradient-to-b from-slate-700 to-slate-800 hover:from-cyan-600 hover:to-blue-700 border border-slate-600 hover:border-cyan-300 text-white font-mono text-2xl sm:text-3xl font-black btn-game';
+          btn.className = 'w-12 h-14 sm:w-14 sm:h-16 rounded-xl bg-gradient-to-b from-slate-700 to-slate-800 hover:from-cyan-600 hover:to-blue-700 border border-slate-600 hover:border-cyan-300 text-white font-mono text-2xl sm:text-3xl font-black btn-game';
+          btn.onclick = () => selectScrambleLetter(poolItem.id);
         }
-        btn.textContent = tile.char;
-        btn.onclick = () => pickScrambleTile(tile.id);
         btnsEl.appendChild(btn);
       });
     }
 
-    function pickScrambleTile(tileId) {
+    function selectScrambleLetter(poolId) {
       if (isStageLocked) return;
-      const tile = scrambledPool.find(t => t.id === tileId);
-      if (!tile || tile.used) return;
+      const poolItem = scrambledPool.find(p => p.id === poolId);
+      if (!poolItem || poolItem.used) return;
 
       playClickSound();
-      tile.used = true;
-      currentInputLetters.push(tile);
+      poolItem.used = true;
+      currentInputLetters.push(poolItem);
       updateScrambleUI();
 
-      // 當填滿所有字母時自動驗證
+      // 若已填滿所有字母，自動送出檢查
       const stage = stageList[currentStageIndex];
       if (currentInputLetters.length === stage.en.length) {
-        const answer = currentInputLetters.map(t => t.char).join('');
-        setTimeout(() => checkAnswer(answer), 180);
+        const formedWord = currentInputLetters.map(x => x.char).join('');
+        setTimeout(() => checkAnswer(formedWord), 180);
       }
     }
 
     function removeScrambleLetter(slotIndex) {
       if (isStageLocked) return;
+      const removed = currentInputLetters[slotIndex];
+      if (!removed) return;
+
       playClickSound();
-      const removed = currentInputLetters.splice(slotIndex, 1)[0];
-      if (removed) {
-        const tile = scrambledPool.find(t => t.id === removed.id);
-        if (tile) tile.used = false;
-      }
+      removed.used = false;
+      currentInputLetters.splice(slotIndex, 1);
       updateScrambleUI();
     }
 
     function resetScrambleInput() {
       if (isStageLocked) return;
       playClickSound();
+      scrambledPool.forEach(p => p.used = false);
       currentInputLetters = [];
-      scrambledPool.forEach(t => t.used = false);
       updateScrambleUI();
     }
 
     // 題型 B：語境四選一解碼
     function renderChoicePuzzle(stage, container) {
-      // 打亂選項順序
-      const shuffledOptions = [...stage.options].sort(() => Math.random() - 0.5);
-
+      const options = [...stage.options].sort(() => Math.random() - 0.5);
       container.innerHTML = `
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5" id="choiceGrid">
-          ${shuffledOptions.map((opt, idx) => `
-            <button type="button" onclick="handleChoiceClick('${opt}', this)"
-              class="group p-4 sm:p-5 rounded-2xl bg-slate-800/90 hover:bg-cyan-950/70 border-2 border-slate-700 hover:border-cyan-400 text-left flex items-center justify-between transition btn-game">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          ${options.map((opt, idx) => `
+            <button type="button" onclick="checkAnswer('${opt}', this)"
+              class="group p-4 sm:p-5 rounded-2xl bg-slate-800/90 hover:bg-cyan-950/70 border-2 border-slate-700 hover:border-cyan-400 text-left transition flex items-center justify-between btn-game">
               <div class="flex items-center gap-3.5">
-                <span class="w-9 h-9 rounded-xl bg-slate-900 group-hover:bg-cyan-500/20 border border-slate-700 group-hover:border-cyan-400 text-cyan-300 font-mono font-bold flex items-center justify-center">
-                  ${['A', 'B', 'C', 'D'][idx]}
+                <span class="w-9 h-9 rounded-xl bg-slate-950 group-hover:bg-cyan-500/20 border border-slate-700 group-hover:border-cyan-400/50 text-cyan-300 font-mono font-black flex items-center justify-center">
+                  ${String.fromCharCode(65 + idx)}
                 </span>
-                <span class="font-mono text-xl sm:text-2xl font-black text-white group-hover:text-cyan-200">
+                <span class="font-mono text-xl sm:text-2xl font-black text-white group-hover:text-cyan-200 tracking-wide">
                   ${opt}
                 </span>
               </div>
-              <span class="text-xs text-slate-500 group-hover:text-cyan-300 font-bold">選擇解鎖 →</span>
+              <span class="text-xs text-slate-400 group-hover:text-cyan-300 font-bold">選擇密碼 →</span>
             </button>
           `).join('')}
         </div>
       `;
     }
 
-    function handleChoiceClick(selectedWord, btnEl) {
-      if (isStageLocked) return;
-      playClickSound();
-      checkAnswer(selectedWord, btnEl);
-    }
-
-    // 題型 C：終端機拼字輸入 (支援實體鍵盤與虛擬字母鍵盤)
+    // 題型 C：終端機拼字輸入 (無焦點終端機顯示槽 + 全域 e.code 攔截，徹底禁止 Windows IME 彈出)
     function renderSpellPuzzle(stage, container) {
+      // 主動解除任何元件焦點，防止 Windows 內建輸入法（注音/倉頡組字框）被喚起
+      if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
+
+      spellBuffer = '';
       const keyboardRows = [
         ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
         ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
@@ -1072,20 +1071,25 @@
       ];
 
       container.innerHTML = `
-        <form onsubmit="handleSpellSubmit(event)" class="space-y-4">
+        <div class="space-y-4">
           <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <input id="spellInputBox" type="text" autocomplete="off" autocapitalize="none" spellcheck="false"
-              maxlength="${stage.en.length + 2}"
-              placeholder="請輸入 ${stage.en.length} 個英文字母..."
-              class="w-full sm:w-80 px-5 py-3.5 rounded-2xl bg-slate-950 border-2 border-cyan-500/50 focus:border-cyan-300 focus:outline-none text-center font-mono text-2xl sm:text-3xl font-black text-cyan-200 tracking-widest placeholder:text-slate-600 placeholder:text-base placeholder:tracking-normal" />
-            <button type="submit"
+            <!-- 純展示用終端機密碼顯示槽（非 input 元素，從根本杜絕 Windows 輸入法彈窗） -->
+            <div id="spellTerminalDisplay"
+              onclick="if(document.activeElement) document.activeElement.blur();"
+              class="w-full sm:w-80 min-h-[62px] px-5 py-3 rounded-2xl bg-slate-950 border-2 border-cyan-500/60 shadow-inner flex items-center justify-center gap-2 select-none cursor-text">
+            </div>
+            <button type="button" onclick="handleSpellSubmit()"
               class="w-full sm:w-auto px-7 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-base btn-game">
-              🔓 驗證密碼
+              🔓 驗證密碼 (Enter)
             </button>
           </div>
 
+          <div class="text-center text-xs text-emerald-300/90 font-medium">
+            🛡️ 已啟用純英文終端鎖定：可直接敲擊實體鍵盤（不受 Windows 中文輸入法干擾）或點擊下方虛擬按鍵
+          </div>
+
           <!-- 貼心觸控虛擬鍵盤（適合平板與觸控螢幕） -->
-          <div class="pt-2 space-y-1.5 select-none">
+          <div class="pt-1 space-y-1.5 select-none">
             ${keyboardRows.map(row => `
               <div class="flex justify-center gap-1 sm:gap-1.5">
                 ${row.map(ch => `
@@ -1099,59 +1103,141 @@
             <div class="flex justify-center gap-2 pt-1">
               <button type="button" onclick="backspaceSpellChar()"
                 class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-rose-950/70 border border-slate-700 text-slate-300 text-xs font-bold">
-                ⌫ 退格
+                ⌫ 退格 (Backspace)
               </button>
               <button type="button" onclick="clearSpellChar()"
                 class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-bold">
-                清空
+                清空 (Esc)
               </button>
             </div>
           </div>
-        </form>
+        </div>
       `;
 
-      setTimeout(() => {
-        const input = document.getElementById('spellInputBox');
-        if (input) input.focus();
-      }, 100);
+      updateSpellDisplay();
+    }
+
+    function updateSpellDisplay() {
+      const display = document.getElementById('spellTerminalDisplay');
+      const stage = stageList[currentStageIndex];
+      if (!display || !stage) return;
+
+      const targetLen = stage.en.length;
+      const slots = [];
+      for (let i = 0; i < targetLen; i++) {
+        const ch = spellBuffer[i];
+        if (ch) {
+          slots.push(`
+            <span class="w-9 h-11 sm:w-10 sm:h-12 rounded-xl bg-cyan-500/20 border-2 border-cyan-400 text-cyan-200 font-mono text-2xl sm:text-3xl font-black flex items-center justify-center shadow-sm">
+              ${ch}
+            </span>
+          `);
+        } else if (i === spellBuffer.length) {
+          // 當前輸入位置顯示閃爍綠色終端機游標
+          slots.push(`
+            <span class="w-9 h-11 sm:w-10 sm:h-12 rounded-xl bg-slate-900 border-2 border-emerald-400/80 text-emerald-400 font-mono text-2xl font-black flex items-center justify-center animate-pulse">
+              _
+            </span>
+          `);
+        } else {
+          slots.push(`
+            <span class="w-9 h-11 sm:w-10 sm:h-12 rounded-xl bg-slate-900/70 border border-dashed border-slate-700 text-slate-600 font-mono text-xl flex items-center justify-center">
+              ·
+            </span>
+          `);
+        }
+      }
+      display.innerHTML = slots.join('');
     }
 
     function appendSpellChar(ch) {
       if (isStageLocked) return;
-      const input = document.getElementById('spellInputBox');
-      if (!input) return;
+      const stage = stageList[currentStageIndex];
+      if (!stage || stage.type !== 'spell') return;
+      if (spellBuffer.length >= stage.en.length) return;
+
       playClickSound();
-      input.value += ch;
-      input.focus();
+      spellBuffer += ch.toLowerCase();
+      updateSpellDisplay();
     }
 
     function backspaceSpellChar() {
       if (isStageLocked) return;
-      const input = document.getElementById('spellInputBox');
-      if (!input) return;
+      const stage = stageList[currentStageIndex];
+      if (!stage || stage.type !== 'spell') return;
+      if (spellBuffer.length === 0) return;
+
       playClickSound();
-      input.value = input.value.slice(0, -1);
-      input.focus();
+      spellBuffer = spellBuffer.slice(0, -1);
+      updateSpellDisplay();
     }
 
     function clearSpellChar() {
       if (isStageLocked) return;
-      const input = document.getElementById('spellInputBox');
-      if (!input) return;
+      const stage = stageList[currentStageIndex];
+      if (!stage || stage.type !== 'spell') return;
+
       playClickSound();
-      input.value = '';
-      input.focus();
+      spellBuffer = '';
+      updateSpellDisplay();
     }
 
     function handleSpellSubmit(e) {
-      e.preventDefault();
+      if (e) e.preventDefault();
       if (isStageLocked) return;
-      const input = document.getElementById('spellInputBox');
-      if (!input) return;
-      const val = input.value.trim().toLowerCase();
+      const val = spellBuffer.trim().toLowerCase();
       if (!val) return;
       checkAnswer(val);
     }
+
+    // 全域實體鍵盤攔截器：透過硬體鍵碼 e.code (KeyA~KeyZ) 直接轉換為純英文字母，徹底防止 Windows IME 彈出
+    window.addEventListener('keydown', (e) => {
+      const gameScreen = document.getElementById('gameScreen');
+      const modal = document.getElementById('customModal');
+      if (!gameScreen || gameScreen.classList.contains('hidden')) return;
+      if (modal && !modal.classList.contains('hidden')) return;
+
+      const stage = stageList[currentStageIndex];
+      if (!stage || stage.type !== 'spell' || isStageLocked) return;
+
+      // 允許系統快速鍵（如 Ctrl+R 重新整理、F5、F12）
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      // 偵測 A~Z 硬體按鍵（即使 Windows 處於中文注音模式，e.code 仍精準回傳 'KeyA' ~ 'KeyZ'）
+      if (/^Key[A-Z]$/.test(e.code)) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (document.activeElement && typeof document.activeElement.blur === 'function') {
+          document.activeElement.blur();
+        }
+        const letter = e.code.slice(3).toLowerCase();
+        appendSpellChar(letter);
+        return;
+      }
+
+      // 退格鍵刪除最後一個字母
+      if (e.key === 'Backspace' || e.code === 'Backspace') {
+        e.preventDefault();
+        e.stopPropagation();
+        backspaceSpellChar();
+        return;
+      }
+
+      // Enter 鍵送出密碼驗證
+      if (e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleSpellSubmit();
+        return;
+      }
+
+      // Escape 鍵清空輸入
+      if (e.key === 'Escape' || e.code === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        clearSpellChar();
+      }
+    }, true);
 
     // 10. 驗證答案核心邏輯
     function checkAnswer(userAnswer, btnEl = null) {
@@ -1211,10 +1297,10 @@
             resetScrambleInput();
           }, 650);
         } else if (stage.type === 'spell') {
-          const input = document.getElementById('spellInputBox');
-          if (input) {
-            input.select();
-          }
+          setTimeout(() => {
+            spellBuffer = '';
+            updateSpellDisplay();
+          }, 550);
         }
       }
     }
