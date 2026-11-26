@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>武俠班級經營 - 宗門啟示錄 (V7.6 教學實用＋教室大屏優化版)</title>
+    <title>武俠班級經營 - 宗門啟示錄 (V7.8 除錯穩定旗艦版)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;900&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap');
@@ -27,7 +27,7 @@
             --rank-3: #cd7f32;
         }
 
-        /* ====== 【構想二-1】教室大屏高對比明亮模式 ====== */
+        /* ====== 教室大屏高對比明亮模式 ====== */
         body.big-screen-mode {
             --bg-color: #f2eadc;
             --panel-bg: #fffaf0;
@@ -71,6 +71,13 @@
             font-size: 1.75rem;
             padding: 3px 10px;
         }
+        body.big-screen-mode .realm-badge {
+            background: #e0f2fe;
+            color: #075985;
+            border-color: #0284c7;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
         body.big-screen-mode .title-badge {
             background: #fef3c7;
             color: #92400e;
@@ -109,7 +116,6 @@
             color: #b45309;
             font-size: 1.15rem;
         }
-        /* 電子白板防誤觸：放大常用加減分按鈕 */
         body.big-screen-mode .action-btn-small {
             padding: 10px 6px;
             font-size: 0.98rem;
@@ -128,6 +134,11 @@
         }
         body.big-screen-mode .shop-card p {
             color: #3d2e1e;
+        }
+        body.big-screen-mode .tier-badge {
+            background: #fef3c7;
+            color: #92400e;
+            border-color: #d97706;
         }
         body.big-screen-mode .shop-tab {
             background: #f5efe4;
@@ -167,6 +178,11 @@
         body.big-screen-mode .inventory-item {
             background: #f5efe4;
         }
+        body.big-screen-mode .inv-detail-bar {
+            background: #f5efe4;
+            color: #1c140d;
+            border-color: #8c6f4f;
+        }
         body.big-screen-mode .autosave-pill {
             background: #f0e6d2;
             color: #4a331d;
@@ -185,6 +201,15 @@
             color: #ffffff !important;
             background: linear-gradient(to bottom, #dc2626, #991b1b) !important;
             border-color: #7f1d1d !important;
+        }
+        body.big-screen-mode .sect-reward-pill {
+            background: #fef3c7;
+            color: #78350f;
+            border-color: #d97706;
+        }
+        body.big-screen-mode .sect-progress-label {
+            color: #1c140d;
+            text-shadow: 0 0 4px #ffffff, 0 0 4px #ffffff;
         }
 
         * { box-sizing: border-box; }
@@ -238,7 +263,7 @@
         header { padding: 14px 16px; background: var(--panel-bg); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; position: relative; flex-wrap: wrap; gap: 10px; }
         h1 { margin: 0; font-size: 1.9rem; color: var(--text-gold); text-shadow: 2px 2px 0 #000, 0 0 10px rgba(255, 215, 0, 0.5); letter-spacing: 2px; line-height: 1.2; }
 
-        /* 【構想二-3】靜默自動存檔狀態指示燈 */
+        /* 靜默自動存檔狀態指示燈 */
         .autosave-pill {
             display: inline-flex; align-items: center; gap: 6px;
             font-size: 0.78rem; color: var(--text-brown);
@@ -265,7 +290,33 @@
         .gender-radio label { cursor: pointer; display: flex; align-items: center; gap: 5px; }
         .gender-radio input[type="radio"] { accent-color: #b88a5a; width: 16px; height: 16px; }
 
-        /* 【構想二-2】卡片篩選與排序工具列 */
+        /* 全班共同目標：宗門靈脈 */
+        .sect-vein-bar {
+            background: var(--panel-bg); padding: 11px 16px; margin-bottom: 12px;
+            display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+        }
+        .sect-title-group { display: flex; align-items: center; gap: 8px; font-weight: bold; color: var(--text-gold); font-size: 1.05rem; white-space: nowrap; }
+        .sect-progress-wrap { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 4px; }
+        .sect-progress-track {
+            height: 22px; background: var(--stat-bar-bg); border: 2px solid var(--border-color);
+            border-radius: 11px; overflow: hidden; position: relative;
+        }
+        .sect-progress-fill {
+            height: 100%; background: linear-gradient(90deg, #f59e0b, #ffd700, #48d46d);
+            transition: width 0.6s ease; box-shadow: 0 0 12px rgba(255, 215, 0, 0.55);
+        }
+        .sect-progress-label {
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            font-size: 0.84rem; font-weight: bold; color: #fff; text-shadow: 1px 1px 2px #000;
+        }
+        .sect-reward-pill {
+            display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            padding: 5px 12px; border-radius: 6px;
+            background: rgba(255, 215, 0, 0.14); border: 1px solid var(--text-gold);
+            color: var(--text-gold); font-size: 0.92rem;
+        }
+
+        /* 卡片篩選與排序工具列 */
         .toolbar-row {
             background: var(--panel-bg); padding: 10px 14px; margin-bottom: 16px;
             display: flex; justify-content: space-between; align-items: center;
@@ -289,6 +340,7 @@
         .student-name-box { display: flex; flex-direction: column; gap: 4px; }
         .student-name { font-size: 1.5rem; color: var(--text-gold); font-weight: bold; text-shadow: 1px 1px 2px #000; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
         .badge-row { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+        .realm-badge { padding: 2px 6px; border: 1px solid #38bdf8; color: #7dd3fc; background: rgba(56,189,248,0.14); border-radius: 6px; font-size: 0.75rem; font-weight: bold; }
         .title-badge { padding: 2px 6px; border: 1px solid #ffd700; color: #ffd700; background: rgba(255,215,0,0.12); border-radius: 6px; font-size: 0.76rem; text-shadow: 0 0 6px rgba(255,215,0,0.4); }
         .group-badge { padding: 2px 6px; border: 1px solid #c084fc; color: #e9d5ff; background: rgba(168,85,247,0.18); border-radius: 6px; font-size: 0.75rem; }
         .ticket-badge { padding: 2px 6px; border: 1px solid #fb923c; color: #fed7aa; background: rgba(249,115,22,0.22); border-radius: 6px; font-size: 0.75rem; }
@@ -310,7 +362,9 @@
         .bar-fill { height: 100%; transition: width 0.5s ease; }
         .bar-exp { background: linear-gradient(to right, #3b82f6, #06b6d4); }
         .stat-value { font-size: 0.82rem; color: var(--text-beige); margin-left: 4px; min-width: 82px; text-align: right; font-family: monospace; }
+        .coin-cp-row { display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
         .coin-display { color: #ffd700; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+        .cp-mini { color: var(--cp-color); font-weight: bold; font-size: 0.88rem; }
         .card-actions, .common-actions { display: grid; gap: 6px; margin-top: 4px; }
         .common-actions { grid-template-columns: 1fr 1fr; }
         .card-actions { grid-template-columns: repeat(3, 1fr); }
@@ -319,40 +373,50 @@
         .card-edit-btn:hover { opacity: 1; transform: scale(1.1); }
 
         /* 排行榜 */
-        .leaderboard-row { display: flex; align-items: center; padding: 10px; background: rgba(0,0,0,0.3); border-bottom: 1px solid #503010; transition: background 0.2s; }
+        .leaderboard-row { display: flex; align-items: center; padding: 10px; background: rgba(0,0,0,0.3); border-bottom: 1px solid #503010; transition: background 0.2s; gap: 6px; }
         .leaderboard-row:hover { background: rgba(255,255,255,0.05); }
         .rank-num { width: 40px; font-weight: bold; font-size: 1.2rem; text-align: center; }
-        .rank-1 .rank-num { color: var(--rank-1); font-size: 1.5rem; }
-        .rank-2 .rank-num { color: var(--rank-2); font-size: 1.4rem; }
-        .rank-3 .rank-num { color: var(--rank-3); font-size: 1.3rem; }
+        .rank-1 .rank-num { color: var(--rank-1); font-size: 1.45rem; }
+        .rank-2 .rank-num { color: var(--rank-2); font-size: 1.35rem; }
+        .rank-3 .rank-num { color: var(--rank-3); font-size: 1.25rem; }
         .lb-name { flex-grow: 1; color: var(--text-beige); font-size: 1.05rem; }
         .lb-cp { width: 100px; text-align: right; color: var(--cp-color); font-family: 'Black Ops One', sans-serif; }
-        .lb-avatar { width: 40px; height: 40px; object-fit: cover; border-radius: 50%; border: 2px solid #503010; margin-right: 10px; background: #000; }
+        .lb-avatar { width: 40px; height: 40px; object-fit: cover; border-radius: 50%; border: 2px solid #503010; margin-right: 6px; background: #000; }
 
-        /* 行囊與商店 */
-        .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 10px; max-height: 330px; overflow-y: auto; padding: 10px; }
-        .inventory-item { width: 74px; height: 74px; background: rgba(0,0,0,0.35); border: 2px solid var(--border-color); border-radius: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; padding: 4px; }
+        /* 行囊與商店（修復 tooltip 被裁切問題：改用獨立詳情預覽列） */
+        .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 10px; max-height: 290px; overflow-y: auto; padding: 8px; }
+        .inventory-item { width: 76px; height: 76px; background: rgba(0,0,0,0.35); border: 2px solid var(--border-color); border-radius: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; padding: 4px; transition: transform 0.12s, border-color 0.12s; }
         .inventory-item:hover { border-color: var(--text-gold); transform: scale(1.04); }
         .inventory-item img { width: 46px; height: 46px; image-rendering: pixelated; object-fit: contain; }
         .inventory-item .inv-mini-label { font-size: 0.66rem; color: var(--text-beige); width: 100%; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
         .inventory-item.equipped { border: 2px solid #48d46d; box-shadow: 0 0 8px #48d46d; }
         .inventory-item.ticket-item { border: 2px solid #fb923c; box-shadow: 0 0 6px rgba(251, 146, 60, 0.45); }
-        .item-tooltip { position: absolute; bottom: 105%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.95); color: #fff; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem; white-space: pre-line; display: none; z-index: 25; pointer-events: none; min-width: 165px; text-align: left; }
-        .inventory-item:hover .item-tooltip { display: block; }
-        .cp-bonus { color: var(--cp-color); font-weight: bold; }
-        .item-price { color: var(--text-gold); font-size: 0.92rem; margin-top: 4px; font-weight: bold; }
+        .inv-detail-bar {
+            min-height: 56px; padding: 8px 12px; border-radius: 5px;
+            background: rgba(0, 0, 0, 0.38); border: 1px solid var(--border-color);
+            font-size: 0.86rem; color: var(--text-beige); line-height: 1.45;
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        .cp-bonus { color: var(--cp-color); font-weight: bold; font-size: 0.88rem; }
+        .item-price { color: var(--text-gold); font-size: 0.92rem; margin-top: 2px; font-weight: bold; }
+        .tier-badge {
+            font-size: 0.72rem; padding: 1px 7px; border-radius: 10px;
+            background: rgba(255,215,0,0.14); border: 1px solid rgba(255,215,0,0.45);
+            color: #fcd34d; font-weight: bold;
+        }
 
         /* 萬寶閣 Tabs */
-        .shop-tabs { display:flex; gap:10px; margin-bottom:8px; justify-content:center; flex-wrap:wrap; }
+        .shop-tabs { display:flex; gap:10px; margin-bottom:6px; justify-content:center; flex-wrap:wrap; }
         .shop-tab { padding:8px 14px; border:1px solid #503010; border-radius:8px; background:rgba(0,0,0,0.35); color:var(--text-beige); cursor:pointer; }
         .shop-tab.active { border-color: var(--text-gold); color: var(--text-gold); box-shadow: 0 0 10px rgba(255,215,0,0.3); }
-        .shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; padding: 6px; max-height: 420px; overflow-y: auto; }
-        .shop-card { background: linear-gradient(135deg, rgba(255,215,0,0.1), rgba(0,0,0,0.45)); border: 1px solid var(--border-color); padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; border-radius: 5px; }
-        .shop-card.pet { box-shadow: 0 0 12px rgba(0, 200, 255, 0.25); }
-        .shop-card.reward { box-shadow: 0 0 12px rgba(255, 120, 80, 0.25); }
-        .shop-card img { width: 70px; height: 70px; image-rendering: pixelated; object-fit: contain; }
-        .shop-card h4 { margin: 4px 0; color: var(--text-gold); }
-        .shop-card p { font-size: 0.85rem; color: #cfc2a6; margin: 0; min-height: 32px; }
+        .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(205px, 1fr)); gap: 12px; padding: 6px; max-height: 430px; overflow-y: auto; }
+        .shop-card { background: linear-gradient(135deg, rgba(255,215,0,0.1), rgba(0,0,0,0.45)); border: 1px solid var(--border-color); padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; border-radius: 5px; }
+        .shop-card.pet { box-shadow: 0 0 12px rgba(0, 200, 255, 0.25); border-color: #38bdf8; }
+        .shop-card.reward { box-shadow: 0 0 12px rgba(255, 120, 80, 0.25); border-color: #fb923c; }
+        .shop-card.high-tier { box-shadow: 0 0 14px rgba(192, 132, 252, 0.35); border-color: #c084fc; }
+        .shop-card img { width: 66px; height: 66px; image-rendering: pixelated; object-fit: contain; }
+        .shop-card h4 { margin: 3px 0; color: var(--text-gold); }
+        .shop-card p { font-size: 0.84rem; color: #cfc2a6; margin: 0; min-height: 32px; }
 
         /* 批量獎懲與修煉日誌樣式 */
         .batch-student-grid {
@@ -373,7 +437,7 @@
         }
         .reason-tag:hover { border-color: var(--text-gold); color: var(--text-gold); }
 
-        .log-list { display: flex; flex-direction: column; gap: 6px; max-height: 380px; overflow-y: auto; padding-right: 4px; }
+        .log-list { display: flex; flex-direction: column; gap: 6px; max-height: 360px; overflow-y: auto; padding-right: 4px; }
         .log-item {
             display: flex; justify-content: space-between; align-items: center; gap: 10px;
             padding: 8px 10px; border-radius: 4px; background: rgba(0,0,0,0.35);
@@ -386,12 +450,13 @@
 
         /* Modals */
         #battle-modal, #system-modal, #inventory-modal, #edit-student-modal, #batch-modal,
-        #loading-overlay, #leaderboard-modal, #shop-modal, #batch-action-modal, #history-modal, #question-modal {
+        #loading-overlay, #leaderboard-modal, #shop-modal, #batch-action-modal, #history-modal,
+        #question-modal, #custom-shop-modal, #sect-config-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.82); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; padding: 12px;
         }
-        #edit-student-modal, #batch-modal, #leaderboard-modal, #shop-modal, #batch-action-modal, #history-modal { z-index: 2000; }
-        #question-modal { z-index: 2300; }
+        #edit-student-modal, #batch-modal, #leaderboard-modal, #shop-modal, #batch-action-modal, #history-modal, #sect-config-modal { z-index: 2000; }
+        #question-modal, #custom-shop-modal { z-index: 2300; }
         #system-modal { z-index: 3200; }
         #loading-overlay { z-index: 9999; background: #1a1a1a; display: flex; }
 
@@ -441,10 +506,11 @@
         .aura-low .avatar-img  { filter: drop-shadow(0 0 8px rgba(0,180,255,0.35)) brightness(1.05); }
         .aura-mid .avatar-img  { filter: drop-shadow(0 0 12px rgba(255,215,0,0.55)) brightness(1.1); }
         .aura-high .avatar-img { filter: drop-shadow(0 0 16px rgba(255,120,200,0.65)) brightness(1.15); }
-        #level-up-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; z-index: 9999; background: rgba(255, 215, 0, 0.1); justify-content: center; align-items: center; }
-        #level-up-img { width: 320px; animation: levelUpZoom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #level-up-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; z-index: 9999; background: rgba(255, 215, 0, 0.14); justify-content: center; align-items: center; flex-direction: column; padding: 16px; text-align: center; }
+        #level-up-img { width: 280px; animation: levelUpZoom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #level-up-banner { margin-top: 12px; font-size: 2rem; font-weight: 900; color: #ffd700; text-shadow: 0 0 12px #000, 2px 2px 0 #7c2d12; background: rgba(25,15,5,0.82); padding: 8px 24px; border-radius: 12px; border: 2px solid #ffd700; }
         @keyframes levelUpZoom { from { transform: scale(0); } to { transform: scale(1); } }
-        #notification-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(20, 10, 5, 0.94); border: 2px solid #ffd700; padding: 10px 30px; border-radius: 20px; color: #ffd700; font-size: 1.15rem; opacity: 0; transition: opacity 0.4s; pointer-events: none; z-index: 4000; }
+        #notification-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(20, 10, 5, 0.94); border: 2px solid #ffd700; padding: 10px 30px; border-radius: 20px; color: #ffd700; font-size: 1.15rem; opacity: 0; transition: opacity 0.4s; pointer-events: none; z-index: 4000; text-align: center; }
         #item-get-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 9998; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; flex-direction: column; }
         .item-card-anim { background: rgba(40,30,20,0.95); border: 3px solid #ffd700; padding: 30px; text-align: center; border-radius: 10px; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); color: #f0e0c0; }
         @keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -464,7 +530,7 @@
         <div style="display: flex; align-items: center; gap: 14px;">
             <img id="header-icon" src="" width="44" height="44" alt="Icon">
             <div>
-                <h1>宗門名錄</h1>
+                <h1>宗門名錄 <span style="font-size:0.85rem; opacity:0.8;">V7.8</span></h1>
                 <div class="autosave-pill" title="每 60 秒於背景靜默自動存檔（僅有資料變動時寫入），上課不跳通知干擾">
                     <span class="autosave-dot" id="autosave-dot"></span>
                     <span id="autosave-text">自動存檔就緒</span>
@@ -475,13 +541,13 @@
             <button class="pixel-btn" id="bigScreenBtn" onclick="toggleBigScreenMode()">☀️ 教室大屏</button>
             <button class="pixel-btn" id="musicBtn" onclick="toggleMusic()">🔇 音樂</button>
             <button class="pixel-btn gold" onclick="openShopDirect()">💰 萬寶閣</button>
-            <button class="pixel-btn gold" onclick="openLeaderboard()">🏆 戰力榜</button>
+            <button class="pixel-btn gold" onclick="openLeaderboard()">🏆 榮譽榜</button>
             <button class="pixel-btn primary" onclick="openBattleModal()">⚔️ 隨機歷練</button>
             <button id="loginBtn" class="pixel-btn" onclick="toggleTeacherMode()">🔑 師尊登入</button>
         </div>
 
         <div class="teacher-only teacher-controls-header" style="width: 100%; border-top: 1px solid var(--border-color); padding-top: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <input type="text" id="newStudentName" placeholder="輸入弟子名號" style="width:115px;">
+            <input type="text" id="newStudentName" placeholder="輸入弟子名號" style="width:115px;" onkeydown="if(event.key==='Enter') addStudent()">
             <select id="newStudentGroup" style="width:98px;">
                 <option value="未分組">未分組</option>
                 <option value="青龍堂">青龍堂</option>
@@ -505,7 +571,26 @@
         </div>
     </header>
 
-    <!-- 【構想二-2】篩選與排序工具列 -->
+    <!-- 全班共同目標：宗門靈脈 -->
+    <div class="sect-vein-bar pixel-border">
+        <div class="sect-title-group">
+            <span>🏯 宗門靈脈</span>
+            <span id="sect-level-badge" class="level-badge" style="font-size:1.1rem;">Lv.1</span>
+        </div>
+        <div class="sect-progress-wrap">
+            <div class="sect-progress-track">
+                <div class="sect-progress-fill" id="sect-bar-fill" style="width:0%;"></div>
+                <div class="sect-progress-label" id="sect-exp-text">全班總修為 0 / 5,000</div>
+            </div>
+        </div>
+        <div class="sect-reward-pill">
+            <span>🎁 達標獎勵：</span>
+            <strong id="sect-reward-text">全班觀賞精選影片一節課</strong>
+            <button class="pixel-btn action-btn-small teacher-only" style="padding:2px 8px; min-height:auto;" onclick="openSectConfigModal()" title="設定全班共同目標與獎勵">⚙️</button>
+        </div>
+    </div>
+
+    <!-- 篩選與排序工具列 -->
     <div class="toolbar-row pixel-border">
         <div class="toolbar-group">
             <input type="text" id="searchInput" placeholder="🔍 搜尋座號／名號..." style="width:165px;" oninput="renderGrid()">
@@ -534,7 +619,7 @@
     <div class="grid-container" id="studentGrid"></div>
 </div>
 
-<!-- 隨機歷練（公平不重複點名＋題庫＋計時器） -->
+<!-- 隨機歷練 -->
 <div id="battle-modal">
     <div id="battle-stage" class="pixel-border">
         <div class="flash-overlay" id="battle-flash"></div>
@@ -627,6 +712,7 @@
             <button class="pixel-btn action-btn-small purple" onclick="selectBatchGroup('白虎堂')">白虎堂</button>
             <button class="pixel-btn action-btn-small purple" onclick="selectBatchGroup('朱雀堂')">朱雀堂</button>
             <button class="pixel-btn action-btn-small purple" onclick="selectBatchGroup('玄武堂')">玄武堂</button>
+            <button class="pixel-btn action-btn-small" onclick="selectBatchGroup('未分組')">未分組</button>
             <button class="pixel-btn action-btn-small" onclick="selectBatchGroup('NONE')">清空選取</button>
         </div>
         <div style="font-size:0.86rem; color:var(--text-brown); text-align:center;" id="batch-selected-count">已選取 0 位弟子（點擊下方卡片可個別勾選／取消）</div>
@@ -674,7 +760,7 @@
     </div>
 </div>
 
-<!-- 修煉日誌（歷史紀錄） -->
+<!-- 修煉日誌 -->
 <div id="history-modal">
     <div class="pixel-border" style="background:var(--panel-bg); padding:20px; width:95%; max-width:500px; max-height:82vh; display:flex; flex-direction:column; gap:12px;">
         <h3 id="history-modal-title" style="margin:0; color:var(--text-gold); text-align:center;">📜 修煉日誌</h3>
@@ -683,41 +769,103 @@
     </div>
 </div>
 
+<!-- 榮譽榜（個人戰力榜＋堂口榮譽榜） -->
 <div id="leaderboard-modal">
-    <div class="pixel-border" style="background:var(--panel-bg); padding:20px; width:95%; max-width:460px; max-height:80vh; display:flex; flex-direction:column; gap:10px;">
-        <h2 style="margin:0; color:var(--text-gold); text-align:center;">🏆 宗門戰力榜</h2>
-        <div style="display:flex; justify-content:space-between; padding:0 10px; color:var(--text-brown); border-bottom:1px solid #503010;">
-            <span>排名 / 弟子</span><span>戰鬥力 (CP)</span>
+    <div class="pixel-border" style="background:var(--panel-bg); padding:20px; width:95%; max-width:500px; max-height:82vh; display:flex; flex-direction:column; gap:10px;">
+        <h2 style="margin:0; color:var(--text-gold); text-align:center;">🏆 宗門榮譽榜</h2>
+        <div class="shop-tabs" style="margin-bottom:2px;">
+            <div class="shop-tab active" id="lb-tab-student" onclick="switchLbTab('student')">個人戰力榜</div>
+            <div class="shop-tab" id="lb-tab-group" onclick="switchLbTab('group')">堂口榮譽榜</div>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:0 10px; color:var(--text-brown); border-bottom:1px solid #503010; font-size:0.9rem;">
+            <span id="lb-header-left">排名 / 弟子</span><span id="lb-header-right">戰鬥力 (CP)</span>
         </div>
         <div id="lb-container" style="flex-grow:1; overflow-y:auto;"></div>
         <button class="pixel-btn" onclick="document.getElementById('leaderboard-modal').style.display='none'">關閉</button>
     </div>
 </div>
 
+<!-- 萬寶閣 -->
 <div id="shop-modal">
-    <div class="pixel-border" style="background:var(--panel-bg); padding:20px; width:95%; max-width:780px; max-height:82vh; display:flex; flex-direction:column; gap:12px;">
-        <h2 style="margin:0; color:var(--text-gold); text-align:center;">💰 萬寶閣</h2>
+    <div class="pixel-border" style="background:var(--panel-bg); padding:20px; width:95%; max-width:880px; max-height:86vh; display:flex; flex-direction:column; gap:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <h2 style="margin:0; color:var(--text-gold);">💰 萬寶閣</h2>
+            <button class="pixel-btn purple action-btn-small teacher-only" style="min-height:auto; padding:6px 12px;" onclick="openCustomShopModal()">⚙️ 自訂萬寶閣特權卡</button>
+        </div>
         <div class="shop-select-row" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center;">
-            <span class="label-tag">購買人</span>
+            <span class="label-tag">購買弟子：</span>
             <select id="shop-student-select" onchange="switchShopStudent()"></select>
-            <span id="shop-balance-display" class="label-tag" style="color:var(--text-gold); font-weight:bold;">妖丹 0</span>
-            <span class="shop-note" style="font-size:0.85rem; color:var(--text-brown);">寵物僅能在此購買；打寶不會掉寵物。</span>
+            <span id="shop-balance-display" class="label-tag" style="color:var(--text-gold); font-weight:bold;">💰 妖丹 0</span>
+            <span class="shop-note" style="font-size:0.84rem; color:var(--text-brown);">初階→中階靈獸→高階神兵→傳說神獸，逐步進階！</span>
         </div>
         <div class="shop-tabs">
-            <div class="shop-tab active" data-tab="gear" onclick="switchShopTab('gear')">神兵 / 靈獸</div>
-            <div class="shop-tab" data-tab="reward" onclick="switchShopTab('reward')">校園特權卡</div>
-            <div class="shop-tab" data-tab="title" onclick="switchShopTab('title')">宗門稱號</div>
+            <div class="shop-tab active" data-tab="gear" onclick="switchShopTab('gear')">⚔️ 神兵 / 🐾 靈獸</div>
+            <div class="shop-tab" data-tab="reward" onclick="switchShopTab('reward')">🎫 校園特權卡</div>
+            <div class="shop-tab" data-tab="title" onclick="switchShopTab('title')">👑 宗門稱號</div>
         </div>
         <div id="shop-container" class="shop-grid"></div>
-        <button class="pixel-btn" onclick="document.getElementById('shop-modal').style.display='none'">離開</button>
+        <button class="pixel-btn" onclick="document.getElementById('shop-modal').style.display='none'">離開萬寶閣</button>
     </div>
 </div>
 
+<!-- 師尊自訂萬寶閣特權卡視窗 -->
+<div id="custom-shop-modal">
+    <div class="pixel-border" style="background:var(--panel-bg); padding:20px; width:95%; max-width:580px; max-height:86vh; overflow-y:auto; display:flex; flex-direction:column; gap:12px;">
+        <h3 style="margin:0; color:var(--text-gold); text-align:center;">⚙️ 自訂萬寶閣校園特權卡</h3>
+        <p style="margin:0; font-size:0.84rem; color:var(--text-brown);">
+            依各年級班級特色自由上架獎勵卡，並可設定「每人每週限量兌換次數」（填 0 表示不限次數）。下架後不影響學生已購入行囊中的卡片核銷。
+        </p>
+        <div style="display:grid; grid-template-columns: 1fr 96px 116px; gap:8px;">
+            <input type="text" id="custom-item-name" placeholder="卡片名稱 (如: 免考一次小考券)">
+            <input type="number" id="custom-item-price" placeholder="妖丹價" value="800" min="0">
+            <input type="number" id="custom-item-limit" placeholder="週限量(0不限)" value="1" min="0" title="每人每週最多可兌換次數，0 為不限">
+        </div>
+        <input type="text" id="custom-item-desc" placeholder="使用說明 (如: 可抵免一次平時聽寫或小考)" onkeydown="if(event.key==='Enter') addCustomReward()">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <button class="pixel-btn success" onclick="addCustomReward()">➕ 上架至萬寶閣</button>
+            <span class="reason-tag" onclick="fillCustomPreset('午休聽音樂券', 600, 1, '下課或午休前可點播一首班歌')">+ 午休聽音樂券</span>
+            <span class="reason-tag" onclick="fillCustomPreset('與好朋友同組券', 1200, 1, '分組活動或座位可指定一位好朋友同行')">+ 好朋友同組券</span>
+            <span class="reason-tag" onclick="fillCustomPreset('免考一次小考券', 2200, 1, '抵免一次平時聽寫或隨堂小考（期中期末除外）')">+ 免考小考券</span>
+        </div>
+        <div style="border-top:1px solid var(--border-color); padding-top:8px;">
+            <div style="font-size:0.88rem; color:var(--text-brown); margin-bottom:6px;">目前已上架的自訂特權卡：</div>
+            <div id="custom-shop-list" class="log-list" style="max-height:210px;"></div>
+        </div>
+        <button class="pixel-btn" onclick="document.getElementById('custom-shop-modal').style.display='none'">完成返回</button>
+    </div>
+</div>
+
+<!-- 宗門靈脈共同目標設定視窗 -->
+<div id="sect-config-modal">
+    <div class="pixel-border" style="background:var(--panel-bg); padding:20px; width:95%; max-width:440px; display:flex; flex-direction:column; gap:12px;">
+        <h3 style="margin:0; color:var(--text-gold); text-align:center;">🏯 宗門靈脈共同目標設定</h3>
+        <div>
+            <label style="color:var(--text-brown); font-size:0.9rem;">每升一階所需「全班累積修為」：</label>
+            <input type="number" id="sect-step-input" min="500" step="500" value="5000" style="width:100%; margin-top:5px;">
+        </div>
+        <div>
+            <label style="color:var(--text-brown); font-size:0.9rem;">全班達標共同獎勵內容：</label>
+            <input type="text" id="sect-reward-input" value="全班觀賞精選影片一節課" style="width:100%; margin-top:5px;">
+            <div class="quick-reason-row">
+                <span class="reason-tag" onclick="document.getElementById('sect-reward-input').value='全班觀賞精選影片一節課'">看電影一節課</span>
+                <span class="reason-tag" onclick="document.getElementById('sect-reward-input').value='全班免寫週末作業一項'">免寫週末作業一項</span>
+                <span class="reason-tag" onclick="document.getElementById('sect-reward-input').value='全班同樂會／桌遊時間一節'">全班同樂桌遊一節</span>
+            </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:4px;">
+            <button class="pixel-btn" onclick="document.getElementById('sect-config-modal').style.display='none'">取消</button>
+            <button class="pixel-btn success" onclick="saveSectConfig()">保存設定</button>
+        </div>
+    </div>
+</div>
+
+<!-- 行囊視窗（含防裁切詳情預覽列） -->
 <div id="inventory-modal">
-    <div class="pixel-border" style="background:var(--panel-bg); padding:20px; width:95%; max-width:460px; max-height:82vh; display:flex; flex-direction:column; gap:14px;">
+    <div class="pixel-border" style="background:var(--panel-bg); padding:20px; width:95%; max-width:480px; max-height:84vh; display:flex; flex-direction:column; gap:12px;">
         <h3 id="inv-modal-title" style="margin:0; color:var(--text-gold); text-align:center;">弟子的行囊</h3>
         <p style="text-align:center; color:var(--text-muted); font-size:0.84rem; margin:0;">點擊裝備可穿戴／卸下；點擊橘框特權卡由師尊核銷使用</p>
         <div id="inv-container" class="inventory-grid"></div>
+        <div id="inv-detail-bar" class="inv-detail-bar">游標移至物品上方可檢視詳細戰力與說明，點擊即可裝備或申請核銷。</div>
         <div style="display:flex; justify-content:center; gap:10px;">
             <button class="pixel-btn gold" onclick="openShopForCurrent()">💰 前往萬寶閣</button>
             <button class="pixel-btn" onclick="document.getElementById('inventory-modal').style.display='none'">關閉</button>
@@ -755,7 +903,7 @@
                 <option value="玄武堂">玄武堂</option>
             </select>
         </div>
-        <div><label style="color:var(--text-brown);">稱號 (選填):</label><input type="text" id="edit-title" placeholder="如: 護法, 睡神" style="width:100%; margin-top:5px;"></div>
+        <div><label style="color:var(--text-brown);">稱號 (選填):</label><input type="text" id="edit-title" placeholder="如: 神速小旋風, 整潔小天尊" style="width:100%; margin-top:5px;"></div>
         <div>
             <label style="color:var(--text-brown);">性別:</label>
             <div class="gender-radio" style="margin-top:5px;">
@@ -783,7 +931,7 @@
     </div>
 </div>
 
-<!-- 通用武俠風系統彈窗（含特權卡核銷防呆驗證） -->
+<!-- 通用武俠風系統彈窗 -->
 <div id="system-modal">
     <div class="pixel-border" style="background:var(--panel-bg); padding:22px; width:95%; max-width:360px; text-align:center; display:flex; flex-direction:column; gap:14px;">
         <h3 id="modal-title" style="margin:0; color:var(--text-gold);">提示</h3>
@@ -797,17 +945,23 @@
 </div>
 
 <div id="title-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.82); z-index:2100; justify-content:center; align-items:center; padding:12px;">
-    <div class="pixel-border" style="background:var(--panel-bg); padding:18px; width:95%; max-width:620px; max-height:80vh; overflow:auto; display:flex; flex-direction:column; gap:12px;">
+    <div class="pixel-border" style="background:var(--panel-bg); padding:18px; width:95%; max-width:680px; max-height:84vh; overflow:auto; display:flex; flex-direction:column; gap:12px;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3 id="title-modal-title" style="margin:0; color:var(--text-gold);">授予稱號</h3>
+            <h3 id="title-modal-title" style="margin:0; color:var(--text-gold);">👑 授予稱號</h3>
             <button class="pixel-btn" onclick="document.getElementById('title-modal').style.display='none'">關閉</button>
         </div>
-        <div id="title-card-container" class="shop-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px,1fr));"></div>
-        <div style="text-align:right;"><button class="pixel-btn success" onclick="grantSelectedTitle()">授予</button></div>
+        <div id="title-card-container" class="shop-grid" style="grid-template-columns: repeat(auto-fill, minmax(175px,1fr));"></div>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+            <button class="pixel-btn primary" onclick="clearSelectedTitle()">移除稱號</button>
+            <button class="pixel-btn success" onclick="grantSelectedTitle()">確認授予</button>
+        </div>
     </div>
 </div>
 
-<div id="level-up-overlay"><img id="level-up-img" src="" alt="Level Up"></div>
+<div id="level-up-overlay">
+    <img id="level-up-img" src="" alt="Level Up">
+    <div id="level-up-banner">境界突破！</div>
+</div>
 <div id="notification-bar">系統提示</div>
 
 <script>
@@ -815,7 +969,7 @@
     const GROUPS = ['青龍堂', '白虎堂', '朱雀堂', '玄武堂'];
     const TEACHER_CODES = ['admin', '師尊', '1234'];
 
-    // ====== 本地 SVG 容錯圖示（斷網或外連失效時自動取代，絕不破圖） ======
+    // ====== 本地 SVG 容錯圖示 ======
     function svgToDataUri(svg) {
         return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg.trim());
     }
@@ -912,7 +1066,6 @@
     function stopBGM() { bgmMain.pause(); bgmBattle.pause(); }
     document.addEventListener('click', () => { if (isMusicEnabled && bgmMain.paused && bgmBattle.paused && document.getElementById('battle-modal').style.display === 'none') playBGM('main'); }, {once:true});
 
-    // 通用武俠風系統彈窗
     function showCustomModal({ title, msg, hasInput = false, isPassword = false, showCancel = false, confirmText = "確定", onConfirm }) {
         const modal = document.getElementById('system-modal');
         document.getElementById('modal-title').innerText = title || "提示";
@@ -952,33 +1105,46 @@
     ];
 
     const ITEMS = {
-        sword_fire:  { id:'sword_fire',  name:"炎陽劍", type:'sword', src: BASE_URL+"images/swords/sword_fire_sprite.png",  icon: BASE_URL+"images/swords/sword_fire_icon.png",  cp:320, price:380, desc:"熾熱劍鋒，灼燒敵人。", stats:{atk:48,crit:6} },
-        sword_wood:  { id:'sword_wood',  name:"青木劍", type:'sword', src: BASE_URL+"images/swords/sword_wood_sprite.png",  icon: BASE_URL+"images/swords/sword_wood_icon.png",  cp:240, price:260, desc:"靈木淬鍊，穩定增益。", stats:{atk:30,def:10} },
-        sword_gold:  { id:'sword_gold',  name:"銳金劍", type:'sword', src: BASE_URL+"images/swords/sword_gold_sprite.png",  icon: BASE_URL+"images/swords/sword_gold_icon.png",  cp:300, price:320, desc:"破甲利器，暴擊加成。", stats:{atk:46,crit:8} },
-        sword_ice:   { id:'sword_ice',   name:"冰晶劍", type:'sword', src: BASE_URL+"images/swords/sword_ice_sprite.png",   icon: BASE_URL+"images/swords/sword_ice_icon.png",   cp:260, price:300, desc:"寒霜封鋒，穩定防禦。", stats:{atk:34,def:8} },
-        sword_light: { id:'sword_light', name:"晨曦劍", type:'sword', src: BASE_URL+"images/swords/sword_light_sprite.png", icon: BASE_URL+"images/swords/sword_light_icon.png", cp:380, price:420, desc:"曙光加持，超高爆擊。", stats:{atk:55,crit:12} },
-        pet_kunpeng: { id:'pet_kunpeng', name:"神獸鯤鵬", type:'pet',  src: BASE_URL+"images/pets/kunpeng_sprite.gif", icon: BASE_URL+"images/pets/kunpeng_icon.png", cp:2500, price:3000, desc:"振翅九天，速度與氣勢兼備。" },
-        pet_zhuque:  { id:'pet_zhuque',  name:"神獸朱雀", type:'pet',  src: BASE_URL+"images/pets/zhuque_sprite.gif",  icon: BASE_URL+"images/pets/zhuque_icon.png",  cp:2500, price:3000, desc:"炎羽護主，增強爆發。" },
-        pet_qinglong:{ id:'pet_qinglong',name:"神獸青龍", type:'pet',  src: BASE_URL+"images/pets/qinglong_sprite.gif", icon: BASE_URL+"images/pets/qinglong_icon.png", cp:2500, price:3000, desc:"龍威加持，全面提升戰力。" },
-        pet_whelp:   { id:'pet_whelp',   name:"幽冥幼龍", type:'pet',  src: BASE_URL+"images/pets/pet_nether_whelp_sprite.gif", icon: BASE_URL+"images/pets/pet_nether_whelp_icon.png", cp:3000, price:3600, desc:"冥炎纏繞，屬性全面提升。" }
+        sword_wood:  { id:'sword_wood',  name:"青木劍", tier:"初階神兵", type:'sword', src: BASE_URL+"images/swords/sword_wood_sprite.png",  icon: BASE_URL+"images/swords/sword_wood_icon.png",  cp:240, price:260, desc:"靈木淬鍊，穩定增益。" },
+        sword_ice:   { id:'sword_ice',   name:"冰晶劍", tier:"初階神兵", type:'sword', src: BASE_URL+"images/swords/sword_ice_sprite.png",   icon: BASE_URL+"images/swords/sword_ice_icon.png",   cp:260, price:300, desc:"寒霜封鋒，穩定防禦。" },
+        sword_gold:  { id:'sword_gold',  name:"銳金劍", tier:"初階神兵", type:'sword', src: BASE_URL+"images/swords/sword_gold_sprite.png",  icon: BASE_URL+"images/swords/sword_gold_icon.png",  cp:300, price:320, desc:"破甲利器，暴擊加成。" },
+        sword_fire:  { id:'sword_fire',  name:"炎陽劍", tier:"初階神兵", type:'sword', src: BASE_URL+"images/swords/sword_fire_sprite.png",  icon: BASE_URL+"images/swords/sword_fire_icon.png",  cp:320, price:380, desc:"熾熱劍鋒，灼燒敵人。" },
+        sword_light: { id:'sword_light', name:"晨曦劍", tier:"初階神兵", type:'sword', src: BASE_URL+"images/swords/sword_light_sprite.png", icon: BASE_URL+"images/swords/sword_light_icon.png", cp:380, price:420, desc:"曙光加持，超高爆擊。" },
+        pet_fox:     { id:'pet_fox',     name:"靈玉狐",   tier:"中階靈獸", type:'pet', src: makeIconSvg('🦊','#1e3a5f','#0f172a','#38bdf8'), icon: makeIconSvg('🦊','#1e3a5f','#0f172a','#38bdf8'), cp:750,  price:800,  desc:"機靈聰慧，專注力與悟性同步提升。" },
+        pet_spirit:  { id:'pet_spirit',  name:"小劍靈",   tier:"中階靈獸", type:'pet', src: makeIconSvg('🧚','#312e81','#1e1b4b','#a78bfa'), icon: makeIconSvg('🧚','#312e81','#1e1b4b','#a78bfa'), cp:1050, price:1150, desc:"隨身劍靈護法，課堂答題靈感泉湧。" },
+        pet_turtle:  { id:'pet_turtle',  name:"玄武幼龜", tier:"中階靈獸", type:'pet', src: makeIconSvg('🐢','#064e3b','#022c22','#34d399'), icon: makeIconSvg('🐢','#064e3b','#022c22','#34d399'), cp:1380, price:1450, desc:"穩如泰山，守護每日作業與常規滿分。" },
+        sword_purple:   { id:'sword_purple',   name:"紫電青霜劍", tier:"高階神兵", highTier:true, type:'sword', src: makeIconSvg('⚡','#4c1d95','#1e1b4b','#c084fc'), icon: makeIconSvg('⚡','#4c1d95','#1e1b4b','#c084fc'), cp:1250, price:1800, desc:"雷光奔騰，氣場震懾全場。" },
+        sword_xuanyuan: { id:'sword_xuanyuan', name:"軒轅聖劍",   tier:"高階神兵", highTier:true, type:'sword', src: makeIconSvg('🗡️','#78350f','#451a03','#fde047'), icon: makeIconSvg('🗡️','#78350f','#451a03','#fde047'), cp:1850, price:2500, desc:"上古聖道神兵，宗門鎮派至寶。" },
+        pet_kunpeng: { id:'pet_kunpeng', name:"神獸鯤鵬", tier:"傳說神獸", type:'pet',  src: BASE_URL+"images/pets/kunpeng_sprite.gif", icon: BASE_URL+"images/pets/kunpeng_icon.png", cp:2500, price:3000, desc:"振翅九天，速度與氣勢兼備。" },
+        pet_zhuque:  { id:'pet_zhuque',  name:"神獸朱雀", tier:"傳說神獸", type:'pet',  src: BASE_URL+"images/pets/zhuque_sprite.gif",  icon: BASE_URL+"images/pets/zhuque_icon.png",  cp:2500, price:3000, desc:"炎羽護主，增強爆發。" },
+        pet_qinglong:{ id:'pet_qinglong',name:"神獸青龍", tier:"傳說神獸", type:'pet',  src: BASE_URL+"images/pets/qinglong_sprite.gif", icon: BASE_URL+"images/pets/qinglong_icon.png", cp:2500, price:3000, desc:"龍威加持，全面提升戰力。" },
+        pet_whelp:   { id:'pet_whelp',   name:"幽冥幼龍", tier:"傳說神獸", type:'pet',  src: BASE_URL+"images/pets/pet_nether_whelp_sprite.gif", icon: BASE_URL+"images/pets/pet_nether_whelp_icon.png", cp:3000, price:3600, desc:"冥炎纏繞，屬性全面提升。" }
     };
 
     const TITLES = {
-        novice:   { id:'novice',   name:'見習弟子',   bonus:{ cp:20 }, desc:'初入宗門，努力修行。' },
-        honor:    { id:'honor',    name:'宗門護衛',   bonus:{ cp:80 }, desc:'守護同門，威望提升。' },
-        scholar:  { id:'scholar',  name:'藏經樓學士', bonus:{ cp:120 }, desc:'學識淵博，增強悟性。' },
+        novice:   { id:'novice',   name:'見習弟子',   bonus:{ cp:20 },  desc:'初入宗門，努力修行。' },
+        speed:    { id:'speed',    name:'神速小旋風', bonus:{ cp:60 },  desc:'交作業最快又整齊，效率滿分！' },
+        bird:     { id:'bird',     name:'百靈鳥',     bonus:{ cp:60 },  desc:'朗讀課文與舉手發言聲音最宏亮！' },
+        clean:    { id:'clean',    name:'整潔小天尊', bonus:{ cp:60 },  desc:'抽屜整齊、打掃工作一塵不染！' },
+        helper:   { id:'helper',   name:'熱心小俠客', bonus:{ cp:80 },  desc:'主動幫助同學與老師，仁心義氣！' },
+        zen:      { id:'zen',      name:'靜心禪師',   bonus:{ cp:80 },  desc:'午休與上課最專注自律的班級榜樣！' },
+        honor:    { id:'honor',    name:'宗門護衛',   bonus:{ cp:100 }, desc:'守護同門，威望提升。' },
+        scholar:  { id:'scholar',  name:'藏經樓學士', bonus:{ cp:140 }, desc:'學識淵博，增強悟性。' },
         blade:    { id:'blade',    name:'劍閣行者',   bonus:{ cp:180 }, desc:'劍意凜然，戰力精進。' },
         legend:   { id:'legend',   name:'傳奇榜眼',   bonus:{ cp:260 }, desc:'榮登榜眼，宗門榮耀。' }
     };
 
     const REAL_REWARDS = [
-        { id: 'card_vocab',     name: '減字訣',     type: 'consumable', icon: BASE_URL + 'images/ui/icon_scroll_pixel.png', price: 800,  desc: "作業或圈詞可少寫一遍" },
-        { id: 'card_nap',       name: '逍遙午休',   type: 'consumable', icon: BASE_URL + 'images/monsters/placeholder_monster.gif', price: 500, desc: "午休/早自習可安靜趴睡一次" },
-        { id: 'card_seat',      name: '移形換位',   type: 'consumable', icon: BASE_URL + 'images/ui/icon_bag_pixel.png', price: 2500, desc: "下週優先選擇座位一次" },
-        { id: 'card_pardon',    name: '免死金牌',   type: 'consumable', icon: BASE_URL + 'images/ui/icon_save_pixel.png', price: 3000, desc: "抵銷一次小缺點或處罰" },
-        { id: 'card_late',      name: '雲影步',     type: 'consumable', icon: BASE_URL + 'images/ui/icon_reward_pixel.png', price: 1200, desc: "一次小遲到補救，記錄不列入" },
-        { id: 'card_extension', name: '緩衝符',     type: 'consumable', icon: BASE_URL + 'images/ui/icon_scroll_pixel.png', price: 1500, desc: "一次作業或報告可順延一天繳交" },
-        { id: 'card_cleanup',   name: '風清掃',     type: 'consumable', icon: BASE_URL + 'images/ui/icon_bag_pixel.png', price: 900,  desc: "一次值日/打掃可換班同學代班（需老師同意）" }
+        { id: 'card_nap',       name: '逍遙午休',   type: 'consumable', icon: BASE_URL + 'images/monsters/placeholder_monster.gif', price: 500,  limitPerWeek: 1, desc: "午休／早自習可安靜趴睡休息一次" },
+        { id: 'card_music',     name: '點歌令',     type: 'consumable', icon: makeIconSvg('🎵','#6b21a8','#3b0764','#fb923c'),     price: 600,  limitPerWeek: 1, desc: "下課或午休前可指定播放一首班歌" },
+        { id: 'card_vocab',     name: '減字訣',     type: 'consumable', icon: BASE_URL + 'images/ui/icon_scroll_pixel.png',        price: 800,  limitPerWeek: 1, desc: "生字或圈詞作業可少寫一遍" },
+        { id: 'card_cleanup',   name: '風清掃',     type: 'consumable', icon: BASE_URL + 'images/ui/icon_bag_pixel.png',           price: 900,  limitPerWeek: 1, desc: "一次值日／打掃可換班同學代班（需老師同意）" },
+        { id: 'card_helper',    name: '小老師令牌', type: 'consumable', icon: makeIconSvg('🌟','#854d0e','#422006','#fb923c'),     price: 1000, limitPerWeek: 1, desc: "擔任一日師尊小幫手，協助發簿本與班務" },
+        { id: 'card_late',      name: '雲影步',     type: 'consumable', icon: BASE_URL + 'images/ui/icon_reward_pixel.png',        price: 1200, limitPerWeek: 1, desc: "一次小遲到補救，記錄不列入" },
+        { id: 'card_extension', name: '緩衝符',     type: 'consumable', icon: BASE_URL + 'images/ui/icon_scroll_pixel.png',        price: 1500, limitPerWeek: 1, desc: "一次作業或報告可順延一天繳交" },
+        { id: 'card_buddy',     name: '同組結盟符', type: 'consumable', icon: makeIconSvg('🤝','#065f46','#022c22','#fb923c'),     price: 1600, limitPerWeek: 1, desc: "分組活動可指定一位好朋友同組一次" },
+        { id: 'card_seat',      name: '移形換位',   type: 'consumable', icon: BASE_URL + 'images/ui/icon_bag_pixel.png',           price: 2500, limitPerWeek: 1, desc: "下週優先選擇座位一次" },
+        { id: 'card_pardon',    name: '免死金牌',   type: 'consumable', icon: BASE_URL + 'images/ui/icon_save_pixel.png',          price: 3000, limitPerWeek: 1, desc: "抵銷一次小缺點或處罰" }
     ];
 
     const PLAYER_ARTS = [
@@ -1004,13 +1170,21 @@
         { id: 'eye', name: "浮空魔眼", src: BASE_URL + "images/monsters/flying_eye.gif", icon: BASE_URL + "images/monsters/flying_eye.gif", cp: 450 }
     ];
 
+    function createDefaultConfig(preserveBigScreen = false) {
+        return {
+            questionBank: [],
+            battleTimerSec: 15,
+            pickedStudentIds: [],
+            bigScreenMode: preserveBigScreen ? !!teachingConfig?.bigScreenMode : false,
+            customRewards: [],
+            archivedCustomRewards: [],
+            sectStep: 5000,
+            sectReward: '全班觀賞精選影片一節課'
+        };
+    }
+
     let students = [];
-    let teachingConfig = {
-        questionBank: [],
-        battleTimerSec: 15,
-        pickedStudentIds: [],
-        bigScreenMode: false
-    };
+    let teachingConfig = createDefaultConfig(false);
 
     let isDirty = false;
     let currentBattleStudentId = null;
@@ -1019,23 +1193,71 @@
     let isTreasureEncounter = false;
     let currentInvStudentId = null;
     let shopTab = 'gear';
+    let lbTab = 'student';
     let titleTargetId = null;
     let selectedTitleId = null;
     let batchSelectedIds = new Set();
+
+    // 統一管理所有計時器，防止快速操作造成競態條件或提早關閉視窗
     let battleTimerInterval = null;
+    let battleRollTimer = null;
+    let battleFadeTimer = null;
+    let battleCloseTimer = null;
+    let levelUpTimer = null;
+    let notifyTimer = null;
+    let uidSeq = 1;
 
     function escapeHtml(str) {
         return String(str ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
     }
 
+    // 產生保證不重複的數值學生 ID
+    function generateStudentId() {
+        const maxExisting = students.reduce((mx, s) => Math.max(mx, Number(s.id) || 0), 0);
+        return Math.max(Date.now(), maxExisting + 1);
+    }
+
     function getStudentById(id) {
-        return students.find(s => s.id === id);
+        return students.find(s => Number(s.id) === Number(id));
     }
 
     function getNowTimeStr() {
         const d = new Date();
         const pad = n => String(n).padStart(2, '0');
         return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function getISOWeekKey() {
+        const d = new Date();
+        const target = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        const dayNum = target.getUTCDay() || 7;
+        target.setUTCDate(target.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+        const weekNo = Math.ceil((((target - yearStart) / 86400000) + 1) / 7);
+        return `${target.getUTCFullYear()}-W${weekNo}`;
+    }
+
+    // 萬寶閣上架中的特權卡（僅顯示未下架）
+    function getActiveRewards() {
+        return [...REAL_REWARDS, ...(teachingConfig.customRewards || [])];
+    }
+
+    // 全部特權卡（含已下架但保留查表的封存卡，避免學生行囊中已購入卡片變幽靈）
+    function getAllRewardsForLookup() {
+        return [
+            ...REAL_REWARDS,
+            ...(teachingConfig.customRewards || []),
+            ...(teachingConfig.archivedCustomRewards || [])
+        ];
+    }
+
+    function getRealmName(level) {
+        if (level >= 70) return '渡劫飛昇';
+        if (level >= 50) return '化神期';
+        if (level >= 35) return '元嬰期';
+        if (level >= 20) return '金丹期';
+        if (level >= 10) return '築基期';
+        return '練氣期';
     }
 
     function addStudentLog(student, type, deltaText, reason) {
@@ -1056,11 +1278,11 @@
         }).length;
     }
 
-    // 預載資源：超時 2 秒自動關閉載入層，斷網秒開
     function preloadAssets() {
         const assets = [
             ...BATTLE_BG, ...PLAYER_ARTS, ...PLAYER_BATTLE_ARTS,
-            ...MONSTERS.map(m => m.src), ...Object.values(ITEMS).map(w => w.src)
+            ...MONSTERS.map(m => m.src),
+            ...Object.values(ITEMS).filter(w => w.src.startsWith('http')).map(w => w.src)
         ];
         const overlay = document.getElementById('loading-overlay');
         if (assets.length === 0) { overlay.style.display = 'none'; return; }
@@ -1077,7 +1299,7 @@
         setTimeout(done, 2000);
     }
 
-    // ====== 【構想二-1】教室大屏高對比模式切換 ======
+    // ====== 教室大屏模式 ======
     function toggleBigScreenMode() {
         playSfx(sfxClick, 'click');
         teachingConfig.bigScreenMode = !teachingConfig.bigScreenMode;
@@ -1092,7 +1314,47 @@
         if (btn) btn.innerText = active ? "🌙 水墨模式" : "☀️ 教室大屏";
     }
 
-    // ====== 【構想二-3】靜默自動存檔（不跳通知干擾教學，僅更新小綠燈） ======
+    // ====== 全班共同目標：宗門靈脈 ======
+    function getClassTotalExp() {
+        return students.reduce((acc, s) => acc + (Number(s.exp) || 0), 0);
+    }
+
+    function getSectLevel() {
+        const step = Math.max(500, Number(teachingConfig.sectStep) || 5000);
+        return Math.floor(getClassTotalExp() / step) + 1;
+    }
+
+    function renderSectVein() {
+        const totalExp = getClassTotalExp();
+        const step = Math.max(500, Number(teachingConfig.sectStep) || 5000);
+        const sectLv = Math.floor(totalExp / step) + 1;
+        const currentStepExp = totalExp % step;
+        const pct = Math.min(100, (currentStepExp / step) * 100);
+        document.getElementById('sect-level-badge').innerText = `Lv.${sectLv}`;
+        document.getElementById('sect-bar-fill').style.width = `${pct}%`;
+        document.getElementById('sect-exp-text').innerText = `全班總修為 ${totalExp.toLocaleString()}（本階 ${currentStepExp.toLocaleString()} / ${step.toLocaleString()}）`;
+        document.getElementById('sect-reward-text').innerText = teachingConfig.sectReward || '全班觀賞精選影片一節課';
+    }
+
+    function openSectConfigModal() {
+        playSfx(sfxClick, 'click');
+        document.getElementById('sect-step-input').value = teachingConfig.sectStep || 5000;
+        document.getElementById('sect-reward-input').value = teachingConfig.sectReward || '全班觀賞精選影片一節課';
+        document.getElementById('sect-config-modal').style.display = 'flex';
+    }
+
+    function saveSectConfig() {
+        const stepVal = parseInt(document.getElementById('sect-step-input').value);
+        const rewardVal = document.getElementById('sect-reward-input').value.trim();
+        teachingConfig.sectStep = Math.max(500, isNaN(stepVal) ? 5000 : stepVal);
+        teachingConfig.sectReward = rewardVal || '全班共同獎勵';
+        markDirtyAndSave(false);
+        renderSectVein();
+        document.getElementById('sect-config-modal').style.display = 'none';
+        showNotify("🏯 宗門靈脈共同目標已更新！");
+    }
+
+    // ====== 靜默自動存檔 ======
     function updateAutoSaveIndicator(state = 'saved') {
         const dot = document.getElementById('autosave-dot');
         const txt = document.getElementById('autosave-text');
@@ -1128,48 +1390,90 @@
     }
 
     function autoSaveData() {
-        // 僅在資料有實際變動時才靜默寫入，完全不跳出下方通知條干擾上課
         if (!isDirty) return;
         saveData(false);
+    }
+
+    // ====== 資料正規化（防字串拼接、防重複 ID、防破損 JSON） ======
+    function normalizeConfig(raw) {
+        const def = createDefaultConfig(false);
+        if (!raw || typeof raw !== 'object') return def;
+        const merged = Object.assign(def, raw);
+        merged.questionBank = Array.isArray(merged.questionBank)
+            ? merged.questionBank.filter(x => x && typeof x.q === 'string' && x.q.trim()).map(x => ({ q: x.q.trim(), a: String(x.a || '').trim() }))
+            : [];
+        merged.battleTimerSec = Math.max(0, Number(merged.battleTimerSec) || 0);
+        merged.pickedStudentIds = Array.isArray(merged.pickedStudentIds)
+            ? merged.pickedStudentIds.map(Number).filter(Number.isFinite)
+            : [];
+        merged.bigScreenMode = !!merged.bigScreenMode;
+        merged.customRewards = Array.isArray(merged.customRewards) ? merged.customRewards : [];
+        merged.archivedCustomRewards = Array.isArray(merged.archivedCustomRewards) ? merged.archivedCustomRewards : [];
+        merged.sectStep = Math.max(500, Number(merged.sectStep) || 5000);
+        merged.sectReward = String(merged.sectReward || '全班觀賞精選影片一節課').trim() || '全班觀賞精選影片一節課';
+        return merged;
+    }
+
+    function normalizeStudentList(rawList) {
+        const seenIds = new Set();
+        let fallbackId = Date.now();
+        return (Array.isArray(rawList) ? rawList : []).map((s) => {
+            const merged = Object.assign({
+                id: 0,
+                name: '弟子',
+                gender: 'male',
+                group: '未分組',
+                exp: 0,
+                coins: 0,
+                title: "",
+                inventory: [],
+                equipped: {},
+                logs: [],
+                weeklyUsage: {}
+            }, s || {});
+
+            let numId = Number(merged.id);
+            if (!Number.isFinite(numId) || numId <= 0 || seenIds.has(numId)) {
+                while (seenIds.has(fallbackId)) fallbackId++;
+                numId = fallbackId++;
+            }
+            seenIds.add(numId);
+            merged.id = numId;
+
+            if (typeof s?.points !== 'undefined' && typeof s?.coins === 'undefined') {
+                merged.coins = s.points;
+            }
+            merged.name = String(merged.name || '弟子').trim() || '弟子';
+            merged.gender = merged.gender === 'female' ? 'female' : 'male';
+            merged.group = String(merged.group || '未分組');
+            merged.exp = Math.max(0, Math.floor(Number(merged.exp) || 0));
+            merged.coins = Math.max(0, Math.floor(Number(merged.coins) || 0));
+            merged.title = String(merged.title || '');
+            merged.inventory = Array.isArray(merged.inventory) ? merged.inventory.filter(x => typeof x === 'string' && x) : [];
+            merged.equipped = (merged.equipped && typeof merged.equipped === 'object') ? merged.equipped : {};
+            merged.logs = Array.isArray(merged.logs) ? merged.logs.slice(0, 25) : [];
+            merged.weeklyUsage = (merged.weeklyUsage && typeof merged.weeklyUsage === 'object') ? merged.weeklyUsage : {};
+            return merged;
+        });
     }
 
     window.onload = () => {
         try {
             const rawStudents = JSON.parse(localStorage.getItem('wuxia_class_data'));
-            if (Array.isArray(rawStudents)) students = rawStudents.map((s, idx) => normalizeStudent(s, idx));
+            students = normalizeStudentList(rawStudents);
         } catch(e) { students = []; }
         try {
             const rawCfg = JSON.parse(localStorage.getItem('wuxia_teaching_config'));
-            if (rawCfg && typeof rawCfg === 'object') teachingConfig = Object.assign(teachingConfig, rawCfg);
-        } catch(e) {}
+            teachingConfig = normalizeConfig(rawCfg);
+        } catch(e) { teachingConfig = createDefaultConfig(false); }
 
         applyBigScreenUI();
         preloadAssets();
+        renderSectVein();
         renderGrid();
         updateTeacherUI();
         setInterval(autoSaveData, 60000);
     };
-
-    function normalizeStudent(s, idx = 0) {
-        const base = {
-            id: Date.now() + idx,
-            name: '弟子',
-            gender: 'male',
-            group: '未分組',
-            exp: 0,
-            coins: 0,
-            title: "",
-            inventory: [],
-            equipped: {},
-            logs: []
-        };
-        const merged = Object.assign(base, s || {});
-        if (typeof s?.points !== 'undefined' && typeof s?.coins === 'undefined') merged.coins = s.points;
-        if (!Array.isArray(merged.inventory)) merged.inventory = [];
-        if (!merged.equipped || typeof merged.equipped !== 'object') merged.equipped = {};
-        if (!Array.isArray(merged.logs)) merged.logs = [];
-        return merged;
-    }
 
     function getTitleDisplay(titleVal) {
         if (!titleVal) return '';
@@ -1177,12 +1481,13 @@
     }
 
     function getAvatarPath(path, gender) { return gender === 'female' ? path.replace('.png', '_girl.png').replace('.gif', '_girl.gif') : path; }
-    function calculateLevel(exp) { if (exp <= 0) return 1; return Math.floor(Math.sqrt(exp / 5)) + 1; }
+    function calculateLevel(exp) { const n = Number(exp) || 0; if (n <= 0) return 1; return Math.floor(Math.sqrt(n / 5)) + 1; }
     function getExpForLevel(level) { return 5 * Math.pow(level, 2); }
 
     function calculateCP(student) {
-        const lvl = calculateLevel(student.exp);
-        let cp = (lvl * 100) + Math.floor(student.exp * 0.1);
+        const exp = Number(student.exp) || 0;
+        const lvl = calculateLevel(exp);
+        let cp = (lvl * 100) + Math.floor(exp * 0.1);
         if (student.equipped) {
             if (student.equipped.pet) { const item = getItemData(student.equipped.pet); if(item) cp += (item.cp || 300); }
             if (student.equipped.sword) { const item = getItemData(student.equipped.sword); if(item) cp += (item.cp || 500); }
@@ -1194,7 +1499,7 @@
     function getItemData(itemId) {
         if (!itemId) return null;
         if (ITEMS[itemId]) return ITEMS[itemId];
-        const real = REAL_REWARDS.find(r => itemId === r.id || itemId.startsWith(r.id + '_'));
+        const real = getAllRewardsForLookup().find(r => itemId === r.id || itemId.startsWith(r.id + '_'));
         if (real) return real;
         if (itemId.startsWith("tamed_")) {
             const monsterType = itemId.split('_')[1];
@@ -1205,52 +1510,71 @@
     }
 
     function getStudentInfo(s) {
-        const currentLevel = calculateLevel(s.exp);
+        const exp = Number(s.exp) || 0;
+        const currentLevel = calculateLevel(exp);
         const nextLevelExp = getExpForLevel(currentLevel);
         const prevLevelExp = getExpForLevel(currentLevel - 1);
         const range = Math.max(1, nextLevelExp - prevLevelExp);
-        const progress = s.exp - prevLevelExp;
+        const progress = exp - prevLevelExp;
         const pct = Math.min(100, Math.max(0, (progress / range) * 100));
         let artIndex = 0; if (currentLevel < 25) artIndex = 0; else if (currentLevel < 50) artIndex = 1; else if (currentLevel < 75) artIndex = 2; else artIndex = 3;
         const gender = s.gender || 'male';
         return {
             level: currentLevel,
+            realm: getRealmName(currentLevel),
             avatar: getAvatarPath(PLAYER_ARTS[artIndex], gender),
             battleAvatar: getAvatarPath(PLAYER_BATTLE_ARTS[artIndex], gender),
             fallbackAvatar: gender === 'female' ? FALLBACK_ICONS.avatarFemale : FALLBACK_ICONS.avatarMale,
-            expText: `${s.exp} / ${nextLevelExp}`,
+            expText: `${exp} / ${nextLevelExp}`,
             pct
         };
     }
 
-    // 所有卡片操作全面改以 studentId 定位，確保排序／篩選後絕不會誤改其他同學
-    function updateExpById(studentId, amount, reason = null) {
-        playSfx(sfxClick, 'click');
+    function updateExpById(studentId, amount, reason = null, silentClick = false) {
+        if (!silentClick) playSfx(sfxClick, 'click');
         const s = getStudentById(studentId);
         if (!s) return;
+        const delta = Math.trunc(Number(amount) || 0);
         const oldLvl = calculateLevel(s.exp);
-        s.exp = Math.max(0, s.exp + amount);
+        const oldRealm = getRealmName(oldLvl);
+        const oldSectLv = getSectLevel();
+
+        s.exp = Math.max(0, (Number(s.exp) || 0) + delta);
         const newLvl = calculateLevel(s.exp);
-        const logReason = reason || (amount >= 300 ? '奇遇獎勵' : amount >= 100 ? '優秀表現' : amount > 0 ? '表現良好' : '常規扣分');
-        addStudentLog(s, amount >= 0 ? 'plus' : 'minus', `${amount > 0 ? '+' : ''}${amount} 修為`, logReason);
-        showFloatTextById(amount > 0 ? `+${amount} Exp` : `${amount} Exp`, studentId, amount >= 0 ? '#ffd700' : '#ff6b6b');
-        if (newLvl > oldLvl) {
+        const newRealm = getRealmName(newLvl);
+        const newSectLv = getSectLevel();
+
+        const logReason = reason || (delta >= 300 ? '奇遇獎勵' : delta >= 100 ? '優秀表現' : delta > 0 ? '表現良好' : '常規扣分');
+        addStudentLog(s, delta >= 0 ? 'plus' : 'minus', `${delta > 0 ? '+' : ''}${delta} 修為`, logReason);
+        showFloatTextById(delta > 0 ? `+${delta} Exp` : `${delta} Exp`, studentId, delta >= 0 ? '#ffd700' : '#ff6b6b');
+
+        if (newSectLv > oldSectLv) {
             playSfx(sfxLevelUp, 'levelup');
-            showLevelUpEffect();
-            showNotify(`恭喜 ${s.name} 升到了 Lv.${newLvl}！`);
+            showLevelUpEffect(`🏯 宗門靈脈晉升 Lv.${newSectLv}！解鎖：${teachingConfig.sectReward}`);
+            showNotify(`🎉 全班合力達成！宗門靈脈升至 Lv.${newSectLv}，解鎖【${teachingConfig.sectReward}】！`);
+        } else if (newRealm !== oldRealm && newLvl > oldLvl) {
+            playSfx(sfxLevelUp, 'levelup');
+            showLevelUpEffect(`⚡ ${s.name} 突破境界！晉升【${newRealm}】Lv.${newLvl}！`);
+            showNotify(`⚡ 恭喜 ${s.name} 突破大境界，晉升【${newRealm}】Lv.${newLvl}！`);
+        } else if (newLvl > oldLvl) {
+            playSfx(sfxLevelUp, 'levelup');
+            showLevelUpEffect(`✨ ${s.name} 升至 Lv.${newLvl}（${newRealm}）！`);
+            showNotify(`恭喜 ${s.name} 升到了 Lv.${newLvl}（${newRealm}）！`);
         }
         markDirtyAndSave(false);
+        renderSectVein();
         renderGrid();
     }
 
     function updateCoinsById(studentId, amount, reason = null) {
         const s = getStudentById(studentId);
         if (!s) return;
-        playSfx(amount >= 0 ? sfxGetItem : sfxClick, 'click');
-        s.coins = Math.max(0, (Number(s.coins) || 0) + amount);
-        const logReason = reason || (amount >= 0 ? '師尊賞賜妖丹' : '扣除妖丹');
-        addStudentLog(s, amount >= 0 ? 'plus' : 'minus', `${amount > 0 ? '+' : ''}${amount} 妖丹`, logReason);
-        showFloatTextById(amount > 0 ? `+${amount} 妖丹` : `${amount} 妖丹`, studentId, amount >= 0 ? '#fde047' : '#f87171');
+        const delta = Math.trunc(Number(amount) || 0);
+        playSfx(delta >= 0 ? sfxGetItem : sfxClick, 'click');
+        s.coins = Math.max(0, (Number(s.coins) || 0) + delta);
+        const logReason = reason || (delta >= 0 ? '師尊賞賜妖丹' : '扣除妖丹');
+        addStudentLog(s, delta >= 0 ? 'plus' : 'minus', `${delta > 0 ? '+' : ''}${delta} 妖丹`, logReason);
+        showFloatTextById(delta > 0 ? `+${delta} 妖丹` : `${delta} 妖丹`, studentId, delta >= 0 ? '#fde047' : '#f87171');
         markDirtyAndSave(false);
         renderGrid();
     }
@@ -1300,18 +1624,19 @@
     }
 
     function executeBatchAction() {
-        if (batchSelectedIds.size === 0) { showNotify("請至少勾選一位弟子！"); return; }
+        const targets = students.filter(s => batchSelectedIds.has(s.id));
+        if (targets.length === 0) { showNotify("請至少勾選一位弟子！"); return; }
         const expDelta = parseInt(document.getElementById('batch-exp-input').value) || 0;
         const coinDelta = parseInt(document.getElementById('batch-coin-input').value) || 0;
         const reason = document.getElementById('batch-reason-input').value.trim() || '團體獎懲';
         if (expDelta === 0 && coinDelta === 0) { showNotify("修為與妖丹增減不可同時為 0！"); return; }
 
+        const oldSectLv = getSectLevel();
         let leveledUpCount = 0;
-        students.forEach(s => {
-            if (!batchSelectedIds.has(s.id)) return;
+        targets.forEach(s => {
             if (expDelta !== 0) {
                 const oldLvl = calculateLevel(s.exp);
-                s.exp = Math.max(0, s.exp + expDelta);
+                s.exp = Math.max(0, (Number(s.exp) || 0) + expDelta);
                 if (calculateLevel(s.exp) > oldLvl) leveledUpCount++;
                 addStudentLog(s, expDelta > 0 ? 'plus' : 'minus', `${expDelta > 0 ? '+' : ''}${expDelta} 修為`, reason);
             }
@@ -1320,13 +1645,19 @@
                 addStudentLog(s, coinDelta > 0 ? 'plus' : 'minus', `${coinDelta > 0 ? '+' : ''}${coinDelta} 妖丹`, reason);
             }
         });
+        const newSectLv = getSectLevel();
 
-        playSfx(leveledUpCount > 0 ? sfxLevelUp : sfxWin, leveledUpCount > 0 ? 'levelup' : 'click');
-        if (leveledUpCount > 0) showLevelUpEffect();
+        playSfx(leveledUpCount > 0 || newSectLv > oldSectLv ? sfxLevelUp : sfxWin, leveledUpCount > 0 ? 'levelup' : 'click');
+        if (newSectLv > oldSectLv) {
+            showLevelUpEffect(`🏯 宗門靈脈晉升 Lv.${newSectLv}！解鎖：${teachingConfig.sectReward}`);
+        } else if (leveledUpCount > 0) {
+            showLevelUpEffect(`✨ 共有 ${leveledUpCount} 位弟子修為升級！`);
+        }
         markDirtyAndSave(false);
+        renderSectVein();
         renderGrid();
         document.getElementById('batch-action-modal').style.display = 'none';
-        showNotify(`⚡ 已對 ${batchSelectedIds.size} 位弟子完成批量操作！${leveledUpCount > 0 ? `（其中 ${leveledUpCount} 位升級！）` : ''}`);
+        showNotify(`⚡ 已對 ${targets.length} 位弟子完成批量操作！${leveledUpCount > 0 ? `（其中 ${leveledUpCount} 位升級！）` : ''}`);
     }
 
     // ====== 查看修煉日誌 ======
@@ -1376,22 +1707,38 @@
             if (isTeacherMode) {
                 if (el.classList.contains('card-actions')) el.style.setProperty('display', 'grid', 'important');
                 else if (el.classList.contains('teacher-controls-header')) el.style.setProperty('display', 'flex', 'important');
-                else el.style.setProperty('display', 'block', 'important');
+                else el.style.setProperty('display', 'inline-block', 'important');
             } else {
                 el.style.setProperty('display', 'none', 'important');
             }
         });
     }
 
-    // 排行榜
+    // ====== 榮譽榜 ======
     function openLeaderboard() {
         playSfx(sfxClick, 'click');
-        const modal = document.getElementById('leaderboard-modal');
+        renderLeaderboard();
+        document.getElementById('leaderboard-modal').style.display = 'flex';
+    }
+
+    function switchLbTab(tab) {
+        lbTab = tab;
+        document.getElementById('lb-tab-student').classList.toggle('active', tab === 'student');
+        document.getElementById('lb-tab-group').classList.toggle('active', tab === 'group');
+        renderLeaderboard();
+    }
+
+    function renderLeaderboard() {
         const container = document.getElementById('lb-container');
         container.innerHTML = '';
-        let sortedStudents = [...students].sort((a, b) => calculateCP(b) - calculateCP(a));
-        if (sortedStudents.length === 0) { container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">暫無弟子數據</div>'; }
-        else {
+        if (students.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:24px; color:var(--text-muted);">暫無弟子數據</div>';
+            return;
+        }
+        if (lbTab === 'student') {
+            document.getElementById('lb-header-left').innerText = '排名 / 弟子';
+            document.getElementById('lb-header-right').innerText = '戰鬥力 (CP)';
+            const sortedStudents = [...students].sort((a, b) => calculateCP(b) - calculateCP(a));
             sortedStudents.forEach((s, i) => {
                 const info = getStudentInfo(s);
                 const cp = calculateCP(s);
@@ -1399,17 +1746,46 @@
                 const row = document.createElement('div');
                 row.className = `leaderboard-row rank-${i+1}`;
                 row.innerHTML = `
-                    <div class="rank-num">${i+1}</div>
+                    <div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
                     <img class="lb-avatar" src="${info.avatar}" onerror="this.src='${info.fallbackAvatar}';this.onerror=null;">
-                    <div class="lb-name">${escapeHtml(s.name)} ${tName ? `<span class="title-badge">${escapeHtml(tName)}</span>` : ''} <span style="font-size:0.8em; color:var(--text-muted);">Lv.${info.level}${s.group && s.group !== '未分組' ? ' · ' + escapeHtml(s.group) : ''}</span></div>
+                    <div class="lb-name">
+                        <strong>${escapeHtml(s.name)}</strong>
+                        <span class="realm-badge" style="margin-left:4px;">${info.realm}</span>
+                        ${tName ? `<span class="title-badge">${escapeHtml(tName)}</span>` : ''}
+                        <div style="font-size:0.78rem; color:var(--text-muted);">Lv.${info.level}${s.group && s.group !== '未分組' ? ' · ' + escapeHtml(s.group) : ''}</div>
+                    </div>
                     <div class="lb-cp">${cp}</div>`;
                 container.appendChild(row);
             });
+        } else {
+            document.getElementById('lb-header-left').innerText = '排名 / 堂口（總修為・均戰力）';
+            document.getElementById('lb-header-right').innerText = '堂口總 CP';
+            const map = {};
+            students.forEach(s => {
+                const g = s.group || '未分組';
+                if (!map[g]) map[g] = { name: g, count: 0, totalCp: 0, totalExp: 0 };
+                map[g].count++;
+                map[g].totalCp += calculateCP(s);
+                map[g].totalExp += (Number(s.exp) || 0);
+            });
+            const sortedGroups = Object.values(map).sort((a, b) => b.totalCp - a.totalCp);
+            sortedGroups.forEach((g, i) => {
+                const avgCp = Math.round(g.totalCp / Math.max(1, g.count));
+                const row = document.createElement('div');
+                row.className = `leaderboard-row rank-${i+1}`;
+                row.innerHTML = `
+                    <div class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
+                    <div class="lb-name">
+                        <strong>${escapeHtml(g.name)}</strong> <span style="font-size:0.82rem; color:var(--text-muted);">(${g.count} 人)</span>
+                        <div style="font-size:0.78rem; color:var(--text-brown);">總修為 ${g.totalExp.toLocaleString()} · 平均戰力 ${avgCp}</div>
+                    </div>
+                    <div class="lb-cp">${g.totalCp}</div>`;
+                container.appendChild(row);
+            });
         }
-        modal.style.display = 'flex';
     }
 
-    // 萬寶閣
+    // ====== 萬寶閣與師尊自訂商品 ======
     function openShopDirect() {
         if (students.length === 0) { showNotify("先收弟子再來萬寶閣！"); return; }
         if (!currentInvStudentId || !getStudentById(currentInvStudentId)) currentInvStudentId = students[0].id;
@@ -1426,39 +1802,66 @@
         const selector = document.getElementById('shop-student-select');
         selector.innerHTML = '';
         students.forEach(s => { const opt = document.createElement('option'); opt.value = s.id; opt.innerText = `${s.name} (妖丹 ${s.coins||0})`; selector.appendChild(opt); });
-        selector.value = currentInvStudentId;
+        selector.value = String(currentInvStudentId);
         updateShopBalance();
         renderShop();
+        updateTeacherUI();
         document.getElementById('shop-modal').style.display = 'flex';
     }
 
     function switchShopStudent() { currentInvStudentId = Number(document.getElementById('shop-student-select').value); updateShopBalance(); renderShop(); }
-    function switchShopTab(tab) { shopTab = tab; document.querySelectorAll('.shop-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab)); renderShop(); }
-    function updateShopBalance() { const s = getStudentById(currentInvStudentId); document.getElementById('shop-balance-display').innerText = `妖丹 ${s?.coins || 0}`; }
+    function switchShopTab(tab) { shopTab = tab; document.querySelectorAll('#shop-modal .shop-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab)); renderShop(); }
+    function updateShopBalance() { const s = getStudentById(currentInvStudentId); document.getElementById('shop-balance-display').innerText = `💰 妖丹 ${s?.coins || 0}`; }
 
     function renderShop() {
         const container = document.getElementById('shop-container');
         container.innerHTML = '';
+        const s = getStudentById(currentInvStudentId);
+        const weekKey = getISOWeekKey();
+
         let itemsToShow = [];
         if (shopTab === 'gear') itemsToShow = Object.values(ITEMS);
-        else if (shopTab === 'reward') itemsToShow = REAL_REWARDS;
+        else if (shopTab === 'reward') itemsToShow = getActiveRewards();
         else itemsToShow = Object.values(TITLES).map(t => ({...t, type:'title', price: 0}));
 
         itemsToShow.forEach(item => {
             const card = document.createElement('div');
-            const cls = item.type === 'pet' ? 'pet' : (item.type === 'consumable' ? 'reward' : '');
+            const cls = item.type === 'pet' ? 'pet' : (item.type === 'consumable' ? 'reward' : (item.highTier ? 'high-tier' : ''));
             card.className = `shop-card ${cls}`;
             const fallback = item.type === 'pet' ? FALLBACK_ICONS.pet : item.type === 'sword' ? FALLBACK_ICONS.sword : item.type === 'title' ? FALLBACK_ICONS.title : FALLBACK_ICONS.ticket;
             const imgSrc = item.icon || item.src || fallback;
-            const priceHtml = item.type === 'title' ? '<div class="item-price" style="color:var(--cp-color);">師尊可直接授予</div>' : `<div class="item-price">💰 ${item.price}</div>`;
-            const actionBtn = item.type === 'title'
-                ? `<button class="pixel-btn info action-btn-small" onclick="grantTitleFromShop('${item.id}')">授予</button>`
-                : `<button class="pixel-btn success action-btn-small" onclick="buyItem('${item.id}')">購買</button>`;
+
+            let limitTag = '';
+            let limitReached = false;
+            if (item.type === 'consumable' && item.limitPerWeek > 0 && s) {
+                const used = s.weeklyUsage?.[`${weekKey}_${item.id}`] || 0;
+                limitTag = `<div class="tier-badge">本週限換 ${used}/${item.limitPerWeek}</div>`;
+                if (used >= item.limitPerWeek) limitReached = true;
+            }
+            const alreadyOwned = (item.type === 'sword' || item.type === 'pet') && s?.inventory?.includes(item.id);
+            const priceHtml = item.type === 'title'
+                ? '<div class="item-price" style="color:var(--cp-color);">師尊可直接授予</div>'
+                : `<div class="item-price">💰 ${item.price} 妖丹</div>`;
+
+            let actionBtn = '';
+            if (item.type === 'title') {
+                actionBtn = `<button class="pixel-btn info action-btn-small" onclick="grantTitleFromShop('${item.id}')">授予稱號</button>`;
+            } else if (alreadyOwned) {
+                actionBtn = `<button class="pixel-btn action-btn-small" disabled>✓ 已擁有</button>`;
+            } else if (limitReached) {
+                actionBtn = `<button class="pixel-btn action-btn-small" disabled>本週已達上限</button>`;
+            } else {
+                actionBtn = `<button class="pixel-btn success action-btn-small" onclick="buyItem('${item.id}')">立即購買</button>`;
+            }
+
             card.innerHTML = `
+                ${item.tier ? `<div class="tier-badge">${escapeHtml(item.tier)}</div>` : ''}
+                ${item.isCustom ? `<div class="tier-badge">師尊自訂</div>` : ''}
                 <img src="${imgSrc}" onerror="this.src='${fallback}';this.onerror=null;">
                 <h4>${escapeHtml(item.name)}</h4>
                 <p>${escapeHtml(item.desc || '')}</p>
                 ${item.bonus?.cp ? `<div class="cp-bonus">戰力 +${item.bonus.cp}</div>` : (item.cp ? `<div class="cp-bonus">戰力 +${item.cp}</div>` : '')}
+                ${limitTag}
                 ${priceHtml}
                 ${actionBtn}`;
             container.appendChild(card);
@@ -1469,24 +1872,38 @@
         const s = getStudentById(currentInvStudentId);
         const itemData = getItemData(itemId);
         if (!s || !itemData) { showNotify("商品不存在"); return; }
-        const price = itemData.price || 0;
-        if ((s.coins || 0) < price) { showNotify("妖丹不足，先去歷練或努力表現賺取！"); return; }
-        playSfx(sfxGetItem, 'click');
-        s.coins = (s.coins || 0) - price;
+        const price = Number(itemData.price) || 0;
+        if ((Number(s.coins) || 0) < price) { showNotify("妖丹不足，先去歷練或努力表現賺取！"); return; }
+
+        const weekKey = getISOWeekKey();
+        if (itemData.type === 'consumable' && itemData.limitPerWeek > 0) {
+            if (!s.weeklyUsage) s.weeklyUsage = {};
+            const uKey = `${weekKey}_${itemData.id}`;
+            if ((s.weeklyUsage[uKey] || 0) >= itemData.limitPerWeek) {
+                showNotify("本週已達此特權卡兌換上限，下週一自動重置！");
+                return;
+            }
+            s.weeklyUsage[uKey] = (s.weeklyUsage[uKey] || 0) + 1;
+        }
+
         if (!s.inventory) s.inventory = [];
         const isConsumable = itemData.type === 'consumable';
+        if (!isConsumable && s.inventory.includes(itemId)) {
+            showNotify("已擁有此裝備！");
+            return;
+        }
+
+        playSfx(sfxGetItem, 'click');
+        s.coins = (Number(s.coins) || 0) - price;
         if (isConsumable) {
-            const uid = `${itemId}_${Date.now()}`;
+            const uid = `${itemId}_${Date.now()}_${uidSeq++}`;
             s.inventory.push(uid);
-            addStudentLog(s, 'shop', `-${price} 妖丹`, `購買【${itemData.name}】`);
-            showNotify("購買成功！已放入行囊，請向老師出示核銷使用。");
+            addStudentLog(s, 'shop', `-${price} 妖丹`, `購買特權卡【${itemData.name}】`);
+            showNotify(`🎫 兌換成功！【${itemData.name}】已存入行囊，請向師尊出示核銷。`);
         } else {
-            if (s.inventory.includes(itemId)) { showNotify("已擁有此裝備，購買取消。"); s.coins += price; }
-            else {
-                s.inventory.push(itemId);
-                addStudentLog(s, 'shop', `-${price} 妖丹`, `購買【${itemData.name}】`);
-                showNotify("購買成功！戰力大增！");
-            }
+            s.inventory.push(itemId);
+            addStudentLog(s, 'shop', `-${price} 妖丹`, `購買【${itemData.name}】`);
+            showNotify(`✨ 購買成功！快到行囊穿戴【${itemData.name}】吧！`);
         }
         markDirtyAndSave(false);
         openShopModal();
@@ -1505,7 +1922,95 @@
         showNotify(`${s.name} 獲得稱號：${t.name}`);
     }
 
-    // 行囊
+    // 師尊自訂商店管理（下架時自動移入封存表，不影響學生行囊既有卡片）
+    function openCustomShopModal() {
+        if (!isTeacherMode) { showNotify("僅師尊可管理自訂商品"); return; }
+        playSfx(sfxClick, 'click');
+        renderCustomShopList();
+        document.getElementById('custom-shop-modal').style.display = 'flex';
+    }
+
+    function fillCustomPreset(name, price, limit, desc) {
+        document.getElementById('custom-item-name').value = name;
+        document.getElementById('custom-item-price').value = price;
+        document.getElementById('custom-item-limit').value = limit;
+        document.getElementById('custom-item-desc').value = desc;
+    }
+
+    function renderCustomShopList() {
+        const wrap = document.getElementById('custom-shop-list');
+        wrap.innerHTML = '';
+        const list = teachingConfig.customRewards || [];
+        if (list.length === 0) {
+            wrap.innerHTML = '<div style="text-align:center; padding:16px; color:var(--text-muted);">尚未自訂任何特權卡，可於上方新增或點擊範例快填。</div>';
+            return;
+        }
+        list.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'log-item shop';
+            div.innerHTML = `
+                <div>
+                    <strong style="color:var(--text-gold);">${escapeHtml(item.name)}</strong>
+                    <span style="margin-left:6px; font-size:0.84rem;">💰${item.price}${item.limitPerWeek > 0 ? ` · 週限 ${item.limitPerWeek} 次` : ' · 不限量'}</span>
+                    <div style="font-size:0.78rem; color:var(--text-brown);">${escapeHtml(item.desc)}</div>
+                </div>
+                <button class="pixel-btn primary action-btn-small" style="min-height:auto; padding:4px 10px;" onclick="deleteCustomReward('${item.id}')">下架</button>`;
+            wrap.appendChild(div);
+        });
+    }
+
+    function addCustomReward() {
+        const name = document.getElementById('custom-item-name').value.trim();
+        const price = Math.max(0, parseInt(document.getElementById('custom-item-price').value) || 0);
+        const limitPerWeek = Math.max(0, parseInt(document.getElementById('custom-item-limit').value) || 0);
+        const desc = document.getElementById('custom-item-desc').value.trim() || '班級專屬特權卡';
+        if (!name) { showNotify("請先輸入特權卡名稱！"); return; }
+        teachingConfig.customRewards.push({
+            id: `custom${Date.now()}${uidSeq++}`,
+            name, price, limitPerWeek, desc,
+            type: 'consumable',
+            isCustom: true,
+            icon: FALLBACK_ICONS.ticket
+        });
+        document.getElementById('custom-item-name').value = '';
+        document.getElementById('custom-item-desc').value = '';
+        markDirtyAndSave(false);
+        renderCustomShopList();
+        renderShop();
+        showNotify(`✨ 已上架自訂特權卡【${name}】！`);
+    }
+
+    function deleteCustomReward(id) {
+        const target = (teachingConfig.customRewards || []).find(r => r.id === id);
+        if (target) {
+            if (!Array.isArray(teachingConfig.archivedCustomRewards)) teachingConfig.archivedCustomRewards = [];
+            if (!teachingConfig.archivedCustomRewards.some(a => a.id === target.id)) {
+                teachingConfig.archivedCustomRewards.push(target);
+            }
+        }
+        teachingConfig.customRewards = (teachingConfig.customRewards || []).filter(r => r.id !== id);
+        markDirtyAndSave(false);
+        renderCustomShopList();
+        renderShop();
+        showNotify("已下架該特權卡（學生已購入的卡片仍可正常核銷）。");
+    }
+
+    // 行囊（使用獨立詳情預覽列，完全解決 tooltip 被捲軸裁切問題，亦友善觸控大屏）
+    function updateInvDetailBar(itemData, isEquipped) {
+        const bar = document.getElementById('inv-detail-bar');
+        if (!bar) return;
+        if (!itemData) {
+            bar.innerHTML = '游標移至物品上方可檢視詳細戰力與說明，點擊即可裝備或申請核銷。';
+            return;
+        }
+        const statusTag = itemData.type === 'consumable'
+            ? '<span style="color:#fb923c; font-weight:bold;">【特權卡 · 點擊核銷】</span>'
+            : (isEquipped ? '<span style="color:#48d46d; font-weight:bold;">【已穿戴 · 點擊卸下】</span>' : '<span style="color:#38bdf8; font-weight:bold;">【未穿戴 · 點擊裝備】</span>');
+        const cpHtml = itemData.cp ? ` <span class="cp-bonus">戰力 +${itemData.cp}</span>` : '';
+        bar.innerHTML = `<div><strong>${escapeHtml(itemData.name)}</strong>${cpHtml} ${statusTag}</div>
+                         <div style="font-size:0.82rem; color:var(--text-brown); margin-top:2px;">${escapeHtml(itemData.desc || '')}</div>`;
+    }
+
     function openInventory(studentId) {
         const s = getStudentById(studentId);
         if (!s) return;
@@ -1513,29 +2018,25 @@
         const modal = document.getElementById('inventory-modal');
         document.getElementById('inv-modal-title').innerText = `🎒 ${s.name} 的行囊`;
         const container = document.getElementById('inv-container'); container.innerHTML = '';
-        if (!s.inventory || s.inventory.length === 0) {
+        updateInvDetailBar(null, false);
+
+        const validItems = (s.inventory || []).map(itemId => ({ itemId, itemData: getItemData(itemId) })).filter(x => x.itemData);
+        if (validItems.length === 0) {
             container.innerHTML = '<p style="color:var(--text-muted); text-align:center; width:100%; grid-column:1/-1;">行囊空空如也...</p>';
         } else {
-            s.inventory.forEach(itemId => {
-                const itemData = getItemData(itemId);
-                if (itemData) {
-                    const isEquipped = (s.equipped && (s.equipped.pet === itemId || s.equipped.sword === itemId));
-                    const isConsumable = itemData.type === 'consumable';
-                    const fallback = itemData.type === 'pet' ? FALLBACK_ICONS.pet : itemData.type === 'sword' ? FALLBACK_ICONS.sword : FALLBACK_ICONS.ticket;
-                    const div = document.createElement('div');
-                    div.className = `inventory-item ${isEquipped ? 'equipped' : ''} ${isConsumable ? 'ticket-item' : ''}`;
-                    div.innerHTML = `
-                        <img src="${itemData.icon || itemData.src || fallback}" onerror="this.src='${fallback}';this.onerror=null;">
-                        <div class="inv-mini-label">${isEquipped ? '✓' : ''}${escapeHtml(itemData.name)}</div>
-                        <div class="item-tooltip">
-                            <b>${escapeHtml(itemData.name)}</b><br>
-                            ${itemData.cp ? `<span class="cp-bonus">戰力 +${itemData.cp}</span><br>` : ''}
-                            <span style="font-size:0.8em; color:#ddd;">${escapeHtml(itemData.desc || (isConsumable ? '特權卡（需師尊核銷）' : '點擊裝備'))}</span>
-                        </div>`;
-                    if (isConsumable) div.onclick = () => useRealReward(studentId, itemId);
-                    else div.onclick = () => toggleEquip(studentId, itemId, itemData.type);
-                    container.appendChild(div);
-                }
+            validItems.forEach(({ itemId, itemData }) => {
+                const isEquipped = !!(s.equipped && (s.equipped.pet === itemId || s.equipped.sword === itemId));
+                const isConsumable = itemData.type === 'consumable';
+                const fallback = itemData.type === 'pet' ? FALLBACK_ICONS.pet : itemData.type === 'sword' ? FALLBACK_ICONS.sword : FALLBACK_ICONS.ticket;
+                const div = document.createElement('div');
+                div.className = `inventory-item ${isEquipped ? 'equipped' : ''} ${isConsumable ? 'ticket-item' : ''}`;
+                div.title = `${itemData.name}${itemData.cp ? ` (戰力 +${itemData.cp})` : ''}\n${itemData.desc || ''}`;
+                div.innerHTML = `
+                    <img src="${itemData.icon || itemData.src || fallback}" onerror="this.src='${fallback}';this.onerror=null;">
+                    <div class="inv-mini-label">${isEquipped ? '✓' : ''}${escapeHtml(itemData.name)}</div>`;
+                div.onmouseenter = () => updateInvDetailBar(itemData, isEquipped);
+                div.onclick = isConsumable ? () => useRealReward(studentId, itemId) : () => toggleEquip(studentId, itemId, itemData.type);
+                container.appendChild(div);
             });
         }
         modal.style.display = 'flex';
@@ -1553,14 +2054,14 @@
         openInventory(studentId);
     }
 
-    // ====== 【構想二-4】特權卡武俠風核銷確認防呆（需師尊模式確認或輸入師尊口令） ======
     function useRealReward(studentId, uniqueId) {
         const s = getStudentById(studentId);
-        const item = REAL_REWARDS.find(r => uniqueId === r.id || uniqueId.startsWith(r.id + '_'));
+        const item = getItemData(uniqueId);
         if (!s || !item) return;
 
         const doConsume = () => {
-            s.inventory = s.inventory.filter(id => id !== uniqueId);
+            const idx = s.inventory.indexOf(uniqueId);
+            if (idx !== -1) s.inventory.splice(idx, 1);
             addStudentLog(s, 'shop', '核銷特權卡', `已使用【${item.name}】`);
             playSfx(sfxWin, 'levelup');
             markDirtyAndSave(false);
@@ -1604,20 +2105,22 @@
         titleTargetId = studentId;
         selectedTitleId = s.title || null;
         renderTitleCards();
-        document.getElementById('title-modal-title').innerText = `授予稱號給 ${s.name}`;
+        document.getElementById('title-modal-title').innerText = `👑 授予稱號給 ${s.name}`;
         document.getElementById('title-modal').style.display = 'flex';
     }
     function renderTitleCards() {
         const wrap = document.getElementById('title-card-container'); wrap.innerHTML = '';
         Object.values(TITLES).forEach(t => {
+            const isSel = selectedTitleId === t.id;
             const card = document.createElement('div');
-            card.className = `shop-card ${selectedTitleId === t.id ? 'active' : ''}`;
-            card.style.borderColor = selectedTitleId === t.id ? '#ffd700' : 'var(--border-color)';
+            card.className = `shop-card ${isSel ? 'active' : ''}`;
+            card.style.borderColor = isSel ? '#ffd700' : 'var(--border-color)';
+            card.style.boxShadow = isSel ? '0 0 12px rgba(255,215,0,0.45)' : 'none';
             card.innerHTML = `
                 <h4>${escapeHtml(t.name)}</h4>
                 <p>${escapeHtml(t.desc)}</p>
                 <div class="cp-bonus">戰力 +${t.bonus?.cp || 0}</div>
-                <button class="pixel-btn info action-btn-small" onclick="selectTitle('${t.id}')">${selectedTitleId === t.id ? '已選' : '選擇'}</button>
+                <button class="pixel-btn ${isSel ? 'gold' : 'info'} action-btn-small" onclick="selectTitle('${t.id}')">${isSel ? '✓ 已選' : '選擇'}</button>
             `;
             wrap.appendChild(card);
         });
@@ -1632,7 +2135,16 @@
         markDirtyAndSave(false);
         renderGrid();
         document.getElementById('title-modal').style.display = 'none';
-        showNotify(`${s.name} 獲得稱號：${TITLES[selectedTitleId].name}`);
+        showNotify(`👑 ${s.name} 獲得稱號：${TITLES[selectedTitleId].name}`);
+    }
+    function clearSelectedTitle() {
+        const s = getStudentById(titleTargetId);
+        if (!s) return;
+        s.title = '';
+        markDirtyAndSave(false);
+        renderGrid();
+        document.getElementById('title-modal').style.display = 'none';
+        showNotify(`已移除 ${s.name} 的稱號。`);
     }
 
     // 學生管理
@@ -1644,9 +2156,11 @@
         let gender = 'male'; for(let r of genderRadios) if(r.checked) gender = r.value;
         if(!name) return;
         playSfx(sfxClick, 'click');
-        students.push(normalizeStudent({ id: Date.now(), name, gender, group }));
+        const newStudent = normalizeStudentList([{ id: generateStudentId(), name, gender, group }])[0];
+        students.push(newStudent);
         input.value = '';
         markDirtyAndSave(false);
+        renderSectVein();
         renderGrid();
         showNotify(`歡迎 ${name} 加入${group === '未分組' ? '宗門' : group}！`);
     }
@@ -1657,17 +2171,21 @@
         const autoGroup = document.getElementById('batch-auto-group').checked;
         if (count > 0 && count <= 100) {
             playSfx(sfxClick, 'click');
+            let addedCount = 0;
             for (let i = 1; i <= count; i++) {
                 const name = i + "號";
                 if (!students.some(s => s.name === name)) {
                     const group = autoGroup ? GROUPS[(i - 1) % GROUPS.length] : '未分組';
-                    students.push(normalizeStudent({ id: Date.now() + i, name, gender: 'male', group }));
+                    students.push(normalizeStudentList([{ id: generateStudentId(), name, gender: 'male', group }])[0]);
+                    addedCount++;
                 }
             }
             markDirtyAndSave(false);
+            renderSectVein();
             renderGrid();
-            showNotify(`已生成 ${count} 位弟子名錄！`);
             document.getElementById('batch-modal').style.display = 'none';
+            if (addedCount > 0) showNotify(`已新增 ${addedCount} 位弟子名錄！`);
+            else showNotify(`1號～${count}號皆已存在於名冊中。`);
         } else showNotify("請輸入 1~100 之間的人數。");
     }
 
@@ -1713,9 +2231,11 @@
             showCancel: true,
             confirmText: "確定逐出",
             onConfirm: () => {
-                students = students.filter(st => st.id !== id);
-                teachingConfig.pickedStudentIds = teachingConfig.pickedStudentIds.filter(pid => pid !== id);
+                students = students.filter(st => Number(st.id) !== id);
+                teachingConfig.pickedStudentIds = teachingConfig.pickedStudentIds.filter(pid => Number(pid) !== id);
+                if (Number(currentInvStudentId) === id) currentInvStudentId = null;
                 markDirtyAndSave(false);
+                renderSectVein();
                 renderGrid();
                 document.getElementById('edit-student-modal').style.display = 'none';
                 showNotify(`弟子 ${s.name} 已離開宗門。`);
@@ -1723,7 +2243,7 @@
         });
     }
 
-    // ====== 【構想二-2】支援排序與篩選的卡片渲染 ======
+    // ====== 卡片渲染 ======
     function renderGrid() {
         const grid = document.getElementById('studentGrid');
         grid.innerHTML = '';
@@ -1743,7 +2263,7 @@
         if (sortBy === 'seat_asc') {
             displayList.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant', { numeric: true }));
         } else if (sortBy === 'level_desc') {
-            displayList.sort((a, b) => (b.exp || 0) - (a.exp || 0));
+            displayList.sort((a, b) => (Number(b.exp) || 0) - (Number(a.exp) || 0));
         } else if (sortBy === 'coins_desc') {
             displayList.sort((a, b) => (Number(b.coins) || 0) - (Number(a.coins) || 0));
         } else if (sortBy === 'cp_desc') {
@@ -1762,8 +2282,10 @@
 
         displayList.forEach(s => {
             const info = getStudentInfo(s);
+            const cp = calculateCP(s);
             const tName = getTitleDisplay(s.title);
             const ticketCount = countStudentTickets(s);
+            const validInvCount = (s.inventory || []).filter(id => !!getItemData(id)).length;
             let companionHtml = '';
             if (s.equipped && s.equipped.pet) {
                 const petData = getItemData(s.equipped.pet);
@@ -1773,7 +2295,7 @@
                 const swordData = getItemData(s.equipped.sword);
                 if(swordData) companionHtml += `<img src="${swordData.src || swordData.icon}" class="companion-img companion-sword" onerror="this.src='${FALLBACK_ICONS.sword}';this.onerror=null;">`;
             }
-            const auraClass = info.level >= 70 ? 'aura-high' : (info.level >= 40 ? 'aura-mid' : 'aura-low');
+            const auraClass = info.level >= 50 ? 'aura-high' : (info.level >= 20 ? 'aura-mid' : 'aura-low');
             const card = document.createElement('div');
             card.className = 'student-card pixel-border';
             card.id = `card-id-${s.id}`;
@@ -1783,6 +2305,7 @@
                     <div class="student-name-box">
                         <div class="student-name">${escapeHtml(s.name)}</div>
                         <div class="badge-row">
+                            <span class="realm-badge">${info.realm}</span>
                             ${s.group && s.group !== '未分組' ? `<span class="group-badge">${escapeHtml(s.group)}</span>` : ''}
                             ${tName ? `<span class="title-badge">${escapeHtml(tName)}</span>` : ''}
                             ${ticketCount > 0 ? `<span class="ticket-badge" title="持有未使用的特權卡">🎫×${ticketCount}</span>` : ''}
@@ -1795,9 +2318,12 @@
                     ${companionHtml}
                 </div>
                 <div class="stat-row"><span class="stat-label">修為</span><div class="bar-container"><div class="bar-fill bar-exp" style="width: ${info.pct}%"></div></div><span class="stat-value">${info.expText}</span></div>
-                <div class="stat-row"><span class="stat-label">妖丹</span><div class="coin-display">💰 ${s.coins || 0}</div></div>
+                <div class="coin-cp-row">
+                    <div class="coin-display">💰 妖丹 ${s.coins || 0}</div>
+                    <div class="cp-mini">⚔️ CP ${cp}</div>
+                </div>
                 <div class="common-actions">
-                    <button class="pixel-btn info action-btn-small" onclick="openInventory(${s.id})">🎒 行囊 (${(s.inventory||[]).length})</button>
+                    <button class="pixel-btn info action-btn-small" onclick="openInventory(${s.id})">🎒 行囊 (${validInvCount})</button>
                     <button class="pixel-btn action-btn-small" onclick="openHistoryModal(${s.id})">📜 修煉日誌</button>
                 </div>
                 <div class="card-actions teacher-only">
@@ -1815,8 +2341,15 @@
     }
 
     // ====== 歷練：公平點名 + 題庫匯入 + 倒數計時 ======
+    function clearAllBattleTimers() {
+        if (battleTimerInterval) { clearInterval(battleTimerInterval); battleTimerInterval = null; }
+        if (battleRollTimer) { clearTimeout(battleRollTimer); battleRollTimer = null; }
+        if (battleFadeTimer) { clearTimeout(battleFadeTimer); battleFadeTimer = null; }
+        if (battleCloseTimer) { clearTimeout(battleCloseTimer); battleCloseTimer = null; }
+    }
+
     function updatePickPoolUI() {
-        teachingConfig.pickedStudentIds = (teachingConfig.pickedStudentIds || []).filter(id => students.some(s => s.id === id));
+        teachingConfig.pickedStudentIds = (teachingConfig.pickedStudentIds || []).filter(id => students.some(s => Number(s.id) === Number(id)));
         const remain = Math.max(0, students.length - teachingConfig.pickedStudentIds.length);
         document.getElementById('pick-pool-status').innerText = `本輪剩餘待抽：${remain} / ${students.length} 人`;
         document.getElementById('q-count-badge').innerText = (teachingConfig.questionBank || []).length;
@@ -1859,12 +2392,8 @@
         showNotify(`📝 已保存 ${teachingConfig.questionBank.length} 題至歷練題庫！`);
     }
 
-    function stopBattleTimer() {
-        if (battleTimerInterval) { clearInterval(battleTimerInterval); battleTimerInterval = null; }
-    }
-
     function startBattleTimer() {
-        stopBattleTimer();
+        if (battleTimerInterval) { clearInterval(battleTimerInterval); battleTimerInterval = null; }
         const total = Number(teachingConfig.battleTimerSec) || 0;
         const wrap = document.getElementById('battle-timer-wrap');
         const bar = document.getElementById('battle-timer-bar');
@@ -1880,7 +2409,8 @@
             bar.style.width = `${Math.max(0, (left / total) * 100)}%`;
             if (left > 0 && left <= 5) playSynthFallback('tick');
             if (left <= 0) {
-                stopBattleTimer();
+                clearInterval(battleTimerInterval);
+                battleTimerInterval = null;
                 playSynthFallback('alarm');
             }
         }, 1000);
@@ -1888,10 +2418,12 @@
 
     function openBattleModal() {
         if(students.length === 0) { showNotify("宗門無人，無法歷練！"); return; }
+        clearAllBattleTimers();
         playSfx(sfxClick, 'click'); playBGM('battle');
-        stopBattleTimer();
         const bgUrl = BATTLE_BG[Math.floor(Math.random() * BATTLE_BG.length)];
         document.getElementById('battle-stage').style.backgroundImage = `url('${bgUrl}')`;
+        document.getElementById('battle-monster-img').classList.remove('shake-effect', 'damage-flash');
+        document.getElementById('battle-student-img').classList.remove('shake-effect', 'damage-flash');
         const modal = document.getElementById('battle-modal');
         if (Math.random() < 0.2) { isTreasureEncounter = true; setupTreasureEncounter(); } else { isTreasureEncounter = false; setupMonsterEncounter(); }
         document.getElementById('fighter-student').style.opacity = '0';
@@ -1923,12 +2455,16 @@
     }
 
     function closeBattleModal() {
-        stopBattleTimer();
+        clearAllBattleTimers();
+        document.getElementById('battle-monster-img').classList.remove('shake-effect', 'damage-flash');
+        document.getElementById('battle-student-img').classList.remove('shake-effect', 'damage-flash');
         playSfx(sfxClick, 'click'); playBGM('main');
         document.getElementById('battle-modal').style.display = 'none';
     }
 
     function pickRandomStudent() {
+        if (students.length === 0) { closeBattleModal(); return; }
+        clearAllBattleTimers();
         playSfx(sfxClick, 'click');
         const noRepeat = document.getElementById('chk-no-repeat').checked;
         let candidates = students;
@@ -1944,7 +2480,7 @@
 
         document.getElementById('battle-controls-start').style.display = 'none';
         document.getElementById('battle-msg').innerText = "天道輪盤轉動中...";
-        let speed = 50; let totalTime = 0; const maxTime = 1800;
+        let speed = 50; let totalTime = 0; const maxTime = 1700;
         (function animateRoll() {
             const preview = students[Math.floor(Math.random() * students.length)];
             const info = getStudentInfo(preview);
@@ -1954,8 +2490,13 @@
             sImg.onerror = function() { this.src = info.fallbackAvatar; this.onerror = null; };
             document.getElementById('fighter-student').style.opacity = '1';
             totalTime += speed;
-            if (totalTime < maxTime) { speed += 12; setTimeout(animateRoll, speed); }
-            else finalizePick(winner.id, noRepeat);
+            if (totalTime < maxTime) {
+                speed += 12;
+                battleRollTimer = setTimeout(animateRoll, speed);
+            } else {
+                battleRollTimer = null;
+                finalizePick(winner.id, noRepeat);
+            }
         })();
     }
 
@@ -1992,7 +2533,7 @@
             qBox.style.display = 'none';
         }
 
-        document.getElementById('battle-controls-judge').style.display = 'block';
+        document.getElementById('battle-controls-judge').style.display = 'flex';
         playSfx(sfxLevelUp, 'levelup');
     }
 
@@ -2002,36 +2543,44 @@
     }
 
     function resolveBattle(isWin) {
-        stopBattleTimer();
+        clearAllBattleTimers();
         const s = getStudentById(currentBattleStudentId);
-        if (!s) return;
+        if (!s) { closeBattleModal(); return; }
         const monsterImg = document.getElementById('battle-monster-img');
         const studentImg = document.getElementById('battle-student-img');
+        document.getElementById('battle-controls-judge').style.display = 'none';
+
         if(isWin) {
             playSfx(sfxWin, 'levelup'); monsterImg.classList.add('shake-effect');
             playHitEffect(monsterImg, '#ffd45a');
-            let expGain = 50; let coinGain = 50;
-            if (isTreasureEncounter) {
-                expGain = 100; coinGain = 200;
-                document.getElementById('battle-msg').innerText = `開啟成功！獲得 ${expGain} Exp / ${coinGain} 妖丹！`;
-                checkWeaponDrop(s.id, true);
-            } else {
-                document.getElementById('battle-msg').innerText = `回答正確！獲得 ${expGain} Exp / ${coinGain} 妖丹！`;
-                checkWeaponDrop(s.id, false);
-            }
-            updateExpById(s.id, expGain, isTreasureEncounter ? '開啟神秘寶箱' : `歷練擊敗${currentMonster?.name || '妖獸'}`);
-            s.coins = parseInt(s.coins || 0) + coinGain;
+            const expGain = isTreasureEncounter ? 100 : 50;
+            const coinGain = isTreasureEncounter ? 200 : 50;
+            document.getElementById('battle-msg').innerText = isTreasureEncounter
+                ? `開啟成功！獲得 ${expGain} Exp / ${coinGain} 妖丹！`
+                : `回答正確！獲得 ${expGain} Exp / ${coinGain} 妖丹！`;
+
+            updateExpById(s.id, expGain, isTreasureEncounter ? '開啟神秘寶箱' : `歷練擊敗${currentMonster?.name || '妖獸'}`, true);
+            s.coins = (Number(s.coins) || 0) + coinGain;
             addStudentLog(s, 'plus', `+${coinGain} 妖丹`, isTreasureEncounter ? '寶箱妖丹獎勵' : '歷練戰利品');
+            checkWeaponDrop(s.id, isTreasureEncounter);
             markDirtyAndSave(false);
+            renderSectVein();
             renderGrid();
-            setTimeout(() => { monsterImg.classList.remove('shake-effect'); monsterImg.style.opacity = '0'; setTimeout(closeBattleModal, 1300); }, 500);
+
+            battleFadeTimer = setTimeout(() => {
+                monsterImg.classList.remove('shake-effect');
+                monsterImg.style.opacity = '0';
+                battleCloseTimer = setTimeout(closeBattleModal, 1200);
+            }, 500);
         } else {
             playSfx(sfxAttack, 'click'); studentImg.classList.add('shake-effect');
             playHitEffect(studentImg, '#ff6b6b');
             document.getElementById('battle-msg').innerText = isTreasureEncounter ? "開啟失敗！寶箱消失了..." : "回答錯誤！受到傷害！";
-            setTimeout(() => { studentImg.classList.remove('shake-effect'); closeBattleModal(); }, 1400);
+            battleCloseTimer = setTimeout(() => {
+                studentImg.classList.remove('shake-effect');
+                closeBattleModal();
+            }, 1350);
         }
-        document.getElementById('battle-controls-judge').style.display = 'none';
     }
 
     function spawnBattleFx(type='lightning') {
@@ -2048,24 +2597,36 @@
         stage.appendChild(fx); setTimeout(()=>fx.remove(), 450);
     }
 
+    // 修復寶箱必掉邏輯：優先從「尚未擁有」的初階神兵抽選；若全數集滿則加碼折現 +150 妖丹
     function checkWeaponDrop(studentId, guaranteed = false) {
         const s = getStudentById(studentId);
         if (!s) return;
-        if (guaranteed || Math.random() < 0.05) {
-            const keys = Object.keys(ITEMS).filter(k => ITEMS[k].type === 'sword');
-            const randomItemKey = keys[Math.floor(Math.random() * keys.length)];
+        if (guaranteed || Math.random() < 0.08) {
             if (!s.inventory) s.inventory = [];
-            if (!s.inventory.includes(randomItemKey)) {
-                s.inventory.push(randomItemKey);
-                const item = ITEMS[randomItemKey];
+            const starterSwords = Object.keys(ITEMS).filter(k => ITEMS[k].type === 'sword' && ITEMS[k].price <= 500);
+            const unowned = starterSwords.filter(k => !s.inventory.includes(k));
+            if (unowned.length > 0) {
+                const pickKey = unowned[Math.floor(Math.random() * unowned.length)];
+                s.inventory.push(pickKey);
+                const item = ITEMS[pickKey];
                 addStudentLog(s, 'plus', '掉落神兵', `歷練獲得【${item.name}】`);
-                markDirtyAndSave(false);
                 const overlay = document.getElementById('item-get-overlay');
                 const dropImg = document.getElementById('item-get-img');
                 dropImg.src = item.icon;
                 dropImg.onerror = function() { this.src = FALLBACK_ICONS.sword; this.onerror = null; };
                 document.getElementById('item-get-name').innerText = `獲得神兵：${item.name}！`;
                 document.getElementById('item-get-desc').innerText = `戰鬥力 +${item.cp}`;
+                overlay.style.display = 'flex';
+                playSfx(sfxGetItem, 'levelup');
+            } else if (guaranteed) {
+                const bonusCoins = 150;
+                s.coins = (Number(s.coins) || 0) + bonusCoins;
+                addStudentLog(s, 'plus', `+${bonusCoins} 妖丹`, '初階神兵已全集齊，寶箱加碼折現');
+                const overlay = document.getElementById('item-get-overlay');
+                const dropImg = document.getElementById('item-get-img');
+                dropImg.src = FALLBACK_ICONS.chest;
+                document.getElementById('item-get-name').innerText = `寶箱加碼 +${bonusCoins} 妖丹！`;
+                document.getElementById('item-get-desc').innerText = '初階神兵已全部集齊，自動轉化為靈石妖丹！';
                 overlay.style.display = 'flex';
                 playSfx(sfxGetItem, 'levelup');
             }
@@ -2095,11 +2656,18 @@
             setTimeout(() => floatEl.remove(), 1600);
         }
     }
-    function showLevelUpEffect() { const overlay = document.getElementById('level-up-overlay'); overlay.style.display = 'flex'; setTimeout(() => overlay.style.display = 'none', 2000); }
+
+    function showLevelUpEffect(bannerText = '境界突破！') {
+        document.getElementById('level-up-banner').innerText = bannerText;
+        const overlay = document.getElementById('level-up-overlay');
+        overlay.style.display = 'flex';
+        clearTimeout(levelUpTimer);
+        levelUpTimer = setTimeout(() => { overlay.style.display = 'none'; }, 2300);
+    }
 
     function exportToFile() {
         try {
-            const payload = { version: '7.6', students, teachingConfig };
+            const payload = { version: '7.8', students, teachingConfig };
             const dataStr = JSON.stringify(payload, null, 4);
             const dataBlob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(dataBlob);
@@ -2110,7 +2678,7 @@
             downloadLink.click();
             document.body.removeChild(downloadLink);
             URL.revokeObjectURL(url);
-            showNotify("💾 成功匯出 save.json 檔案（含分組、日誌、題庫與大屏偏好）！");
+            showNotify("💾 成功匯出 save.json 檔案（含自訂商店、靈脈目標、題庫與全部進度）！");
         } catch (error) {
             showNotify("❌ 匯出檔案失敗！");
             console.error(error);
@@ -2125,18 +2693,22 @@
             try {
                 const importedData = JSON.parse(e.target.result);
                 if (Array.isArray(importedData)) {
-                    students = importedData.map((s, idx) => normalizeStudent(s, idx));
+                    students = normalizeStudentList(importedData);
                 } else if (importedData && Array.isArray(importedData.students)) {
-                    students = importedData.students.map((s, idx) => normalizeStudent(s, idx));
-                    if (importedData.teachingConfig && typeof importedData.teachingConfig === 'object') {
-                        teachingConfig = Object.assign(teachingConfig, importedData.teachingConfig);
+                    students = normalizeStudentList(importedData.students);
+                    const cfg = importedData.teachingConfig || importedData.config;
+                    if (cfg && typeof cfg === 'object') {
+                        teachingConfig = normalizeConfig(Object.assign({}, teachingConfig, cfg));
                     }
                 } else {
                     showCustomModal({ title: "匯入失敗", msg: "檔案格式不符，請選擇正確的宗門進度 JSON 檔案。" });
                     return;
                 }
+                teachingConfig.pickedStudentIds = teachingConfig.pickedStudentIds.filter(id => students.some(s => s.id === id));
+                currentInvStudentId = null;
                 applyBigScreenUI();
                 saveData(false);
+                renderSectVein();
                 renderGrid();
                 showNotify(`📥 成功讀取並匯入 ${students.length} 位弟子進度！`);
             } catch (error) {
@@ -2150,26 +2722,28 @@
 
     function resetAll() {
         showCustomModal({
-            title: "解散宗門", msg: "確定要燒毀名冊？所有資料將消失。", showCancel: true, confirmText: "確定重置",
+            title: "解散宗門", msg: "確定要燒毀名冊？所有弟子資料、自訂商店與題庫將清空重設。", showCancel: true, confirmText: "確定重置",
             onConfirm: () => {
                 localStorage.removeItem('wuxia_class_data');
                 localStorage.removeItem('wuxia_teaching_config');
                 students = [];
-                teachingConfig.pickedStudentIds = [];
+                teachingConfig = createDefaultConfig(true);
+                currentInvStudentId = null;
+                currentBattleStudentId = null;
                 isDirty = false;
+                renderSectVein();
                 renderGrid();
-                showNotify("一切回歸虛無...");
+                showNotify("一切回歸虛無，已重設為全新宗門。");
             }
         });
     }
 
-    let notifyTimer = null;
     function showNotify(msg) {
         const bar = document.getElementById('notification-bar');
         bar.innerText = msg;
         bar.style.opacity = '1';
         clearTimeout(notifyTimer);
-        notifyTimer = setTimeout(() => { bar.style.opacity = '0'; }, 2800);
+        notifyTimer = setTimeout(() => { bar.style.opacity = '0'; }, 3000);
     }
 </script>
 </body>
