@@ -1,0 +1,2176 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>武俠班級經營 - 宗門啟示錄 (V7.6 教學實用＋教室大屏優化版)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap');
+        
+        :root {
+            --bg-color: #1a1a1a;
+            --panel-bg: rgba(30, 25, 20, 0.95);
+            --card-bg: rgba(40, 30, 20, 0.92);
+            --border-color: #8c6f4f;
+            --text-gold: #ffd700;
+            --text-beige: #f0e0c0;
+            --text-brown: #d0b090;
+            --text-muted: #aaa;
+            --input-bg: rgba(0,0,0,0.35);
+            --stat-bar-bg: #2a2015;
+            --level-bg: rgba(0,0,0,0.55);
+            --level-text: #00d2ff;
+            --cp-color: #00f2fe;
+            --rank-1: #ffd700;
+            --rank-2: #c0c0c0;
+            --rank-3: #cd7f32;
+        }
+
+        /* ====== 【構想二-1】教室大屏高對比明亮模式 ====== */
+        body.big-screen-mode {
+            --bg-color: #f2eadc;
+            --panel-bg: #fffaf0;
+            --card-bg: #ffffff;
+            --border-color: #5c3a1e;
+            --text-gold: #8c2d04;
+            --text-beige: #1c140d;
+            --text-brown: #4a331d;
+            --text-muted: #5a4a3a;
+            --input-bg: #f5efe4;
+            --stat-bar-bg: #e2d5c0;
+            --level-bg: #1e3a5f;
+            --level-text: #ffffff;
+            --cp-color: #005f73;
+            background-image: none !important;
+            background-color: var(--bg-color) !important;
+        }
+        body.big-screen-mode h1,
+        body.big-screen-mode .student-name,
+        body.big-screen-mode .level-badge,
+        body.big-screen-mode .title-badge {
+            text-shadow: none !important;
+        }
+        body.big-screen-mode .pixel-border {
+            box-shadow: 0 3px 10px rgba(60, 40, 20, 0.18);
+        }
+        body.big-screen-mode .pixel-btn {
+            text-shadow: none;
+            font-weight: bold;
+            box-shadow: 0 3px 0 #5c3a1e;
+        }
+        body.big-screen-mode .grid-container {
+            grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+            gap: 20px;
+        }
+        body.big-screen-mode .student-name {
+            font-size: 1.85rem;
+            letter-spacing: 1px;
+        }
+        body.big-screen-mode .level-badge {
+            font-size: 1.75rem;
+            padding: 3px 10px;
+        }
+        body.big-screen-mode .title-badge {
+            background: #fef3c7;
+            color: #92400e;
+            border-color: #d97706;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        body.big-screen-mode .group-badge {
+            background: #ede9fe;
+            color: #5b21b6;
+            border-color: #7c3aed;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        body.big-screen-mode .ticket-badge {
+            background: #ffedd5;
+            color: #9a3412;
+            border-color: #ea580c;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        body.big-screen-mode .avatar-area {
+            background: radial-gradient(circle at bottom, #e6dcc8 0%, #f8f4ec 75%);
+            border-color: #c7b299;
+        }
+        body.big-screen-mode .stat-row {
+            font-size: 1.05rem;
+            font-weight: bold;
+        }
+        body.big-screen-mode .stat-value {
+            color: #1c140d;
+            font-size: 0.95rem;
+            font-weight: bold;
+        }
+        body.big-screen-mode .coin-display {
+            color: #b45309;
+            font-size: 1.15rem;
+        }
+        /* 電子白板防誤觸：放大常用加減分按鈕 */
+        body.big-screen-mode .action-btn-small {
+            padding: 10px 6px;
+            font-size: 0.98rem;
+            min-height: 44px;
+        }
+        body.big-screen-mode .card-actions {
+            gap: 8px;
+        }
+        body.big-screen-mode .card-edit-btn {
+            color: #5c3a1e;
+            font-size: 1.4rem;
+            opacity: 0.9;
+        }
+        body.big-screen-mode .shop-card {
+            background: #fdf8ee;
+        }
+        body.big-screen-mode .shop-card p {
+            color: #3d2e1e;
+        }
+        body.big-screen-mode .shop-tab {
+            background: #f5efe4;
+            color: #2c1d10;
+            border-color: #8c6f4f;
+            font-weight: bold;
+        }
+        body.big-screen-mode .shop-tab.active {
+            background: #fef3c7;
+            border-color: #b45309;
+            color: #8c2d04;
+        }
+        body.big-screen-mode .leaderboard-row {
+            background: #faf4e8;
+        }
+        body.big-screen-mode .leaderboard-row:hover {
+            background: #f2e5ce;
+        }
+        body.big-screen-mode .log-item {
+            background: #f7f1e3;
+            color: #1c140d;
+        }
+        body.big-screen-mode .log-time {
+            color: #5a4a3a;
+        }
+        body.big-screen-mode .batch-stu-chip {
+            background: #fffaf0;
+            color: #1c140d;
+            border-color: #8c6f4f;
+        }
+        body.big-screen-mode .batch-stu-chip.selected {
+            background: #dcfce7;
+            border-color: #16a34a;
+            color: #14532d;
+            font-weight: bold;
+        }
+        body.big-screen-mode .inventory-item {
+            background: #f5efe4;
+        }
+        body.big-screen-mode .autosave-pill {
+            background: #f0e6d2;
+            color: #4a331d;
+            border-color: #c7b299;
+        }
+        body.big-screen-mode select option {
+            background: #fffaf0;
+            color: #1c140d;
+        }
+        body.big-screen-mode .reason-tag {
+            background: #fef3c7;
+            color: #78350f;
+            border-color: #d97706;
+        }
+        body.big-screen-mode .btn-deduct-exp {
+            color: #ffffff !important;
+            background: linear-gradient(to bottom, #dc2626, #991b1b) !important;
+            border-color: #7f1d1d !important;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0; padding: 0; width: 100%; min-height: 100vh;
+            font-family: 'Noto Serif TC', 'Microsoft JhengHei', 'SimSun', serif;
+            background-color: var(--bg-color);
+            background-image: url('https://html-classic.itch.zone/html/16280602/%E6%AD%A6%E4%BF%A0%E7%AD%94%E9%A1%8C%E5%82%B3/images/title_background_inkwash.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: var(--text-beige);
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        .pixel-border {
+            border: 3px solid var(--border-color);
+            box-shadow: 0 0 0 2px #201000, inset 0 0 0 1px #e0c0a0, 0 5px 15px rgba(0,0,0,0.6);
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .pixel-btn {
+            background-color: #b88a5a;
+            border: 2px solid #503010;
+            color: #fff8e1;
+            padding: 8px 14px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            font-family: inherit;
+            box-shadow: 0 4px 0 #403020;
+            transition: all 0.1s;
+            text-shadow: 1px 1px 1px #302010;
+            position: relative;
+            image-rendering: pixelated;
+            white-space: nowrap;
+            border-radius: 4px;
+        }
+        .pixel-btn:hover { background-color: #c89a6a; transform: translateY(-2px); box-shadow: 0 6px 0 #403020; }
+        .pixel-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #403020; }
+        .pixel-btn.primary { background: linear-gradient(to bottom, #d44848, #9f2626); border-color: #581212; color: #fff; }
+        .pixel-btn.success { background: linear-gradient(to bottom, #48d46d, #269f43); border-color: #125824; color: #fff; }
+        .pixel-btn.info { background: linear-gradient(to bottom, #3a7bd5, #008fb3); border-color: #005f73; color: #fff; }
+        .pixel-btn.purple { background: linear-gradient(to bottom, #8b5cf6, #6d28d9); border-color: #4c1d95; color: #fff; }
+        .pixel-btn.gold { background: linear-gradient(to bottom, #ffd700, #ff8c00); border-color: #8b4500; color: #3e1f00; text-shadow: none; font-weight: bold; }
+        .pixel-btn:disabled { filter: grayscale(1); cursor: not-allowed; opacity: 0.7; transform: none; box-shadow: none; }
+
+        #app-container { max-width: 1340px; margin: 0 auto; padding: 16px 20px; display: flex; flex-direction: column; min-height: 100vh; }
+        header { padding: 14px 16px; background: var(--panel-bg); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; position: relative; flex-wrap: wrap; gap: 10px; }
+        h1 { margin: 0; font-size: 1.9rem; color: var(--text-gold); text-shadow: 2px 2px 0 #000, 0 0 10px rgba(255, 215, 0, 0.5); letter-spacing: 2px; line-height: 1.2; }
+
+        /* 【構想二-3】靜默自動存檔狀態指示燈 */
+        .autosave-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 0.78rem; color: var(--text-brown);
+            padding: 2px 9px; border-radius: 12px;
+            background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(140, 111, 79, 0.5);
+            margin-top: 3px;
+        }
+        .autosave-dot {
+            width: 8px; height: 8px; border-radius: 50%; background: #48d46d;
+            display: inline-block; transition: transform 0.35s, box-shadow 0.35s;
+        }
+        .autosave-dot.saving { transform: scale(1.65); box-shadow: 0 0 10px #48d46d; }
+        .autosave-dot.dirty { background: #fbbf24; }
+
+        .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .teacher-only { display: none !important; }
+        input[type="text"], input[type="password"], input[type="number"], select, textarea {
+            background: var(--input-bg); border: 2px solid var(--border-color); color: var(--text-beige);
+            padding: 7px 8px; font-family: inherit; outline: none; border-radius: 4px; font-size: 0.94rem;
+        }
+        select option { background: #261e16; color: #f0e0c0; }
+        input:focus, select:focus, textarea:focus { border-color: var(--text-gold); }
+        .gender-radio { display: flex; gap: 10px; align-items: center; color: var(--text-brown); }
+        .gender-radio label { cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .gender-radio input[type="radio"] { accent-color: #b88a5a; width: 16px; height: 16px; }
+
+        /* 【構想二-2】卡片篩選與排序工具列 */
+        .toolbar-row {
+            background: var(--panel-bg); padding: 10px 14px; margin-bottom: 16px;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 10px;
+        }
+        .toolbar-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .filter-checkbox-pill {
+            display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+            padding: 6px 10px; border: 2px solid var(--border-color); border-radius: 4px;
+            background: var(--input-bg); color: var(--text-beige); font-size: 0.9rem;
+        }
+        .filter-checkbox-pill:hover { border-color: var(--text-gold); }
+        .toolbar-count { font-size: 0.9rem; color: var(--text-brown); font-weight: bold; }
+
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(295px, 1fr)); gap: 18px; padding-bottom: 50px; }
+
+        /* 卡片與光效 */
+        .student-card { background-color: var(--card-bg); padding: 15px; display: flex; flex-direction: column; gap: 8px; position: relative; transition: all 0.25s ease; }
+        .student-card:hover { transform: translateY(-5px); box-shadow: 0 12px 24px rgba(0,0,0,0.45); z-index: 10; border-color: var(--text-gold); }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--border-color); padding-bottom: 6px; margin-bottom: 4px; padding-right: 28px; gap: 6px; }
+        .student-name-box { display: flex; flex-direction: column; gap: 4px; }
+        .student-name { font-size: 1.5rem; color: var(--text-gold); font-weight: bold; text-shadow: 1px 1px 2px #000; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+        .badge-row { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+        .title-badge { padding: 2px 6px; border: 1px solid #ffd700; color: #ffd700; background: rgba(255,215,0,0.12); border-radius: 6px; font-size: 0.76rem; text-shadow: 0 0 6px rgba(255,215,0,0.4); }
+        .group-badge { padding: 2px 6px; border: 1px solid #c084fc; color: #e9d5ff; background: rgba(168,85,247,0.18); border-radius: 6px; font-size: 0.75rem; }
+        .ticket-badge { padding: 2px 6px; border: 1px solid #fb923c; color: #fed7aa; background: rgba(249,115,22,0.22); border-radius: 6px; font-size: 0.75rem; }
+        .level-badge { font-family: 'Black Ops One', cursive, sans-serif; font-size: 1.6rem; color: var(--level-text); text-shadow: 0 0 5px #005f73, 2px 2px 0 #000; background: var(--level-bg); padding: 1px 8px; border-radius: 4px; border: 1px solid #005f73; white-space: nowrap; }
+        .avatar-area { display: flex; justify-content: center; align-items: flex-end; margin: 4px 0; height: 185px; overflow: hidden; position: relative; background: radial-gradient(circle at bottom, rgba(255,255,255,0.12) 0%, rgba(0,0,0,0) 70%); border-radius: 4px; border: 1px solid rgba(112, 80, 48, 0.5); }
+        .avatar-img { height: 94%; width: auto; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); transition: filter 0.3s; z-index: 2; animation: breathe 3s infinite ease-in-out; }
+        @keyframes breathe { 0%, 100% { filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)) brightness(1); } 50% { filter: drop-shadow(0 0 16px rgba(255,215,0,0.5)) brightness(1.1); } }
+
+        /* 武器與寵物 */
+        .companion-img { position: absolute; width: auto; object-fit: contain; image-rendering: pixelated; z-index: 3; filter: drop-shadow(0 0 8px rgba(0,0,0,0.8)); }
+        .companion-pet { height: 94px; bottom: 0px; left: -10px; animation: float 3s ease-in-out infinite; }
+        .companion-sword { height: 120px; top: -4px; right: -14px; transform: rotate(-18deg); animation: floatSword 4s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        @keyframes floatSword { 0%, 100% { transform: translateY(0) rotate(-18deg); } 50% { transform: translateY(-10px) rotate(-24deg); } }
+
+        .stat-row { display: flex; align-items: center; font-size: 0.92rem; gap: 6px; margin-bottom: 2px; }
+        .stat-label { width: 45px; color: var(--text-brown); text-align: right; flex-shrink: 0; }
+        .bar-container { flex-grow: 1; height: 16px; background: var(--stat-bar-bg); border: 1px solid #503010; border-radius: 8px; overflow: hidden; position: relative; }
+        .bar-fill { height: 100%; transition: width 0.5s ease; }
+        .bar-exp { background: linear-gradient(to right, #3b82f6, #06b6d4); }
+        .stat-value { font-size: 0.82rem; color: var(--text-beige); margin-left: 4px; min-width: 82px; text-align: right; font-family: monospace; }
+        .coin-display { color: #ffd700; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+        .card-actions, .common-actions { display: grid; gap: 6px; margin-top: 4px; }
+        .common-actions { grid-template-columns: 1fr 1fr; }
+        .card-actions { grid-template-columns: repeat(3, 1fr); }
+        .action-btn-small { padding: 6px 4px; font-size: 0.82rem; text-align: center; }
+        .card-edit-btn { position: absolute; top: 8px; right: 8px; background: none; border: none; color: #d0b090; cursor: pointer; font-size: 1.2rem; opacity: 0.75; z-index: 5; }
+        .card-edit-btn:hover { opacity: 1; transform: scale(1.1); }
+
+        /* 排行榜 */
+        .leaderboard-row { display: flex; align-items: center; padding: 10px; background: rgba(0,0,0,0.3); border-bottom: 1px solid #503010; transition: background 0.2s; }
+        .leaderboard-row:hover { background: rgba(255,255,255,0.05); }
+        .rank-num { width: 40px; font-weight: bold; font-size: 1.2rem; text-align: center; }
+        .rank-1 .rank-num { color: var(--rank-1); font-size: 1.5rem; }
+        .rank-2 .rank-num { color: var(--rank-2); font-size: 1.4rem; }
+        .rank-3 .rank-num { color: var(--rank-3); font-size: 1.3rem; }
+        .lb-name { flex-grow: 1; color: var(--text-beige); font-size: 1.05rem; }
+        .lb-cp { width: 100px; text-align: right; color: var(--cp-color); font-family: 'Black Ops One', sans-serif; }
+        .lb-avatar { width: 40px; height: 40px; object-fit: cover; border-radius: 50%; border: 2px solid #503010; margin-right: 10px; background: #000; }
+
+        /* 行囊與商店 */
+        .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 10px; max-height: 330px; overflow-y: auto; padding: 10px; }
+        .inventory-item { width: 74px; height: 74px; background: rgba(0,0,0,0.35); border: 2px solid var(--border-color); border-radius: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; padding: 4px; }
+        .inventory-item:hover { border-color: var(--text-gold); transform: scale(1.04); }
+        .inventory-item img { width: 46px; height: 46px; image-rendering: pixelated; object-fit: contain; }
+        .inventory-item .inv-mini-label { font-size: 0.66rem; color: var(--text-beige); width: 100%; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+        .inventory-item.equipped { border: 2px solid #48d46d; box-shadow: 0 0 8px #48d46d; }
+        .inventory-item.ticket-item { border: 2px solid #fb923c; box-shadow: 0 0 6px rgba(251, 146, 60, 0.45); }
+        .item-tooltip { position: absolute; bottom: 105%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.95); color: #fff; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem; white-space: pre-line; display: none; z-index: 25; pointer-events: none; min-width: 165px; text-align: left; }
+        .inventory-item:hover .item-tooltip { display: block; }
+        .cp-bonus { color: var(--cp-color); font-weight: bold; }
+        .item-price { color: var(--text-gold); font-size: 0.92rem; margin-top: 4px; font-weight: bold; }
+
+        /* 萬寶閣 Tabs */
+        .shop-tabs { display:flex; gap:10px; margin-bottom:8px; justify-content:center; flex-wrap:wrap; }
+        .shop-tab { padding:8px 14px; border:1px solid #503010; border-radius:8px; background:rgba(0,0,0,0.35); color:var(--text-beige); cursor:pointer; }
+        .shop-tab.active { border-color: var(--text-gold); color: var(--text-gold); box-shadow: 0 0 10px rgba(255,215,0,0.3); }
+        .shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; padding: 6px; max-height: 420px; overflow-y: auto; }
+        .shop-card { background: linear-gradient(135deg, rgba(255,215,0,0.1), rgba(0,0,0,0.45)); border: 1px solid var(--border-color); padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; border-radius: 5px; }
+        .shop-card.pet { box-shadow: 0 0 12px rgba(0, 200, 255, 0.25); }
+        .shop-card.reward { box-shadow: 0 0 12px rgba(255, 120, 80, 0.25); }
+        .shop-card img { width: 70px; height: 70px; image-rendering: pixelated; object-fit: contain; }
+        .shop-card h4 { margin: 4px 0; color: var(--text-gold); }
+        .shop-card p { font-size: 0.85rem; color: #cfc2a6; margin: 0; min-height: 32px; }
+
+        /* 批量獎懲與修煉日誌樣式 */
+        .batch-student-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+            gap: 8px; max-height: 220px; overflow-y: auto; padding: 10px;
+            background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 4px;
+        }
+        .batch-stu-chip {
+            display: flex; align-items: center; justify-content: space-between; gap: 6px;
+            padding: 6px 8px; border: 1px solid #6b4f35; border-radius: 4px; cursor: pointer;
+            font-size: 0.86rem; background: rgba(30,22,15,0.85); transition: all 0.15s;
+        }
+        .batch-stu-chip.selected { border-color: #48d46d; background: rgba(38, 159, 67, 0.28); color: #fff; }
+        .quick-reason-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+        .reason-tag {
+            font-size: 0.8rem; padding: 3px 9px; border-radius: 12px; cursor: pointer;
+            background: rgba(255,215,0,0.12); border: 1px solid var(--border-color); color: var(--text-beige);
+        }
+        .reason-tag:hover { border-color: var(--text-gold); color: var(--text-gold); }
+
+        .log-list { display: flex; flex-direction: column; gap: 6px; max-height: 380px; overflow-y: auto; padding-right: 4px; }
+        .log-item {
+            display: flex; justify-content: space-between; align-items: center; gap: 10px;
+            padding: 8px 10px; border-radius: 4px; background: rgba(0,0,0,0.35);
+            border-left: 4px solid var(--border-color); font-size: 0.9rem;
+        }
+        .log-item.plus { border-left-color: #48d46d; }
+        .log-item.minus { border-left-color: #ef4444; }
+        .log-item.shop { border-left-color: #f59e0b; }
+        .log-time { font-size: 0.76rem; color: var(--text-muted); white-space: nowrap; }
+
+        /* Modals */
+        #battle-modal, #system-modal, #inventory-modal, #edit-student-modal, #batch-modal,
+        #loading-overlay, #leaderboard-modal, #shop-modal, #batch-action-modal, #history-modal, #question-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.82); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; padding: 12px;
+        }
+        #edit-student-modal, #batch-modal, #leaderboard-modal, #shop-modal, #batch-action-modal, #history-modal { z-index: 2000; }
+        #question-modal { z-index: 2300; }
+        #system-modal { z-index: 3200; }
+        #loading-overlay { z-index: 9999; background: #1a1a1a; display: flex; }
+
+        /* 戰鬥場景與題庫倒數區 */
+        #battle-stage {
+            width: 100%; max-width: 860px; min-height: 540px; background-size: cover; background-position: center;
+            background-color: #241911; position: relative; border: 4px solid #302010;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8); display: flex; flex-direction: column;
+            justify-content: space-between; padding: 16px; transition: background-image 0.5s ease; gap: 10px;
+            color: #f0e0c0;
+        }
+        .battle-top-bar {
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+            background: rgba(20, 14, 9, 0.88); padding: 7px 12px; border-radius: 4px; border: 1px solid #8c6f4f;
+            font-size: 0.88rem; z-index: 4; color: #f0e0c0;
+        }
+        .battle-top { display: flex; justify-content: space-around; align-items: flex-end; min-height: 220px; padding: 0 30px; }
+        .fighter { display: flex; flex-direction: column; align-items: center; position: relative; }
+        .fighter img { height: 185px; image-rendering: pixelated; filter: drop-shadow(0 0 10px rgba(255,255,255,0.25)); transition: transform 0.2s; opacity: 1; }
+        .fighter img.treasure-chest { height: 130px; margin-bottom: 24px; animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .fighter-name { background: rgba(0,0,0,0.78); color: #ffd700; padding: 3px 10px; border-radius: 4px; margin-bottom: 5px; border: 1px solid #8c6f4f; }
+
+        #battle-question-box {
+            display: none; background: rgba(20, 15, 10, 0.94); border: 2px solid #ffd700;
+            border-radius: 6px; padding: 10px 14px; text-align: center;
+        }
+        #battle-question-text { font-size: 1.3rem; font-weight: bold; color: #ffd700; margin: 0 0 6px 0; }
+        #battle-answer-text { font-size: 1.05rem; color: #86efac; margin: 6px 0 0 0; display: none; }
+        .timer-track { width: 100%; height: 8px; background: #332920; border-radius: 4px; overflow: hidden; margin-top: 6px; }
+        .timer-fill { height: 100%; background: linear-gradient(90deg, #ef4444, #f59e0b, #48d46d); width: 100%; transition: width 0.25s linear; }
+
+        #battle-ui { background: rgba(40,30,20,0.95); border: 2px solid #8c6f4f; padding: 14px; text-align: center; display: flex; flex-direction: column; justify-content: center; gap: 12px; color: #f0e0c0; }
+        #battle-msg { font-size: 1.4rem; color: #fff8e1; margin: 0; }
+        .battle-controls { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
+
+        @keyframes shake { 0% { transform: translate(0, 0); } 25% { transform: translate(-5px, 0); } 75% { transform: translate(5px, 0); } 100% { transform: translate(0, 0); } }
+        .shake-effect { animation: shake 0.3s ease-in-out; }
+        @keyframes levelUpFloat { 0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; } 50% { transform: translate(-50%, -20px) scale(1.2); opacity: 1; } 100% { transform: translate(-50%, -50px) scale(1); opacity: 0; } }
+        .float-text { position: absolute; color: gold; font-weight: bold; font-size: 1.5rem; text-shadow: 0 0 6px #000; pointer-events: none; animation: levelUpFloat 1.5s forwards; z-index: 100; white-space: nowrap; }
+        .flash-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; opacity: 0; pointer-events: none; z-index: 8; }
+        @keyframes flash { 0% { opacity: 0.8; } 100% { opacity: 0; } }
+        .hit-spark { position:absolute; width:140px; height:80px; mix-blend-mode:screen; pointer-events:none; animation: hitSpark 0.45s ease-out; opacity:0.9; }
+        @keyframes hitSpark { 0% { transform: translate(-50%,-50%) scale(0.6) rotate(0deg); opacity:0.95;} 100% { transform: translate(-50%,-50%) scale(1.4) rotate(20deg); opacity:0; } }
+        @keyframes damageFlash { 0% { filter: drop-shadow(0 0 12px rgba(255,255,255,0.6)) brightness(1.6);} 100% { filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)) brightness(1);} }
+        .damage-flash { animation: damageFlash 0.35s ease-out; }
+        .aura-low .avatar-img  { filter: drop-shadow(0 0 8px rgba(0,180,255,0.35)) brightness(1.05); }
+        .aura-mid .avatar-img  { filter: drop-shadow(0 0 12px rgba(255,215,0,0.55)) brightness(1.1); }
+        .aura-high .avatar-img { filter: drop-shadow(0 0 16px rgba(255,120,200,0.65)) brightness(1.15); }
+        #level-up-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; z-index: 9999; background: rgba(255, 215, 0, 0.1); justify-content: center; align-items: center; }
+        #level-up-img { width: 320px; animation: levelUpZoom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes levelUpZoom { from { transform: scale(0); } to { transform: scale(1); } }
+        #notification-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(20, 10, 5, 0.94); border: 2px solid #ffd700; padding: 10px 30px; border-radius: 20px; color: #ffd700; font-size: 1.15rem; opacity: 0; transition: opacity 0.4s; pointer-events: none; z-index: 4000; }
+        #item-get-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 9998; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; flex-direction: column; }
+        .item-card-anim { background: rgba(40,30,20,0.95); border: 3px solid #ffd700; padding: 30px; text-align: center; border-radius: 10px; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); color: #f0e0c0; }
+        @keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .loading-text { color: #ffd700; font-size: 1.5rem; margin-top: 20px; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+    </style>
+</head>
+<body>
+
+<div id="loading-overlay">
+    <img id="loading-icon" src="" width="80" alt="載入中">
+    <div class="loading-text">宗門資源載入中...</div>
+</div>
+
+<div id="app-container">
+    <header class="pixel-border">
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <img id="header-icon" src="" width="44" height="44" alt="Icon">
+            <div>
+                <h1>宗門名錄</h1>
+                <div class="autosave-pill" title="每 60 秒於背景靜默自動存檔（僅有資料變動時寫入），上課不跳通知干擾">
+                    <span class="autosave-dot" id="autosave-dot"></span>
+                    <span id="autosave-text">自動存檔就緒</span>
+                </div>
+            </div>
+        </div>
+        <div class="controls">
+            <button class="pixel-btn" id="bigScreenBtn" onclick="toggleBigScreenMode()">☀️ 教室大屏</button>
+            <button class="pixel-btn" id="musicBtn" onclick="toggleMusic()">🔇 音樂</button>
+            <button class="pixel-btn gold" onclick="openShopDirect()">💰 萬寶閣</button>
+            <button class="pixel-btn gold" onclick="openLeaderboard()">🏆 戰力榜</button>
+            <button class="pixel-btn primary" onclick="openBattleModal()">⚔️ 隨機歷練</button>
+            <button id="loginBtn" class="pixel-btn" onclick="toggleTeacherMode()">🔑 師尊登入</button>
+        </div>
+
+        <div class="teacher-only teacher-controls-header" style="width: 100%; border-top: 1px solid var(--border-color); padding-top: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="newStudentName" placeholder="輸入弟子名號" style="width:115px;">
+            <select id="newStudentGroup" style="width:98px;">
+                <option value="未分組">未分組</option>
+                <option value="青龍堂">青龍堂</option>
+                <option value="白虎堂">白虎堂</option>
+                <option value="朱雀堂">朱雀堂</option>
+                <option value="玄武堂">玄武堂</option>
+            </select>
+            <div class="gender-radio">
+                <label><input type="radio" name="newStudentGender" value="male" checked>男</label>
+                <label><input type="radio" name="newStudentGender" value="female">女</label>
+            </div>
+            <button class="pixel-btn success" onclick="addStudent()">招收</button>
+            <button class="pixel-btn info" onclick="openBatchModal()">📚 批量生成</button>
+            <button class="pixel-btn purple" onclick="openBatchActionModal()">⚡ 批量加減分</button>
+            <button class="pixel-btn info" onclick="openQuestionModal()">📝 歷練題庫</button>
+            <button class="pixel-btn" onclick="saveData(true)">💾 存檔</button>
+            <button class="pixel-btn gold" onclick="exportToFile()">📤 匯出 save 檔</button>
+            <button class="pixel-btn info" onclick="document.getElementById('fileInput').click()">📥 匯入 save 檔</button>
+            <input type="file" id="fileInput" accept=".json" style="display:none;" onchange="importFromFile(event)">
+            <button class="pixel-btn primary" onclick="resetAll()">💀 重置</button>
+        </div>
+    </header>
+
+    <!-- 【構想二-2】篩選與排序工具列 -->
+    <div class="toolbar-row pixel-border">
+        <div class="toolbar-group">
+            <input type="text" id="searchInput" placeholder="🔍 搜尋座號／名號..." style="width:165px;" oninput="renderGrid()">
+            <select id="sortSelect" onchange="renderGrid()" title="卡片排序方式">
+                <option value="default">排序：預設順序</option>
+                <option value="seat_asc">排序：依座號排列</option>
+                <option value="level_desc">排序：依修為等級 (高→低)</option>
+                <option value="coins_desc">排序：依妖丹多寡 (多→少)</option>
+                <option value="cp_desc">排序：依戰鬥力 CP (高→低)</option>
+            </select>
+            <select id="filterGroup" onchange="renderGrid()" title="依堂口篩選">
+                <option value="ALL">全部堂口</option>
+                <option value="青龍堂">🐉 青龍堂</option>
+                <option value="白虎堂">🐯 白虎堂</option>
+                <option value="朱雀堂">🔥 朱雀堂</option>
+                <option value="玄武堂">🐢 玄武堂</option>
+                <option value="未分組">未分組</option>
+            </select>
+            <label class="filter-checkbox-pill">
+                <input type="checkbox" id="filterHasTicket" onchange="renderGrid()"> 🎫 只顯示有未用特權卡
+            </label>
+        </div>
+        <div class="toolbar-count" id="student-count-info">顯示 0 / 0 位弟子</div>
+    </div>
+
+    <div class="grid-container" id="studentGrid"></div>
+</div>
+
+<!-- 隨機歷練（公平不重複點名＋題庫＋計時器） -->
+<div id="battle-modal">
+    <div id="battle-stage" class="pixel-border">
+        <div class="flash-overlay" id="battle-flash"></div>
+        <div class="battle-top-bar">
+            <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+                <input type="checkbox" id="chk-no-repeat" checked onchange="updatePickPoolUI()"> 本輪已點名不重複
+            </label>
+            <span id="pick-pool-status" style="color:#ffd700;">本輪剩餘待抽：0 / 0 人</span>
+            <div style="display:flex; gap:6px; align-items:center;">
+                <button class="pixel-btn action-btn-small info" onclick="resetPickPool()">🔄 重置本輪</button>
+                <button class="pixel-btn action-btn-small gold" onclick="openQuestionModal()">📝 題庫 (<span id="q-count-badge">0</span>)</button>
+            </div>
+        </div>
+        <div class="battle-top">
+            <div class="fighter" id="fighter-student" style="opacity: 0;">
+                <div class="fighter-name" id="battle-student-name">弟子</div>
+                <img id="battle-student-img" src="" alt="Student">
+            </div>
+            <div class="fighter">
+                <div class="fighter-name" id="battle-monster-name">妖獸</div>
+                <img id="battle-monster-img" src="" alt="Monster">
+            </div>
+        </div>
+
+        <div id="battle-question-box">
+            <p id="battle-question-text">題目準備中...</p>
+            <div style="display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap;">
+                <button class="pixel-btn action-btn-small info" id="btn-reveal-ans" onclick="revealBattleAnswer()">👁️ 顯示解答</button>
+                <span id="battle-timer-text" style="color:#ffd700; font-weight:bold;"></span>
+            </div>
+            <p id="battle-answer-text"></p>
+            <div class="timer-track" id="battle-timer-wrap" style="display:none;">
+                <div class="timer-fill" id="battle-timer-bar"></div>
+            </div>
+        </div>
+
+        <div id="battle-ui" class="pixel-border">
+            <p id="battle-msg">遭遇了野生妖獸！</p>
+            <div class="battle-controls" id="battle-controls-start">
+                <button class="pixel-btn primary" style="font-size: 1.15rem; padding: 10px 28px;" onclick="pickRandomStudent()">🎲 隨機點名迎戰</button>
+                <button class="pixel-btn" onclick="closeBattleModal()">逃跑 (關閉)</button>
+            </div>
+            <div class="battle-controls" id="battle-controls-judge" style="display: none;">
+                <div class="teacher-controls-flex" style="display: flex; gap: 16px; flex-wrap:wrap; justify-content:center;">
+                    <button class="pixel-btn success" onclick="resolveBattle(true)">✅ 回答正確 (斬殺)</button>
+                    <button class="pixel-btn primary" onclick="resolveBattle(false)">❌ 回答錯誤 (受傷)</button>
+                    <button class="pixel-btn" onclick="closeBattleModal()">略過</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 題庫匯入與倒數設定 -->
+<div id="question-modal">
+    <div class="pixel-border" style="background:var(--panel-bg); padding:20px; width:95%; max-width:560px; max-height:85vh; overflow-y:auto; display:flex; flex-direction:column; gap:12px;">
+        <h3 style="margin:0; color:var(--text-gold); text-align:center;">📝 歷練題庫與答題計時</h3>
+        <p style="margin:0; font-size:0.86rem; color:var(--text-brown); line-height:1.5;">
+            每行輸入一題，可用 <code>|</code> 分隔題目與參考解答（例：<code>7 × 8 = ? | 56</code>）。若留空則維持由老師口頭出題。
+        </p>
+        <textarea id="question-bank-input" rows="8" style="width:100%; resize:vertical;" placeholder="請貼上國語生字造詞、英語單字或數學心算題目..."></textarea>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <label style="color:var(--text-beige); font-size:0.9rem;">
+                ⏱️ 答題倒數：
+                <select id="battle-timer-sec">
+                    <option value="0">不計時</option>
+                    <option value="10">10 秒</option>
+                    <option value="15" selected>15 秒</option>
+                    <option value="20">20 秒</option>
+                    <option value="30">30 秒</option>
+                    <option value="60">60 秒</option>
+                </select>
+            </label>
+            <button class="pixel-btn action-btn-small" onclick="fillSampleQuestions()">✨ 填入範例題庫</button>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+            <button class="pixel-btn" onclick="document.getElementById('question-modal').style.display='none'">取消</button>
+            <button class="pixel-btn success" onclick="saveQuestionBank()">保存題庫</button>
+        </div>
+    </div>
+</div>
+
+<!-- 全班／分組批量加減分 -->
+<div id="batch-action-modal">
+    <div class="pixel-border" style="background:var(--panel-bg); padding:20px; width:95%; max-width:660px; max-height:86vh; overflow-y:auto; display:flex; flex-direction:column; gap:12px;">
+        <h3 style="margin:0; color:var(--text-gold); text-align:center;">⚡ 全班／分堂口 一鍵批量加減分</h3>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center;">
+            <button class="pixel-btn action-btn-small info" onclick="selectBatchGroup('ALL')">全班</button>
+            <button class="pixel-btn action-btn-small purple" onclick="selectBatchGroup('青龍堂')">青龍堂</button>
+            <button class="pixel-btn action-btn-small purple" onclick="selectBatchGroup('白虎堂')">白虎堂</button>
+            <button class="pixel-btn action-btn-small purple" onclick="selectBatchGroup('朱雀堂')">朱雀堂</button>
+            <button class="pixel-btn action-btn-small purple" onclick="selectBatchGroup('玄武堂')">玄武堂</button>
+            <button class="pixel-btn action-btn-small" onclick="selectBatchGroup('NONE')">清空選取</button>
+        </div>
+        <div style="font-size:0.86rem; color:var(--text-brown); text-align:center;" id="batch-selected-count">已選取 0 位弟子（點擊下方卡片可個別勾選／取消）</div>
+        <div id="batch-student-list" class="batch-student-grid"></div>
+
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px;">
+            <div>
+                <label style="font-size:0.88rem; color:var(--text-brown);">修為 (Exp) 增減：</label>
+                <div style="display:flex; gap:5px; margin-top:5px; flex-wrap:wrap; align-items:center;">
+                    <input type="number" id="batch-exp-input" value="30" style="width:76px;">
+                    <button class="pixel-btn action-btn-small success" onclick="setBatchVal('exp', 30)">+30</button>
+                    <button class="pixel-btn action-btn-small success" onclick="setBatchVal('exp', 100)">+100</button>
+                    <button class="pixel-btn action-btn-small primary" onclick="setBatchVal('exp', -30)">-30</button>
+                    <button class="pixel-btn action-btn-small" onclick="setBatchVal('exp', 0)">歸0</button>
+                </div>
+            </div>
+            <div>
+                <label style="font-size:0.88rem; color:var(--text-brown);">妖丹 (金幣) 增減：</label>
+                <div style="display:flex; gap:5px; margin-top:5px; flex-wrap:wrap; align-items:center;">
+                    <input type="number" id="batch-coin-input" value="0" style="width:76px;">
+                    <button class="pixel-btn action-btn-small gold" onclick="setBatchVal('coin', 50)">+50</button>
+                    <button class="pixel-btn action-btn-small gold" onclick="setBatchVal('coin', 100)">+100</button>
+                    <button class="pixel-btn action-btn-small primary" onclick="setBatchVal('coin', -50)">-50</button>
+                    <button class="pixel-btn action-btn-small" onclick="setBatchVal('coin', 0)">歸0</button>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label style="font-size:0.88rem; color:var(--text-brown);">獎懲事由（將記錄至每位弟子的修煉日誌）：</label>
+            <input type="text" id="batch-reason-input" value="全班秩序優良" style="width:100%; margin-top:5px;">
+            <div class="quick-reason-row">
+                <span class="reason-tag" onclick="setBatchReason('全班秩序優良')">全班秩序優良</span>
+                <span class="reason-tag" onclick="setBatchReason('分組發表精彩')">分組發表精彩</span>
+                <span class="reason-tag" onclick="setBatchReason('整排作業交齊')">整排作業交齊</span>
+                <span class="reason-tag" onclick="setBatchReason('打掃認真確實')">打掃認真確實</span>
+                <span class="reason-tag" onclick="setBatchReason('堂口秩序提醒')">堂口秩序提醒</span>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:4px;">
+            <button class="pixel-btn" onclick="document.getElementById('batch-action-modal').style.display='none'">取消</button>
+            <button class="pixel-btn success" onclick="executeBatchAction()">⚡ 立即執行</button>
+        </div>
+    </div>
+</div>
+
+<!-- 修煉日誌（歷史紀錄） -->
+<div id="history-modal">
+    <div class="pixel-border" style="background:var(--panel-bg); padding:20px; width:95%; max-width:500px; max-height:82vh; display:flex; flex-direction:column; gap:12px;">
+        <h3 id="history-modal-title" style="margin:0; color:var(--text-gold); text-align:center;">📜 修煉日誌</h3>
+        <div id="history-container" class="log-list"></div>
+        <button class="pixel-btn" onclick="document.getElementById('history-modal').style.display='none'">關閉</button>
+    </div>
+</div>
+
+<div id="leaderboard-modal">
+    <div class="pixel-border" style="background:var(--panel-bg); padding:20px; width:95%; max-width:460px; max-height:80vh; display:flex; flex-direction:column; gap:10px;">
+        <h2 style="margin:0; color:var(--text-gold); text-align:center;">🏆 宗門戰力榜</h2>
+        <div style="display:flex; justify-content:space-between; padding:0 10px; color:var(--text-brown); border-bottom:1px solid #503010;">
+            <span>排名 / 弟子</span><span>戰鬥力 (CP)</span>
+        </div>
+        <div id="lb-container" style="flex-grow:1; overflow-y:auto;"></div>
+        <button class="pixel-btn" onclick="document.getElementById('leaderboard-modal').style.display='none'">關閉</button>
+    </div>
+</div>
+
+<div id="shop-modal">
+    <div class="pixel-border" style="background:var(--panel-bg); padding:20px; width:95%; max-width:780px; max-height:82vh; display:flex; flex-direction:column; gap:12px;">
+        <h2 style="margin:0; color:var(--text-gold); text-align:center;">💰 萬寶閣</h2>
+        <div class="shop-select-row" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center;">
+            <span class="label-tag">購買人</span>
+            <select id="shop-student-select" onchange="switchShopStudent()"></select>
+            <span id="shop-balance-display" class="label-tag" style="color:var(--text-gold); font-weight:bold;">妖丹 0</span>
+            <span class="shop-note" style="font-size:0.85rem; color:var(--text-brown);">寵物僅能在此購買；打寶不會掉寵物。</span>
+        </div>
+        <div class="shop-tabs">
+            <div class="shop-tab active" data-tab="gear" onclick="switchShopTab('gear')">神兵 / 靈獸</div>
+            <div class="shop-tab" data-tab="reward" onclick="switchShopTab('reward')">校園特權卡</div>
+            <div class="shop-tab" data-tab="title" onclick="switchShopTab('title')">宗門稱號</div>
+        </div>
+        <div id="shop-container" class="shop-grid"></div>
+        <button class="pixel-btn" onclick="document.getElementById('shop-modal').style.display='none'">離開</button>
+    </div>
+</div>
+
+<div id="inventory-modal">
+    <div class="pixel-border" style="background:var(--panel-bg); padding:20px; width:95%; max-width:460px; max-height:82vh; display:flex; flex-direction:column; gap:14px;">
+        <h3 id="inv-modal-title" style="margin:0; color:var(--text-gold); text-align:center;">弟子的行囊</h3>
+        <p style="text-align:center; color:var(--text-muted); font-size:0.84rem; margin:0;">點擊裝備可穿戴／卸下；點擊橘框特權卡由師尊核銷使用</p>
+        <div id="inv-container" class="inventory-grid"></div>
+        <div style="display:flex; justify-content:center; gap:10px;">
+            <button class="pixel-btn gold" onclick="openShopForCurrent()">💰 前往萬寶閣</button>
+            <button class="pixel-btn" onclick="document.getElementById('inventory-modal').style.display='none'">關閉</button>
+        </div>
+    </div>
+</div>
+
+<div id="batch-modal">
+    <div class="pixel-border" style="background:var(--panel-bg); padding:20px; width:95%; max-width:340px; text-align:center; display:flex; flex-direction:column; gap:14px;">
+        <h3 style="margin:0; color:var(--text-gold);">批量生成班級</h3>
+        <p style="color:var(--text-beige); margin:0;">請輸入班級人數 (將生成 1號~N號)</p>
+        <input type="number" id="batch-count" min="1" max="100" value="30" style="text-align:center;">
+        <label style="display:flex; align-items:center; justify-content:center; gap:6px; font-size:0.88rem; color:var(--text-brown); cursor:pointer;">
+            <input type="checkbox" id="batch-auto-group" checked> 自動平均分配四大堂口
+        </label>
+        <div style="display:flex; justify-content:center; gap:10px;">
+            <button class="pixel-btn" onclick="document.getElementById('batch-modal').style.display='none'">取消</button>
+            <button class="pixel-btn success" onclick="confirmBatchAdd()">生成</button>
+        </div>
+    </div>
+</div>
+
+<div id="edit-student-modal">
+    <div class="pixel-border" style="background:var(--panel-bg); padding:20px; width:95%; max-width:350px; display:flex; flex-direction:column; gap:12px;">
+        <h3 style="margin:0; color:var(--text-gold); text-align:center;">編輯弟子資料</h3>
+        <input type="hidden" id="edit-id">
+        <div><label style="color:var(--text-brown);">名號:</label><input type="text" id="edit-name" style="width:100%; margin-top:5px;"></div>
+        <div>
+            <label style="color:var(--text-brown);">所屬堂口 (分組):</label>
+            <select id="edit-group" style="width:100%; margin-top:5px;">
+                <option value="未分組">未分組</option>
+                <option value="青龍堂">青龍堂</option>
+                <option value="白虎堂">白虎堂</option>
+                <option value="朱雀堂">朱雀堂</option>
+                <option value="玄武堂">玄武堂</option>
+            </select>
+        </div>
+        <div><label style="color:var(--text-brown);">稱號 (選填):</label><input type="text" id="edit-title" placeholder="如: 護法, 睡神" style="width:100%; margin-top:5px;"></div>
+        <div>
+            <label style="color:var(--text-brown);">性別:</label>
+            <div class="gender-radio" style="margin-top:5px;">
+                <label><input type="radio" name="editGender" value="male">少俠 (男)</label>
+                <label><input type="radio" name="editGender" value="female">女俠 (女)</label>
+            </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:8px;">
+            <button class="pixel-btn primary" onclick="confirmDeleteStudent()">🗑️ 逐出</button>
+            <div style="display:flex; gap:6px;">
+                <button class="pixel-btn" onclick="document.getElementById('edit-student-modal').style.display='none'">取消</button>
+                <button class="pixel-btn success" onclick="saveStudentEdit()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="item-get-overlay">
+    <div class="item-card-anim">
+        <h2 style="color:#ffd700; margin:0 0 10px 0;">✨ 機緣已到 ✨</h2>
+        <img id="item-get-img" src="" style="width:100px; height:100px; image-rendering:pixelated; border:2px solid #fff; border-radius:5px; background:rgba(0,0,0,0.5);">
+        <p id="item-get-name" style="color:#f0e0c0; font-size:1.5rem; margin:10px 0;">獲得神兵！</p>
+        <p id="item-get-desc" style="color:#d0b090; font-size:1rem; margin:0;"></p>
+        <br><button class="pixel-btn success" onclick="document.getElementById('item-get-overlay').style.display='none'">收下</button>
+    </div>
+</div>
+
+<!-- 通用武俠風系統彈窗（含特權卡核銷防呆驗證） -->
+<div id="system-modal">
+    <div class="pixel-border" style="background:var(--panel-bg); padding:22px; width:95%; max-width:360px; text-align:center; display:flex; flex-direction:column; gap:14px;">
+        <h3 id="modal-title" style="margin:0; color:var(--text-gold);">提示</h3>
+        <p id="modal-msg" style="margin:0; color:var(--text-beige); line-height:1.55; white-space:pre-line;"></p>
+        <div id="modal-input-container" style="display:none;"><input type="text" id="modal-input" style="width:92%; font-size:1.1rem; text-align:center; padding: 6px;"></div>
+        <div style="display:flex; justify-content:center; gap:10px; margin-top:4px;">
+            <button id="modal-cancel-btn" class="pixel-btn" style="display:none;">取消</button>
+            <button id="modal-confirm-btn" class="pixel-btn success">確定</button>
+        </div>
+    </div>
+</div>
+
+<div id="title-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.82); z-index:2100; justify-content:center; align-items:center; padding:12px;">
+    <div class="pixel-border" style="background:var(--panel-bg); padding:18px; width:95%; max-width:620px; max-height:80vh; overflow:auto; display:flex; flex-direction:column; gap:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 id="title-modal-title" style="margin:0; color:var(--text-gold);">授予稱號</h3>
+            <button class="pixel-btn" onclick="document.getElementById('title-modal').style.display='none'">關閉</button>
+        </div>
+        <div id="title-card-container" class="shop-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px,1fr));"></div>
+        <div style="text-align:right;"><button class="pixel-btn success" onclick="grantSelectedTitle()">授予</button></div>
+    </div>
+</div>
+
+<div id="level-up-overlay"><img id="level-up-img" src="" alt="Level Up"></div>
+<div id="notification-bar">系統提示</div>
+
+<script>
+    const BASE_URL = "https://html-classic.itch.zone/html/16280602/%E6%AD%A6%E4%BF%A0%E7%AD%94%E9%A1%8C%E5%82%B3/";
+    const GROUPS = ['青龍堂', '白虎堂', '朱雀堂', '玄武堂'];
+    const TEACHER_CODES = ['admin', '師尊', '1234'];
+
+    // ====== 本地 SVG 容錯圖示（斷網或外連失效時自動取代，絕不破圖） ======
+    function svgToDataUri(svg) {
+        return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg.trim());
+    }
+    function makeIconSvg(emoji, bg1, bg2, border = '#ffd700') {
+        return svgToDataUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+            <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${bg1}"/><stop offset="100%" stop-color="${bg2}"/></linearGradient></defs>
+            <rect x="4" y="4" width="88" height="88" rx="14" fill="url(#g)" stroke="${border}" stroke-width="4"/>
+            <text x="48" y="64" font-size="46" text-anchor="middle">${emoji}</text>
+        </svg>`);
+    }
+    function makeAvatarSvg(gender) {
+        const bg = gender === 'female' ? '#7c2d12' : '#1e3a5f';
+        const emoji = gender === 'female' ? '🧝‍♀️' : '🥷';
+        return svgToDataUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 150">
+            <circle cx="60" cy="75" r="52" fill="${bg}" stroke="#ffd700" stroke-width="4" opacity="0.9"/>
+            <text x="60" y="95" font-size="60" text-anchor="middle">${emoji}</text>
+        </svg>`);
+    }
+    const FALLBACK_ICONS = {
+        shop: makeIconSvg('🏯', '#4a2c10', '#241406'),
+        avatarMale: makeAvatarSvg('male'),
+        avatarFemale: makeAvatarSvg('female'),
+        sword: makeIconSvg('⚔️', '#3b1d1d', '#1f0d0d', '#f59e0b'),
+        pet: makeIconSvg('🐉', '#0c3547', '#071c26', '#38bdf8'),
+        monster: makeIconSvg('👹', '#4c1111', '#1c0505', '#ef4444'),
+        chest: makeIconSvg('🧰', '#78350f', '#3b1706', '#fbbf24'),
+        ticket: makeIconSvg('🎫', '#7c2d12', '#3a1408', '#fb923c'),
+        title: makeIconSvg('👑', '#5b21b6', '#2e1065', '#fde047'),
+        levelup: makeIconSvg('✨', '#854d0e', '#422006', '#ffd700')
+    };
+
+    document.body.style.backgroundImage = `url('${BASE_URL}images/title_background_inkwash.jpg')`;
+    const headerIconEl = document.getElementById('header-icon');
+    headerIconEl.src = BASE_URL + "images/ui/icon_shop_pixel.png";
+    headerIconEl.onerror = () => { headerIconEl.src = FALLBACK_ICONS.shop; headerIconEl.onerror = null; };
+
+    const loadingIconEl = document.getElementById('loading-icon');
+    loadingIconEl.src = BASE_URL + "images/ui/icon_shop_pixel.png";
+    loadingIconEl.onerror = () => { loadingIconEl.src = FALLBACK_ICONS.shop; loadingIconEl.onerror = null; };
+
+    const levelUpImgEl = document.getElementById('level-up-img');
+    levelUpImgEl.src = BASE_URL + "images/effects/effect_levelup_animation.gif";
+    levelUpImgEl.onerror = () => { levelUpImgEl.src = FALLBACK_ICONS.levelup; levelUpImgEl.onerror = null; };
+
+    // ====== 音效系統（含 Web Audio API 離線容錯備援） ======
+    const sfxClick = new Audio(BASE_URL + 'audio/sfx_button_click.mp3');
+    const sfxLevelUp = new Audio(BASE_URL + 'audio/sfx_level_up.mp3');
+    const sfxWin = new Audio(BASE_URL + 'audio/sfx_battle_win.mp3');
+    const sfxAttack = new Audio(BASE_URL + 'audio/sfx_player_attack.mp3');
+    const sfxGetItem = new Audio(BASE_URL + 'audio/sfx_buy_item.mp3');
+    const bgmMain = new Audio(BASE_URL + 'audio/bgm_main_game.mp3'); bgmMain.loop = true; bgmMain.volume = 0.3;
+    const bgmBattle = new Audio(BASE_URL + 'audio/bgm_battle.mp3'); bgmBattle.loop = true; bgmBattle.volume = 0.3;
+    let isMusicEnabled = false;
+    let audioCtx = null;
+
+    function playSynthFallback(kind = 'click') {
+        try {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            if (kind === 'tick') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(880, now);
+                gain.gain.setValueAtTime(0.08, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+                osc.start(now); osc.stop(now + 0.06);
+            } else if (kind === 'alarm') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(420, now); osc.frequency.setValueAtTime(300, now + 0.14);
+                gain.gain.setValueAtTime(0.12, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                osc.start(now); osc.stop(now + 0.36);
+            } else if (kind === 'levelup') {
+                osc.type = 'triangle';
+                [523, 659, 784, 1046].forEach((f, i) => osc.frequency.setValueAtTime(f, now + i * 0.08));
+                gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+                osc.start(now); osc.stop(now + 0.43);
+            } else {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(520, now); osc.frequency.exponentialRampToValueAtTime(300, now + 0.06);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+                osc.start(now); osc.stop(now + 0.07);
+            }
+        } catch(e) {}
+    }
+
+    function playSfx(audio, fallbackKind = 'click') {
+        try {
+            audio.currentTime = 0;
+            const p = audio.play();
+            if (p && p.catch) p.catch(() => playSynthFallback(fallbackKind));
+        } catch(e) { playSynthFallback(fallbackKind); }
+    }
+    function toggleMusic() { isMusicEnabled = !isMusicEnabled; const btn = document.getElementById('musicBtn'); if (isMusicEnabled) { btn.innerText = "🎵 音樂"; playBGM('main'); } else { btn.innerText = "🔇 音樂"; stopBGM(); } }
+    function playBGM(type) { if (!isMusicEnabled) return; bgmMain.pause(); bgmBattle.pause(); try { if (type === 'main') bgmMain.play().catch(()=>{}); else if (type === 'battle') { bgmBattle.currentTime = 0; bgmBattle.play().catch(()=>{}); } } catch(e) {} }
+    function stopBGM() { bgmMain.pause(); bgmBattle.pause(); }
+    document.addEventListener('click', () => { if (isMusicEnabled && bgmMain.paused && bgmBattle.paused && document.getElementById('battle-modal').style.display === 'none') playBGM('main'); }, {once:true});
+
+    // 通用武俠風系統彈窗
+    function showCustomModal({ title, msg, hasInput = false, isPassword = false, showCancel = false, confirmText = "確定", onConfirm }) {
+        const modal = document.getElementById('system-modal');
+        document.getElementById('modal-title').innerText = title || "提示";
+        document.getElementById('modal-msg').innerText = msg || "";
+        const inputContainer = document.getElementById('modal-input-container');
+        const input = document.getElementById('modal-input');
+        
+        if (hasInput) {
+            inputContainer.style.display = 'block'; input.value = ''; input.type = isPassword ? 'password' : 'text';
+            setTimeout(() => input.focus(), 100);
+        } else { inputContainer.style.display = 'none'; }
+
+        const cancelBtn = document.getElementById('modal-cancel-btn');
+        cancelBtn.style.display = showCancel ? 'block' : 'none';
+        cancelBtn.onclick = () => modal.style.display = 'none';
+
+        const confirmBtn = document.getElementById('modal-confirm-btn');
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        newConfirmBtn.innerText = confirmText;
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+        
+        newConfirmBtn.onclick = () => {
+            modal.style.display = 'none';
+            if (onConfirm) onConfirm(hasInput ? input.value : true);
+        };
+        if (hasInput) input.onkeydown = (e) => { if (e.key === 'Enter') newConfirmBtn.click(); };
+        modal.style.display = 'flex';
+    }
+
+    const BATTLE_BG = [
+        BASE_URL + "images/backgrounds/battle_pixel_background.jpg",
+        BASE_URL + "images/backgrounds/battle_forest_pixel.jpg",
+        BASE_URL + "images/backgrounds/battle_cave_pixel.jpg",
+        BASE_URL + "images/backgrounds/battle_volcano_pixel.jpg",
+        BASE_URL + "images/backgrounds/battle_ruins_pixel.jpg",
+        BASE_URL + "images/backgrounds/battle_frozen_peak_pixel.jpg"
+    ];
+
+    const ITEMS = {
+        sword_fire:  { id:'sword_fire',  name:"炎陽劍", type:'sword', src: BASE_URL+"images/swords/sword_fire_sprite.png",  icon: BASE_URL+"images/swords/sword_fire_icon.png",  cp:320, price:380, desc:"熾熱劍鋒，灼燒敵人。", stats:{atk:48,crit:6} },
+        sword_wood:  { id:'sword_wood',  name:"青木劍", type:'sword', src: BASE_URL+"images/swords/sword_wood_sprite.png",  icon: BASE_URL+"images/swords/sword_wood_icon.png",  cp:240, price:260, desc:"靈木淬鍊，穩定增益。", stats:{atk:30,def:10} },
+        sword_gold:  { id:'sword_gold',  name:"銳金劍", type:'sword', src: BASE_URL+"images/swords/sword_gold_sprite.png",  icon: BASE_URL+"images/swords/sword_gold_icon.png",  cp:300, price:320, desc:"破甲利器，暴擊加成。", stats:{atk:46,crit:8} },
+        sword_ice:   { id:'sword_ice',   name:"冰晶劍", type:'sword', src: BASE_URL+"images/swords/sword_ice_sprite.png",   icon: BASE_URL+"images/swords/sword_ice_icon.png",   cp:260, price:300, desc:"寒霜封鋒，穩定防禦。", stats:{atk:34,def:8} },
+        sword_light: { id:'sword_light', name:"晨曦劍", type:'sword', src: BASE_URL+"images/swords/sword_light_sprite.png", icon: BASE_URL+"images/swords/sword_light_icon.png", cp:380, price:420, desc:"曙光加持，超高爆擊。", stats:{atk:55,crit:12} },
+        pet_kunpeng: { id:'pet_kunpeng', name:"神獸鯤鵬", type:'pet',  src: BASE_URL+"images/pets/kunpeng_sprite.gif", icon: BASE_URL+"images/pets/kunpeng_icon.png", cp:2500, price:3000, desc:"振翅九天，速度與氣勢兼備。" },
+        pet_zhuque:  { id:'pet_zhuque',  name:"神獸朱雀", type:'pet',  src: BASE_URL+"images/pets/zhuque_sprite.gif",  icon: BASE_URL+"images/pets/zhuque_icon.png",  cp:2500, price:3000, desc:"炎羽護主，增強爆發。" },
+        pet_qinglong:{ id:'pet_qinglong',name:"神獸青龍", type:'pet',  src: BASE_URL+"images/pets/qinglong_sprite.gif", icon: BASE_URL+"images/pets/qinglong_icon.png", cp:2500, price:3000, desc:"龍威加持，全面提升戰力。" },
+        pet_whelp:   { id:'pet_whelp',   name:"幽冥幼龍", type:'pet',  src: BASE_URL+"images/pets/pet_nether_whelp_sprite.gif", icon: BASE_URL+"images/pets/pet_nether_whelp_icon.png", cp:3000, price:3600, desc:"冥炎纏繞，屬性全面提升。" }
+    };
+
+    const TITLES = {
+        novice:   { id:'novice',   name:'見習弟子',   bonus:{ cp:20 }, desc:'初入宗門，努力修行。' },
+        honor:    { id:'honor',    name:'宗門護衛',   bonus:{ cp:80 }, desc:'守護同門，威望提升。' },
+        scholar:  { id:'scholar',  name:'藏經樓學士', bonus:{ cp:120 }, desc:'學識淵博，增強悟性。' },
+        blade:    { id:'blade',    name:'劍閣行者',   bonus:{ cp:180 }, desc:'劍意凜然，戰力精進。' },
+        legend:   { id:'legend',   name:'傳奇榜眼',   bonus:{ cp:260 }, desc:'榮登榜眼，宗門榮耀。' }
+    };
+
+    const REAL_REWARDS = [
+        { id: 'card_vocab',     name: '減字訣',     type: 'consumable', icon: BASE_URL + 'images/ui/icon_scroll_pixel.png', price: 800,  desc: "作業或圈詞可少寫一遍" },
+        { id: 'card_nap',       name: '逍遙午休',   type: 'consumable', icon: BASE_URL + 'images/monsters/placeholder_monster.gif', price: 500, desc: "午休/早自習可安靜趴睡一次" },
+        { id: 'card_seat',      name: '移形換位',   type: 'consumable', icon: BASE_URL + 'images/ui/icon_bag_pixel.png', price: 2500, desc: "下週優先選擇座位一次" },
+        { id: 'card_pardon',    name: '免死金牌',   type: 'consumable', icon: BASE_URL + 'images/ui/icon_save_pixel.png', price: 3000, desc: "抵銷一次小缺點或處罰" },
+        { id: 'card_late',      name: '雲影步',     type: 'consumable', icon: BASE_URL + 'images/ui/icon_reward_pixel.png', price: 1200, desc: "一次小遲到補救，記錄不列入" },
+        { id: 'card_extension', name: '緩衝符',     type: 'consumable', icon: BASE_URL + 'images/ui/icon_scroll_pixel.png', price: 1500, desc: "一次作業或報告可順延一天繳交" },
+        { id: 'card_cleanup',   name: '風清掃',     type: 'consumable', icon: BASE_URL + 'images/ui/icon_bag_pixel.png', price: 900,  desc: "一次值日/打掃可換班同學代班（需老師同意）" }
+    ];
+
+    const PLAYER_ARTS = [
+        BASE_URL + "images/characters/player/full/player_art_1-10.png",
+        BASE_URL + "images/characters/player/full/player_art_11-20.png",
+        BASE_URL + "images/characters/player/full/player_art_21-30.png",
+        BASE_URL + "images/characters/player/full/player_art_31-40.png"
+    ];
+    const PLAYER_BATTLE_ARTS = [
+        BASE_URL + "images/characters/player/battle/player_battle_1-10.png",
+        BASE_URL + "images/characters/player/battle/player_battle_11-20.png",
+        BASE_URL + "images/characters/player/battle/player_battle_21-30.png",
+        BASE_URL + "images/characters/player/battle/player_battle_31-40.png"
+    ];
+
+    const MONSTERS = [
+        { id: 'wolf', name: "幼狼妖", src: BASE_URL + "images/monsters/wolf_cub.gif", icon: BASE_URL + "images/monsters/wolf_cub.gif", cp: 100 },
+        { id: 'wolf_elite', name: "精英狼妖", src: BASE_URL + "images/monsters/wolf_cub_elite.gif", icon: BASE_URL + "images/monsters/wolf_cub_elite.gif", cp: 200 },
+        { id: 'snake', name: "小竹葉青", src: BASE_URL + "images/monsters/snakelet_bamboo.gif", icon: BASE_URL + "images/monsters/snakelet_bamboo.gif", cp: 120 },
+        { id: 'boar', name: "發怒野豬", src: BASE_URL + "images/monsters/boar_angry.gif", icon: BASE_URL + "images/monsters/boar_angry.gif", cp: 300 },
+        { id: 'golem', name: "石偶", src: BASE_URL + "images/monsters/stone_golem.gif", icon: BASE_URL + "images/monsters/stone_golem.gif", cp: 400 },
+        { id: 'imp', name: "詭影小妖", src: BASE_URL + "images/monsters/shadow_imp.gif", icon: BASE_URL + "images/monsters/shadow_imp.gif", cp: 350 },
+        { id: 'eye', name: "浮空魔眼", src: BASE_URL + "images/monsters/flying_eye.gif", icon: BASE_URL + "images/monsters/flying_eye.gif", cp: 450 }
+    ];
+
+    let students = [];
+    let teachingConfig = {
+        questionBank: [],
+        battleTimerSec: 15,
+        pickedStudentIds: [],
+        bigScreenMode: false
+    };
+
+    let isDirty = false;
+    let currentBattleStudentId = null;
+    let currentMonster = null;
+    let isTeacherMode = false;
+    let isTreasureEncounter = false;
+    let currentInvStudentId = null;
+    let shopTab = 'gear';
+    let titleTargetId = null;
+    let selectedTitleId = null;
+    let batchSelectedIds = new Set();
+    let battleTimerInterval = null;
+
+    function escapeHtml(str) {
+        return String(str ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    }
+
+    function getStudentById(id) {
+        return students.find(s => s.id === id);
+    }
+
+    function getNowTimeStr() {
+        const d = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function addStudentLog(student, type, deltaText, reason) {
+        if (!student.logs) student.logs = [];
+        student.logs.unshift({
+            time: getNowTimeStr(),
+            type: type,
+            delta: deltaText,
+            reason: reason || ''
+        });
+        if (student.logs.length > 25) student.logs.length = 25;
+    }
+
+    function countStudentTickets(student) {
+        return (student.inventory || []).filter(itemId => {
+            const d = getItemData(itemId);
+            return d && d.type === 'consumable';
+        }).length;
+    }
+
+    // 預載資源：超時 2 秒自動關閉載入層，斷網秒開
+    function preloadAssets() {
+        const assets = [
+            ...BATTLE_BG, ...PLAYER_ARTS, ...PLAYER_BATTLE_ARTS,
+            ...MONSTERS.map(m => m.src), ...Object.values(ITEMS).map(w => w.src)
+        ];
+        const overlay = document.getElementById('loading-overlay');
+        if (assets.length === 0) { overlay.style.display = 'none'; return; }
+        let loadedCount = 0;
+        const done = () => { overlay.style.display = 'none'; };
+        assets.forEach(src => {
+            const img = new Image();
+            img.onload = img.onerror = () => {
+                loadedCount++;
+                if (loadedCount >= assets.length) setTimeout(done, 200);
+            };
+            img.src = src;
+        });
+        setTimeout(done, 2000);
+    }
+
+    // ====== 【構想二-1】教室大屏高對比模式切換 ======
+    function toggleBigScreenMode() {
+        playSfx(sfxClick, 'click');
+        teachingConfig.bigScreenMode = !teachingConfig.bigScreenMode;
+        applyBigScreenUI();
+        markDirtyAndSave(false);
+    }
+
+    function applyBigScreenUI() {
+        const active = !!teachingConfig.bigScreenMode;
+        document.body.classList.toggle('big-screen-mode', active);
+        const btn = document.getElementById('bigScreenBtn');
+        if (btn) btn.innerText = active ? "🌙 水墨模式" : "☀️ 教室大屏";
+    }
+
+    // ====== 【構想二-3】靜默自動存檔（不跳通知干擾教學，僅更新小綠燈） ======
+    function updateAutoSaveIndicator(state = 'saved') {
+        const dot = document.getElementById('autosave-dot');
+        const txt = document.getElementById('autosave-text');
+        if (!dot || !txt) return;
+        dot.classList.remove('saving', 'dirty');
+        if (state === 'dirty') {
+            dot.classList.add('dirty');
+            txt.innerText = '有未存變動';
+        } else {
+            const d = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            txt.innerText = `已存檔 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            dot.classList.add('saving');
+            setTimeout(() => dot.classList.remove('saving'), 500);
+        }
+    }
+
+    function markDirtyAndSave(showToast = false) {
+        isDirty = true;
+        saveData(showToast);
+    }
+
+    function saveData(showToast = false) {
+        try {
+            localStorage.setItem('wuxia_class_data', JSON.stringify(students));
+            localStorage.setItem('wuxia_teaching_config', JSON.stringify(teachingConfig));
+            isDirty = false;
+            updateAutoSaveIndicator('saved');
+            if (showToast) showNotify("💾 宗門名冊已保存！");
+        } catch (e) {
+            if (showToast) showNotify("❌ 瀏覽器儲存失敗，請先匯出備份！");
+        }
+    }
+
+    function autoSaveData() {
+        // 僅在資料有實際變動時才靜默寫入，完全不跳出下方通知條干擾上課
+        if (!isDirty) return;
+        saveData(false);
+    }
+
+    window.onload = () => {
+        try {
+            const rawStudents = JSON.parse(localStorage.getItem('wuxia_class_data'));
+            if (Array.isArray(rawStudents)) students = rawStudents.map((s, idx) => normalizeStudent(s, idx));
+        } catch(e) { students = []; }
+        try {
+            const rawCfg = JSON.parse(localStorage.getItem('wuxia_teaching_config'));
+            if (rawCfg && typeof rawCfg === 'object') teachingConfig = Object.assign(teachingConfig, rawCfg);
+        } catch(e) {}
+
+        applyBigScreenUI();
+        preloadAssets();
+        renderGrid();
+        updateTeacherUI();
+        setInterval(autoSaveData, 60000);
+    };
+
+    function normalizeStudent(s, idx = 0) {
+        const base = {
+            id: Date.now() + idx,
+            name: '弟子',
+            gender: 'male',
+            group: '未分組',
+            exp: 0,
+            coins: 0,
+            title: "",
+            inventory: [],
+            equipped: {},
+            logs: []
+        };
+        const merged = Object.assign(base, s || {});
+        if (typeof s?.points !== 'undefined' && typeof s?.coins === 'undefined') merged.coins = s.points;
+        if (!Array.isArray(merged.inventory)) merged.inventory = [];
+        if (!merged.equipped || typeof merged.equipped !== 'object') merged.equipped = {};
+        if (!Array.isArray(merged.logs)) merged.logs = [];
+        return merged;
+    }
+
+    function getTitleDisplay(titleVal) {
+        if (!titleVal) return '';
+        return TITLES[titleVal] ? TITLES[titleVal].name : titleVal;
+    }
+
+    function getAvatarPath(path, gender) { return gender === 'female' ? path.replace('.png', '_girl.png').replace('.gif', '_girl.gif') : path; }
+    function calculateLevel(exp) { if (exp <= 0) return 1; return Math.floor(Math.sqrt(exp / 5)) + 1; }
+    function getExpForLevel(level) { return 5 * Math.pow(level, 2); }
+
+    function calculateCP(student) {
+        const lvl = calculateLevel(student.exp);
+        let cp = (lvl * 100) + Math.floor(student.exp * 0.1);
+        if (student.equipped) {
+            if (student.equipped.pet) { const item = getItemData(student.equipped.pet); if(item) cp += (item.cp || 300); }
+            if (student.equipped.sword) { const item = getItemData(student.equipped.sword); if(item) cp += (item.cp || 500); }
+        }
+        if (student.title && TITLES[student.title]) cp += TITLES[student.title].bonus?.cp || 0;
+        return cp;
+    }
+
+    function getItemData(itemId) {
+        if (!itemId) return null;
+        if (ITEMS[itemId]) return ITEMS[itemId];
+        const real = REAL_REWARDS.find(r => itemId === r.id || itemId.startsWith(r.id + '_'));
+        if (real) return real;
+        if (itemId.startsWith("tamed_")) {
+            const monsterType = itemId.split('_')[1];
+            const m = MONSTERS.find(x => x.id === monsterType);
+            if(m) return { id:itemId, name: "馴服的"+m.name, cp: m.cp || 200, icon: m.icon, src: m.src, type: 'pet', desc:"舊版戰寵" };
+        }
+        return null;
+    }
+
+    function getStudentInfo(s) {
+        const currentLevel = calculateLevel(s.exp);
+        const nextLevelExp = getExpForLevel(currentLevel);
+        const prevLevelExp = getExpForLevel(currentLevel - 1);
+        const range = Math.max(1, nextLevelExp - prevLevelExp);
+        const progress = s.exp - prevLevelExp;
+        const pct = Math.min(100, Math.max(0, (progress / range) * 100));
+        let artIndex = 0; if (currentLevel < 25) artIndex = 0; else if (currentLevel < 50) artIndex = 1; else if (currentLevel < 75) artIndex = 2; else artIndex = 3;
+        const gender = s.gender || 'male';
+        return {
+            level: currentLevel,
+            avatar: getAvatarPath(PLAYER_ARTS[artIndex], gender),
+            battleAvatar: getAvatarPath(PLAYER_BATTLE_ARTS[artIndex], gender),
+            fallbackAvatar: gender === 'female' ? FALLBACK_ICONS.avatarFemale : FALLBACK_ICONS.avatarMale,
+            expText: `${s.exp} / ${nextLevelExp}`,
+            pct
+        };
+    }
+
+    // 所有卡片操作全面改以 studentId 定位，確保排序／篩選後絕不會誤改其他同學
+    function updateExpById(studentId, amount, reason = null) {
+        playSfx(sfxClick, 'click');
+        const s = getStudentById(studentId);
+        if (!s) return;
+        const oldLvl = calculateLevel(s.exp);
+        s.exp = Math.max(0, s.exp + amount);
+        const newLvl = calculateLevel(s.exp);
+        const logReason = reason || (amount >= 300 ? '奇遇獎勵' : amount >= 100 ? '優秀表現' : amount > 0 ? '表現良好' : '常規扣分');
+        addStudentLog(s, amount >= 0 ? 'plus' : 'minus', `${amount > 0 ? '+' : ''}${amount} 修為`, logReason);
+        showFloatTextById(amount > 0 ? `+${amount} Exp` : `${amount} Exp`, studentId, amount >= 0 ? '#ffd700' : '#ff6b6b');
+        if (newLvl > oldLvl) {
+            playSfx(sfxLevelUp, 'levelup');
+            showLevelUpEffect();
+            showNotify(`恭喜 ${s.name} 升到了 Lv.${newLvl}！`);
+        }
+        markDirtyAndSave(false);
+        renderGrid();
+    }
+
+    function updateCoinsById(studentId, amount, reason = null) {
+        const s = getStudentById(studentId);
+        if (!s) return;
+        playSfx(amount >= 0 ? sfxGetItem : sfxClick, 'click');
+        s.coins = Math.max(0, (Number(s.coins) || 0) + amount);
+        const logReason = reason || (amount >= 0 ? '師尊賞賜妖丹' : '扣除妖丹');
+        addStudentLog(s, amount >= 0 ? 'plus' : 'minus', `${amount > 0 ? '+' : ''}${amount} 妖丹`, logReason);
+        showFloatTextById(amount > 0 ? `+${amount} 妖丹` : `${amount} 妖丹`, studentId, amount >= 0 ? '#fde047' : '#f87171');
+        markDirtyAndSave(false);
+        renderGrid();
+    }
+
+    // ====== 全班／分堂口批量加減分 ======
+    function openBatchActionModal() {
+        if (students.length === 0) { showNotify("目前尚無弟子，請先招收或批量生成！"); return; }
+        playSfx(sfxClick, 'click');
+        batchSelectedIds = new Set(students.map(s => s.id));
+        renderBatchStudentList();
+        document.getElementById('batch-action-modal').style.display = 'flex';
+    }
+
+    function renderBatchStudentList() {
+        const wrap = document.getElementById('batch-student-list');
+        wrap.innerHTML = '';
+        students.forEach(s => {
+            const isSel = batchSelectedIds.has(s.id);
+            const div = document.createElement('div');
+            div.className = `batch-stu-chip ${isSel ? 'selected' : ''}`;
+            const grpShort = (s.group && s.group !== '未分組') ? `<span style="font-size:0.72rem; opacity:0.85;">${escapeHtml(s.group)}</span>` : '';
+            div.innerHTML = `<span><input type="checkbox" ${isSel ? 'checked' : ''} style="pointer-events:none; margin-right:4px;">${escapeHtml(s.name)}</span>${grpShort}`;
+            div.onclick = () => {
+                if (batchSelectedIds.has(s.id)) batchSelectedIds.delete(s.id);
+                else batchSelectedIds.add(s.id);
+                renderBatchStudentList();
+            };
+            wrap.appendChild(div);
+        });
+        document.getElementById('batch-selected-count').innerText = `已選取 ${batchSelectedIds.size} / ${students.length} 位弟子（點擊下方卡片可個別勾選／取消）`;
+    }
+
+    function selectBatchGroup(groupKey) {
+        playSfx(sfxClick, 'click');
+        batchSelectedIds.clear();
+        if (groupKey === 'ALL') students.forEach(s => batchSelectedIds.add(s.id));
+        else if (groupKey !== 'NONE') students.filter(s => (s.group || '未分組') === groupKey).forEach(s => batchSelectedIds.add(s.id));
+        renderBatchStudentList();
+    }
+
+    function setBatchVal(field, val) {
+        document.getElementById(field === 'exp' ? 'batch-exp-input' : 'batch-coin-input').value = val;
+    }
+
+    function setBatchReason(text) {
+        document.getElementById('batch-reason-input').value = text;
+    }
+
+    function executeBatchAction() {
+        if (batchSelectedIds.size === 0) { showNotify("請至少勾選一位弟子！"); return; }
+        const expDelta = parseInt(document.getElementById('batch-exp-input').value) || 0;
+        const coinDelta = parseInt(document.getElementById('batch-coin-input').value) || 0;
+        const reason = document.getElementById('batch-reason-input').value.trim() || '團體獎懲';
+        if (expDelta === 0 && coinDelta === 0) { showNotify("修為與妖丹增減不可同時為 0！"); return; }
+
+        let leveledUpCount = 0;
+        students.forEach(s => {
+            if (!batchSelectedIds.has(s.id)) return;
+            if (expDelta !== 0) {
+                const oldLvl = calculateLevel(s.exp);
+                s.exp = Math.max(0, s.exp + expDelta);
+                if (calculateLevel(s.exp) > oldLvl) leveledUpCount++;
+                addStudentLog(s, expDelta > 0 ? 'plus' : 'minus', `${expDelta > 0 ? '+' : ''}${expDelta} 修為`, reason);
+            }
+            if (coinDelta !== 0) {
+                s.coins = Math.max(0, (Number(s.coins) || 0) + coinDelta);
+                addStudentLog(s, coinDelta > 0 ? 'plus' : 'minus', `${coinDelta > 0 ? '+' : ''}${coinDelta} 妖丹`, reason);
+            }
+        });
+
+        playSfx(leveledUpCount > 0 ? sfxLevelUp : sfxWin, leveledUpCount > 0 ? 'levelup' : 'click');
+        if (leveledUpCount > 0) showLevelUpEffect();
+        markDirtyAndSave(false);
+        renderGrid();
+        document.getElementById('batch-action-modal').style.display = 'none';
+        showNotify(`⚡ 已對 ${batchSelectedIds.size} 位弟子完成批量操作！${leveledUpCount > 0 ? `（其中 ${leveledUpCount} 位升級！）` : ''}`);
+    }
+
+    // ====== 查看修煉日誌 ======
+    function openHistoryModal(studentId) {
+        const s = getStudentById(studentId);
+        if (!s) return;
+        playSfx(sfxClick, 'click');
+        document.getElementById('history-modal-title').innerText = `📜 ${s.name} 的修煉日誌（近 25 筆）`;
+        const wrap = document.getElementById('history-container');
+        wrap.innerHTML = '';
+        if (!s.logs || s.logs.length === 0) {
+            wrap.innerHTML = '<div style="text-align:center; padding:24px; color:var(--text-muted);">尚無修煉異動紀錄</div>';
+        } else {
+            s.logs.forEach(log => {
+                const div = document.createElement('div');
+                div.className = `log-item ${log.type || ''}`;
+                div.innerHTML = `
+                    <div>
+                        <strong style="color:var(--text-gold);">${escapeHtml(log.delta)}</strong>
+                        <span style="margin-left:8px; color:var(--text-beige);">${escapeHtml(log.reason)}</span>
+                    </div>
+                    <span class="log-time">${escapeHtml(log.time)}</span>`;
+                wrap.appendChild(div);
+            });
+        }
+        document.getElementById('history-modal').style.display = 'flex';
+    }
+
+    function toggleTeacherMode() {
+        if (!isTeacherMode) {
+            showCustomModal({
+                title: "師尊驗證", msg: "請輸入口令 (預設: admin)", hasInput: true, isPassword: true, showCancel: true,
+                onConfirm: (val) => {
+                    if (TEACHER_CODES.includes((val || '').trim())) {
+                        isTeacherMode = true; document.getElementById('loginBtn').innerText = "🔓 師尊登出";
+                        showNotify("師尊降臨，權限已解鎖！");
+                        updateTeacherUI();
+                    } else { showNotify("口令錯誤！"); }
+                }
+            });
+        } else { isTeacherMode = false; document.getElementById('loginBtn').innerText = "🔑 師尊登入"; showNotify("已切換回弟子視角。"); updateTeacherUI(); }
+    }
+
+    function updateTeacherUI() {
+        const teacherElements = document.querySelectorAll('.teacher-only');
+        teacherElements.forEach(el => {
+            if (isTeacherMode) {
+                if (el.classList.contains('card-actions')) el.style.setProperty('display', 'grid', 'important');
+                else if (el.classList.contains('teacher-controls-header')) el.style.setProperty('display', 'flex', 'important');
+                else el.style.setProperty('display', 'block', 'important');
+            } else {
+                el.style.setProperty('display', 'none', 'important');
+            }
+        });
+    }
+
+    // 排行榜
+    function openLeaderboard() {
+        playSfx(sfxClick, 'click');
+        const modal = document.getElementById('leaderboard-modal');
+        const container = document.getElementById('lb-container');
+        container.innerHTML = '';
+        let sortedStudents = [...students].sort((a, b) => calculateCP(b) - calculateCP(a));
+        if (sortedStudents.length === 0) { container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">暫無弟子數據</div>'; }
+        else {
+            sortedStudents.forEach((s, i) => {
+                const info = getStudentInfo(s);
+                const cp = calculateCP(s);
+                const tName = getTitleDisplay(s.title);
+                const row = document.createElement('div');
+                row.className = `leaderboard-row rank-${i+1}`;
+                row.innerHTML = `
+                    <div class="rank-num">${i+1}</div>
+                    <img class="lb-avatar" src="${info.avatar}" onerror="this.src='${info.fallbackAvatar}';this.onerror=null;">
+                    <div class="lb-name">${escapeHtml(s.name)} ${tName ? `<span class="title-badge">${escapeHtml(tName)}</span>` : ''} <span style="font-size:0.8em; color:var(--text-muted);">Lv.${info.level}${s.group && s.group !== '未分組' ? ' · ' + escapeHtml(s.group) : ''}</span></div>
+                    <div class="lb-cp">${cp}</div>`;
+                container.appendChild(row);
+            });
+        }
+        modal.style.display = 'flex';
+    }
+
+    // 萬寶閣
+    function openShopDirect() {
+        if (students.length === 0) { showNotify("先收弟子再來萬寶閣！"); return; }
+        if (!currentInvStudentId || !getStudentById(currentInvStudentId)) currentInvStudentId = students[0].id;
+        openShopModal();
+    }
+
+    function openShopForCurrent() {
+        if (!currentInvStudentId || !getStudentById(currentInvStudentId)) { showNotify("請先開啟某位弟子的行囊"); return; }
+        document.getElementById('inventory-modal').style.display = 'none';
+        openShopModal();
+    }
+
+    function openShopModal() {
+        const selector = document.getElementById('shop-student-select');
+        selector.innerHTML = '';
+        students.forEach(s => { const opt = document.createElement('option'); opt.value = s.id; opt.innerText = `${s.name} (妖丹 ${s.coins||0})`; selector.appendChild(opt); });
+        selector.value = currentInvStudentId;
+        updateShopBalance();
+        renderShop();
+        document.getElementById('shop-modal').style.display = 'flex';
+    }
+
+    function switchShopStudent() { currentInvStudentId = Number(document.getElementById('shop-student-select').value); updateShopBalance(); renderShop(); }
+    function switchShopTab(tab) { shopTab = tab; document.querySelectorAll('.shop-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab)); renderShop(); }
+    function updateShopBalance() { const s = getStudentById(currentInvStudentId); document.getElementById('shop-balance-display').innerText = `妖丹 ${s?.coins || 0}`; }
+
+    function renderShop() {
+        const container = document.getElementById('shop-container');
+        container.innerHTML = '';
+        let itemsToShow = [];
+        if (shopTab === 'gear') itemsToShow = Object.values(ITEMS);
+        else if (shopTab === 'reward') itemsToShow = REAL_REWARDS;
+        else itemsToShow = Object.values(TITLES).map(t => ({...t, type:'title', price: 0}));
+
+        itemsToShow.forEach(item => {
+            const card = document.createElement('div');
+            const cls = item.type === 'pet' ? 'pet' : (item.type === 'consumable' ? 'reward' : '');
+            card.className = `shop-card ${cls}`;
+            const fallback = item.type === 'pet' ? FALLBACK_ICONS.pet : item.type === 'sword' ? FALLBACK_ICONS.sword : item.type === 'title' ? FALLBACK_ICONS.title : FALLBACK_ICONS.ticket;
+            const imgSrc = item.icon || item.src || fallback;
+            const priceHtml = item.type === 'title' ? '<div class="item-price" style="color:var(--cp-color);">師尊可直接授予</div>' : `<div class="item-price">💰 ${item.price}</div>`;
+            const actionBtn = item.type === 'title'
+                ? `<button class="pixel-btn info action-btn-small" onclick="grantTitleFromShop('${item.id}')">授予</button>`
+                : `<button class="pixel-btn success action-btn-small" onclick="buyItem('${item.id}')">購買</button>`;
+            card.innerHTML = `
+                <img src="${imgSrc}" onerror="this.src='${fallback}';this.onerror=null;">
+                <h4>${escapeHtml(item.name)}</h4>
+                <p>${escapeHtml(item.desc || '')}</p>
+                ${item.bonus?.cp ? `<div class="cp-bonus">戰力 +${item.bonus.cp}</div>` : (item.cp ? `<div class="cp-bonus">戰力 +${item.cp}</div>` : '')}
+                ${priceHtml}
+                ${actionBtn}`;
+            container.appendChild(card);
+        });
+    }
+
+    function buyItem(itemId) {
+        const s = getStudentById(currentInvStudentId);
+        const itemData = getItemData(itemId);
+        if (!s || !itemData) { showNotify("商品不存在"); return; }
+        const price = itemData.price || 0;
+        if ((s.coins || 0) < price) { showNotify("妖丹不足，先去歷練或努力表現賺取！"); return; }
+        playSfx(sfxGetItem, 'click');
+        s.coins = (s.coins || 0) - price;
+        if (!s.inventory) s.inventory = [];
+        const isConsumable = itemData.type === 'consumable';
+        if (isConsumable) {
+            const uid = `${itemId}_${Date.now()}`;
+            s.inventory.push(uid);
+            addStudentLog(s, 'shop', `-${price} 妖丹`, `購買【${itemData.name}】`);
+            showNotify("購買成功！已放入行囊，請向老師出示核銷使用。");
+        } else {
+            if (s.inventory.includes(itemId)) { showNotify("已擁有此裝備，購買取消。"); s.coins += price; }
+            else {
+                s.inventory.push(itemId);
+                addStudentLog(s, 'shop', `-${price} 妖丹`, `購買【${itemData.name}】`);
+                showNotify("購買成功！戰力大增！");
+            }
+        }
+        markDirtyAndSave(false);
+        openShopModal();
+        renderGrid();
+    }
+
+    function grantTitleFromShop(titleId) {
+        if (!isTeacherMode) { showNotify("僅師尊可授予稱號"); return; }
+        const t = TITLES[titleId];
+        const s = getStudentById(currentInvStudentId);
+        if (!s || !t) { showNotify("稱號不存在"); return; }
+        s.title = titleId;
+        addStudentLog(s, 'plus', '獲得稱號', `師尊授予【${t.name}】`);
+        markDirtyAndSave(false);
+        renderGrid();
+        showNotify(`${s.name} 獲得稱號：${t.name}`);
+    }
+
+    // 行囊
+    function openInventory(studentId) {
+        const s = getStudentById(studentId);
+        if (!s) return;
+        currentInvStudentId = studentId;
+        const modal = document.getElementById('inventory-modal');
+        document.getElementById('inv-modal-title').innerText = `🎒 ${s.name} 的行囊`;
+        const container = document.getElementById('inv-container'); container.innerHTML = '';
+        if (!s.inventory || s.inventory.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted); text-align:center; width:100%; grid-column:1/-1;">行囊空空如也...</p>';
+        } else {
+            s.inventory.forEach(itemId => {
+                const itemData = getItemData(itemId);
+                if (itemData) {
+                    const isEquipped = (s.equipped && (s.equipped.pet === itemId || s.equipped.sword === itemId));
+                    const isConsumable = itemData.type === 'consumable';
+                    const fallback = itemData.type === 'pet' ? FALLBACK_ICONS.pet : itemData.type === 'sword' ? FALLBACK_ICONS.sword : FALLBACK_ICONS.ticket;
+                    const div = document.createElement('div');
+                    div.className = `inventory-item ${isEquipped ? 'equipped' : ''} ${isConsumable ? 'ticket-item' : ''}`;
+                    div.innerHTML = `
+                        <img src="${itemData.icon || itemData.src || fallback}" onerror="this.src='${fallback}';this.onerror=null;">
+                        <div class="inv-mini-label">${isEquipped ? '✓' : ''}${escapeHtml(itemData.name)}</div>
+                        <div class="item-tooltip">
+                            <b>${escapeHtml(itemData.name)}</b><br>
+                            ${itemData.cp ? `<span class="cp-bonus">戰力 +${itemData.cp}</span><br>` : ''}
+                            <span style="font-size:0.8em; color:#ddd;">${escapeHtml(itemData.desc || (isConsumable ? '特權卡（需師尊核銷）' : '點擊裝備'))}</span>
+                        </div>`;
+                    if (isConsumable) div.onclick = () => useRealReward(studentId, itemId);
+                    else div.onclick = () => toggleEquip(studentId, itemId, itemData.type);
+                    container.appendChild(div);
+                }
+            });
+        }
+        modal.style.display = 'flex';
+    }
+
+    function toggleEquip(studentId, itemId, type) {
+        const s = getStudentById(studentId);
+        if (!s) return;
+        playSfx(sfxClick, 'click');
+        if (!s.equipped) s.equipped = {};
+        if (type === 'pet') s.equipped.pet = (s.equipped.pet === itemId) ? null : itemId;
+        else if (type === 'sword') s.equipped.sword = (s.equipped.sword === itemId) ? null : itemId;
+        markDirtyAndSave(false);
+        renderGrid();
+        openInventory(studentId);
+    }
+
+    // ====== 【構想二-4】特權卡武俠風核銷確認防呆（需師尊模式確認或輸入師尊口令） ======
+    function useRealReward(studentId, uniqueId) {
+        const s = getStudentById(studentId);
+        const item = REAL_REWARDS.find(r => uniqueId === r.id || uniqueId.startsWith(r.id + '_'));
+        if (!s || !item) return;
+
+        const doConsume = () => {
+            s.inventory = s.inventory.filter(id => id !== uniqueId);
+            addStudentLog(s, 'shop', '核銷特權卡', `已使用【${item.name}】`);
+            playSfx(sfxWin, 'levelup');
+            markDirtyAndSave(false);
+            openInventory(studentId);
+            renderGrid();
+            showNotify(`✅ 已核銷 ${s.name} 的特權卡【${item.name}】！`);
+        };
+
+        if (isTeacherMode) {
+            showCustomModal({
+                title: "🎫 師尊核銷確認",
+                msg: `確定要為【${s.name}】核銷使用特權卡：\n【${item.name}】嗎？\n\n說明：${item.desc}`,
+                showCancel: true,
+                confirmText: "確認核銷",
+                onConfirm: doConsume
+            });
+        } else {
+            showCustomModal({
+                title: "🔒 特權卡核銷防呆",
+                msg: `欲使用【${item.name}】（${item.desc}）\n請先向老師出示，並由師尊輸入確認口令核銷，以免誤按消失：`,
+                hasInput: true,
+                isPassword: true,
+                showCancel: true,
+                confirmText: "驗證核銷",
+                onConfirm: (val) => {
+                    if (TEACHER_CODES.includes((val || '').trim())) {
+                        doConsume();
+                    } else {
+                        showNotify("❌ 師尊口令錯誤，特權卡已安全保留！");
+                    }
+                }
+            });
+        }
+    }
+
+    // 稱號授予
+    function openTitleModal(studentId) {
+        if (!isTeacherMode) { showNotify("僅師尊可授予稱號"); return; }
+        const s = getStudentById(studentId);
+        if (!s) return;
+        titleTargetId = studentId;
+        selectedTitleId = s.title || null;
+        renderTitleCards();
+        document.getElementById('title-modal-title').innerText = `授予稱號給 ${s.name}`;
+        document.getElementById('title-modal').style.display = 'flex';
+    }
+    function renderTitleCards() {
+        const wrap = document.getElementById('title-card-container'); wrap.innerHTML = '';
+        Object.values(TITLES).forEach(t => {
+            const card = document.createElement('div');
+            card.className = `shop-card ${selectedTitleId === t.id ? 'active' : ''}`;
+            card.style.borderColor = selectedTitleId === t.id ? '#ffd700' : 'var(--border-color)';
+            card.innerHTML = `
+                <h4>${escapeHtml(t.name)}</h4>
+                <p>${escapeHtml(t.desc)}</p>
+                <div class="cp-bonus">戰力 +${t.bonus?.cp || 0}</div>
+                <button class="pixel-btn info action-btn-small" onclick="selectTitle('${t.id}')">${selectedTitleId === t.id ? '已選' : '選擇'}</button>
+            `;
+            wrap.appendChild(card);
+        });
+    }
+    function selectTitle(id) { selectedTitleId = id; renderTitleCards(); }
+    function grantSelectedTitle() {
+        const s = getStudentById(titleTargetId);
+        if (!s) return;
+        if (!selectedTitleId || !TITLES[selectedTitleId]) { showNotify("請選擇稱號"); return; }
+        s.title = selectedTitleId;
+        addStudentLog(s, 'plus', '獲得稱號', `師尊授予【${TITLES[selectedTitleId].name}】`);
+        markDirtyAndSave(false);
+        renderGrid();
+        document.getElementById('title-modal').style.display = 'none';
+        showNotify(`${s.name} 獲得稱號：${TITLES[selectedTitleId].name}`);
+    }
+
+    // 學生管理
+    function addStudent() {
+        const input = document.getElementById('newStudentName');
+        const name = input.value.trim();
+        const group = document.getElementById('newStudentGroup').value || '未分組';
+        const genderRadios = document.getElementsByName('newStudentGender');
+        let gender = 'male'; for(let r of genderRadios) if(r.checked) gender = r.value;
+        if(!name) return;
+        playSfx(sfxClick, 'click');
+        students.push(normalizeStudent({ id: Date.now(), name, gender, group }));
+        input.value = '';
+        markDirtyAndSave(false);
+        renderGrid();
+        showNotify(`歡迎 ${name} 加入${group === '未分組' ? '宗門' : group}！`);
+    }
+
+    function openBatchModal() { document.getElementById('batch-modal').style.display = 'flex'; }
+    function confirmBatchAdd() {
+        const count = parseInt(document.getElementById('batch-count').value);
+        const autoGroup = document.getElementById('batch-auto-group').checked;
+        if (count > 0 && count <= 100) {
+            playSfx(sfxClick, 'click');
+            for (let i = 1; i <= count; i++) {
+                const name = i + "號";
+                if (!students.some(s => s.name === name)) {
+                    const group = autoGroup ? GROUPS[(i - 1) % GROUPS.length] : '未分組';
+                    students.push(normalizeStudent({ id: Date.now() + i, name, gender: 'male', group }));
+                }
+            }
+            markDirtyAndSave(false);
+            renderGrid();
+            showNotify(`已生成 ${count} 位弟子名錄！`);
+            document.getElementById('batch-modal').style.display = 'none';
+        } else showNotify("請輸入 1~100 之間的人數。");
+    }
+
+    function openEditModal(id) {
+        const s = getStudentById(id); if (!s) return;
+        document.getElementById('edit-id').value = id;
+        document.getElementById('edit-name').value = s.name;
+        document.getElementById('edit-group').value = s.group || '未分組';
+        document.getElementById('edit-title').value = getTitleDisplay(s.title);
+        const genderRadios = document.getElementsByName('editGender');
+        for(let r of genderRadios) r.checked = (r.value === (s.gender || 'male'));
+        document.getElementById('edit-student-modal').style.display = 'flex';
+    }
+
+    function saveStudentEdit() {
+        const id = Number(document.getElementById('edit-id').value);
+        const newName = document.getElementById('edit-name').value.trim();
+        const newGroup = document.getElementById('edit-group').value || '未分組';
+        const newTitleRaw = document.getElementById('edit-title').value.trim();
+        const matchedTitle = Object.values(TITLES).find(t => t.name === newTitleRaw);
+        const genderRadios = document.getElementsByName('editGender');
+        let newGender = 'male'; for(let r of genderRadios) if(r.checked) newGender = r.value;
+        const s = getStudentById(id);
+        if (s && newName) {
+            s.name = newName;
+            s.group = newGroup;
+            s.gender = newGender;
+            s.title = matchedTitle ? matchedTitle.id : newTitleRaw;
+            markDirtyAndSave(false);
+            renderGrid();
+            document.getElementById('edit-student-modal').style.display = 'none';
+            showNotify("弟子資料已更新！");
+        }
+    }
+
+    function confirmDeleteStudent() {
+        const id = Number(document.getElementById('edit-id').value);
+        const s = getStudentById(id);
+        if (!s) return;
+        showCustomModal({
+            title: "逐出宗門",
+            msg: `確定要逐出弟子【${s.name}】嗎？\n此動作無法復原。`,
+            showCancel: true,
+            confirmText: "確定逐出",
+            onConfirm: () => {
+                students = students.filter(st => st.id !== id);
+                teachingConfig.pickedStudentIds = teachingConfig.pickedStudentIds.filter(pid => pid !== id);
+                markDirtyAndSave(false);
+                renderGrid();
+                document.getElementById('edit-student-modal').style.display = 'none';
+                showNotify(`弟子 ${s.name} 已離開宗門。`);
+            }
+        });
+    }
+
+    // ====== 【構想二-2】支援排序與篩選的卡片渲染 ======
+    function renderGrid() {
+        const grid = document.getElementById('studentGrid');
+        grid.innerHTML = '';
+
+        const searchQ = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+        const sortBy = document.getElementById('sortSelect')?.value || 'default';
+        const filterGrp = document.getElementById('filterGroup')?.value || 'ALL';
+        const onlyTicket = document.getElementById('filterHasTicket')?.checked || false;
+
+        let displayList = students.filter(s => {
+            if (searchQ && !s.name.toLowerCase().includes(searchQ) && !(s.group || '').toLowerCase().includes(searchQ)) return false;
+            if (filterGrp !== 'ALL' && (s.group || '未分組') !== filterGrp) return false;
+            if (onlyTicket && countStudentTickets(s) === 0) return false;
+            return true;
+        });
+
+        if (sortBy === 'seat_asc') {
+            displayList.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant', { numeric: true }));
+        } else if (sortBy === 'level_desc') {
+            displayList.sort((a, b) => (b.exp || 0) - (a.exp || 0));
+        } else if (sortBy === 'coins_desc') {
+            displayList.sort((a, b) => (Number(b.coins) || 0) - (Number(a.coins) || 0));
+        } else if (sortBy === 'cp_desc') {
+            displayList.sort((a, b) => calculateCP(b) - calculateCP(a));
+        }
+
+        const countInfo = document.getElementById('student-count-info');
+        if (countInfo) countInfo.innerText = `顯示 ${displayList.length} / ${students.length} 位弟子`;
+
+        if (displayList.length === 0) {
+            grid.innerHTML = `<div class="pixel-border" style="grid-column:1/-1; background:var(--panel-bg); padding:32px; text-align:center; color:var(--text-brown); font-size:1.05rem;">
+                ${students.length === 0 ? '尚無弟子，請點選右上角「🔑 師尊登入」（預設口令 admin）開始招收或批量生成班級！' : '沒有符合目前篩選條件的弟子。'}
+            </div>`;
+            return;
+        }
+
+        displayList.forEach(s => {
+            const info = getStudentInfo(s);
+            const tName = getTitleDisplay(s.title);
+            const ticketCount = countStudentTickets(s);
+            let companionHtml = '';
+            if (s.equipped && s.equipped.pet) {
+                const petData = getItemData(s.equipped.pet);
+                if(petData) companionHtml += `<img src="${petData.src || petData.icon}" class="companion-img companion-pet" onerror="this.src='${FALLBACK_ICONS.pet}';this.onerror=null;">`;
+            }
+            if (s.equipped && s.equipped.sword) {
+                const swordData = getItemData(s.equipped.sword);
+                if(swordData) companionHtml += `<img src="${swordData.src || swordData.icon}" class="companion-img companion-sword" onerror="this.src='${FALLBACK_ICONS.sword}';this.onerror=null;">`;
+            }
+            const auraClass = info.level >= 70 ? 'aura-high' : (info.level >= 40 ? 'aura-mid' : 'aura-low');
+            const card = document.createElement('div');
+            card.className = 'student-card pixel-border';
+            card.id = `card-id-${s.id}`;
+            card.innerHTML = `
+                <button class="card-edit-btn teacher-only" title="編輯弟子資料" onclick="openEditModal(${s.id})">⚙️</button>
+                <div class="card-header">
+                    <div class="student-name-box">
+                        <div class="student-name">${escapeHtml(s.name)}</div>
+                        <div class="badge-row">
+                            ${s.group && s.group !== '未分組' ? `<span class="group-badge">${escapeHtml(s.group)}</span>` : ''}
+                            ${tName ? `<span class="title-badge">${escapeHtml(tName)}</span>` : ''}
+                            ${ticketCount > 0 ? `<span class="ticket-badge" title="持有未使用的特權卡">🎫×${ticketCount}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="level-badge">Lv.${info.level}</div>
+                </div>
+                <div class="avatar-area ${auraClass}">
+                    <img src="${info.avatar}" class="avatar-img" onerror="this.src='${info.fallbackAvatar}';this.onerror=null;">
+                    ${companionHtml}
+                </div>
+                <div class="stat-row"><span class="stat-label">修為</span><div class="bar-container"><div class="bar-fill bar-exp" style="width: ${info.pct}%"></div></div><span class="stat-value">${info.expText}</span></div>
+                <div class="stat-row"><span class="stat-label">妖丹</span><div class="coin-display">💰 ${s.coins || 0}</div></div>
+                <div class="common-actions">
+                    <button class="pixel-btn info action-btn-small" onclick="openInventory(${s.id})">🎒 行囊 (${(s.inventory||[]).length})</button>
+                    <button class="pixel-btn action-btn-small" onclick="openHistoryModal(${s.id})">📜 修煉日誌</button>
+                </div>
+                <div class="card-actions teacher-only">
+                    <button class="pixel-btn success action-btn-small" onclick="updateExpById(${s.id}, 30, '表現良好')">+30 表現</button>
+                    <button class="pixel-btn success action-btn-small" onclick="updateExpById(${s.id}, 100, '表現優秀')">+100 優秀</button>
+                    <button class="pixel-btn action-btn-small btn-deduct-exp" style="color:#ff8a8a; border-color:#581212" onclick="updateExpById(${s.id}, -30, '常規扣分')">-30 扣分</button>
+                    <button class="pixel-btn action-btn-small gold" onclick="updateCoinsById(${s.id}, 50, '善行賞賜')">+50 妖丹</button>
+                    <button class="pixel-btn action-btn-small primary" onclick="updateCoinsById(${s.id}, -50, '扣除妖丹')">-50 妖丹</button>
+                    <button class="pixel-btn action-btn-small success" onclick="updateExpById(${s.id}, 300, '奇遇獎勵')">+300 奇遇</button>
+                    <button class="pixel-btn action-btn-small info" style="grid-column: 1 / -1;" onclick="openTitleModal(${s.id})">👑 授予稱號</button>
+                </div>`;
+            grid.appendChild(card);
+        });
+        updateTeacherUI();
+    }
+
+    // ====== 歷練：公平點名 + 題庫匯入 + 倒數計時 ======
+    function updatePickPoolUI() {
+        teachingConfig.pickedStudentIds = (teachingConfig.pickedStudentIds || []).filter(id => students.some(s => s.id === id));
+        const remain = Math.max(0, students.length - teachingConfig.pickedStudentIds.length);
+        document.getElementById('pick-pool-status').innerText = `本輪剩餘待抽：${remain} / ${students.length} 人`;
+        document.getElementById('q-count-badge').innerText = (teachingConfig.questionBank || []).length;
+    }
+
+    function resetPickPool() {
+        teachingConfig.pickedStudentIds = [];
+        markDirtyAndSave(false);
+        updatePickPoolUI();
+        showNotify("🔄 本輪點名池已重置，全班皆可再次抽籤！");
+    }
+
+    function openQuestionModal() {
+        playSfx(sfxClick, 'click');
+        document.getElementById('question-bank-input').value = (teachingConfig.questionBank || []).map(q => q.a ? `${q.q} | ${q.a}` : q.q).join('\n');
+        document.getElementById('battle-timer-sec').value = String(teachingConfig.battleTimerSec ?? 15);
+        document.getElementById('question-modal').style.display = 'flex';
+    }
+
+    function fillSampleQuestions() {
+        document.getElementById('question-bank-input').value = [
+            "請用「不但……而且……」造一個完整句子 | 老師現場判定",
+            "8 × 9 = ? | 72",
+            "120 ÷ 6 = ? | 20",
+            "英文單字「school」怎麼拼？ | s-c-h-o-o-l",
+            "請說出一個形容「努力學習」的四字成語 | 孜孜不倦、懸梁刺股、手不釋卷等"
+        ].join('\n');
+    }
+
+    function saveQuestionBank() {
+        const raw = document.getElementById('question-bank-input').value;
+        teachingConfig.questionBank = raw.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+            const parts = line.split('|');
+            return { q: parts[0].trim(), a: (parts[1] || '').trim() };
+        });
+        teachingConfig.battleTimerSec = parseInt(document.getElementById('battle-timer-sec').value) || 0;
+        markDirtyAndSave(false);
+        updatePickPoolUI();
+        document.getElementById('question-modal').style.display = 'none';
+        showNotify(`📝 已保存 ${teachingConfig.questionBank.length} 題至歷練題庫！`);
+    }
+
+    function stopBattleTimer() {
+        if (battleTimerInterval) { clearInterval(battleTimerInterval); battleTimerInterval = null; }
+    }
+
+    function startBattleTimer() {
+        stopBattleTimer();
+        const total = Number(teachingConfig.battleTimerSec) || 0;
+        const wrap = document.getElementById('battle-timer-wrap');
+        const bar = document.getElementById('battle-timer-bar');
+        const txt = document.getElementById('battle-timer-text');
+        if (total <= 0) { wrap.style.display = 'none'; txt.innerText = ''; return; }
+        wrap.style.display = 'block';
+        let left = total;
+        txt.innerText = `⏱️ 剩餘 ${left} 秒`;
+        bar.style.width = '100%';
+        battleTimerInterval = setInterval(() => {
+            left--;
+            txt.innerText = left > 0 ? `⏱️ 剩餘 ${left} 秒` : '⏰ 時間到！';
+            bar.style.width = `${Math.max(0, (left / total) * 100)}%`;
+            if (left > 0 && left <= 5) playSynthFallback('tick');
+            if (left <= 0) {
+                stopBattleTimer();
+                playSynthFallback('alarm');
+            }
+        }, 1000);
+    }
+
+    function openBattleModal() {
+        if(students.length === 0) { showNotify("宗門無人，無法歷練！"); return; }
+        playSfx(sfxClick, 'click'); playBGM('battle');
+        stopBattleTimer();
+        const bgUrl = BATTLE_BG[Math.floor(Math.random() * BATTLE_BG.length)];
+        document.getElementById('battle-stage').style.backgroundImage = `url('${bgUrl}')`;
+        const modal = document.getElementById('battle-modal');
+        if (Math.random() < 0.2) { isTreasureEncounter = true; setupTreasureEncounter(); } else { isTreasureEncounter = false; setupMonsterEncounter(); }
+        document.getElementById('fighter-student').style.opacity = '0';
+        document.getElementById('battle-question-box').style.display = 'none';
+        document.getElementById('battle-controls-start').style.display = 'flex';
+        document.getElementById('battle-controls-judge').style.display = 'none';
+        updatePickPoolUI();
+        modal.style.display = 'flex';
+    }
+
+    function setupMonsterEncounter() {
+        currentMonster = MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
+        const monsterImg = document.getElementById('battle-monster-img');
+        monsterImg.src = currentMonster.src; monsterImg.className = ''; monsterImg.style.opacity = '1';
+        monsterImg.onerror = function() { this.src = FALLBACK_ICONS.monster; this.onerror = null; };
+        document.getElementById('battle-monster-name').innerText = currentMonster.name;
+        document.getElementById('battle-msg').innerText = `遭遇了野生 ${currentMonster.name}！`;
+    }
+
+    function setupTreasureEncounter() {
+        currentMonster = null;
+        const monsterImg = document.getElementById('battle-monster-img');
+        monsterImg.src = BASE_URL + "images/ui/icon_shop_pixel.png";
+        monsterImg.onerror = function() { this.src = FALLBACK_ICONS.chest; this.onerror = null; };
+        monsterImg.className = 'treasure-chest'; monsterImg.style.opacity = '1';
+        document.getElementById('battle-monster-name').innerText = "神秘寶箱";
+        document.getElementById('battle-msg').innerText = `發現了一個神秘寶箱！`;
+        spawnBattleFx('lightning');
+    }
+
+    function closeBattleModal() {
+        stopBattleTimer();
+        playSfx(sfxClick, 'click'); playBGM('main');
+        document.getElementById('battle-modal').style.display = 'none';
+    }
+
+    function pickRandomStudent() {
+        playSfx(sfxClick, 'click');
+        const noRepeat = document.getElementById('chk-no-repeat').checked;
+        let candidates = students;
+        if (noRepeat) {
+            candidates = students.filter(s => !teachingConfig.pickedStudentIds.includes(s.id));
+            if (candidates.length === 0) {
+                teachingConfig.pickedStudentIds = [];
+                candidates = students;
+                showNotify("✨ 全班已完成一輪歷練，自動開啟新一輪！");
+            }
+        }
+        const winner = candidates[Math.floor(Math.random() * candidates.length)];
+
+        document.getElementById('battle-controls-start').style.display = 'none';
+        document.getElementById('battle-msg').innerText = "天道輪盤轉動中...";
+        let speed = 50; let totalTime = 0; const maxTime = 1800;
+        (function animateRoll() {
+            const preview = students[Math.floor(Math.random() * students.length)];
+            const info = getStudentInfo(preview);
+            const sImg = document.getElementById('battle-student-img');
+            document.getElementById('battle-student-name').innerText = preview.name;
+            sImg.src = info.battleAvatar;
+            sImg.onerror = function() { this.src = info.fallbackAvatar; this.onerror = null; };
+            document.getElementById('fighter-student').style.opacity = '1';
+            totalTime += speed;
+            if (totalTime < maxTime) { speed += 12; setTimeout(animateRoll, speed); }
+            else finalizePick(winner.id, noRepeat);
+        })();
+    }
+
+    function finalizePick(studentId, noRepeat) {
+        currentBattleStudentId = studentId;
+        const student = getStudentById(studentId);
+        if (!student) return;
+        const info = getStudentInfo(student);
+        const sImg = document.getElementById('battle-student-img');
+        document.getElementById('battle-student-name').innerText = student.name;
+        sImg.src = info.battleAvatar;
+        sImg.onerror = function() { this.src = info.fallbackAvatar; this.onerror = null; };
+
+        if (noRepeat && !teachingConfig.pickedStudentIds.includes(student.id)) {
+            teachingConfig.pickedStudentIds.push(student.id);
+            markDirtyAndSave(false);
+            updatePickPoolUI();
+        }
+
+        const flash = document.getElementById('battle-flash'); flash.style.animation = 'flash 0.5s'; setTimeout(() => flash.style.animation = '', 500);
+        document.getElementById('battle-msg').innerText = isTreasureEncounter ? `${student.name} 嘗試開啟寶箱！` : `${student.name} 挺身而出！`;
+
+        const qBox = document.getElementById('battle-question-box');
+        if (teachingConfig.questionBank && teachingConfig.questionBank.length > 0) {
+            const qObj = teachingConfig.questionBank[Math.floor(Math.random() * teachingConfig.questionBank.length)];
+            document.getElementById('battle-question-text').innerText = `❓ ${qObj.q}`;
+            const ansEl = document.getElementById('battle-answer-text');
+            ansEl.style.display = 'none';
+            ansEl.innerText = qObj.a ? `💡 參考解答：${qObj.a}` : '（本題未設定文字解答）';
+            document.getElementById('btn-reveal-ans').style.display = 'inline-block';
+            qBox.style.display = 'block';
+            startBattleTimer();
+        } else {
+            qBox.style.display = 'none';
+        }
+
+        document.getElementById('battle-controls-judge').style.display = 'block';
+        playSfx(sfxLevelUp, 'levelup');
+    }
+
+    function revealBattleAnswer() {
+        document.getElementById('battle-answer-text').style.display = 'block';
+        document.getElementById('btn-reveal-ans').style.display = 'none';
+    }
+
+    function resolveBattle(isWin) {
+        stopBattleTimer();
+        const s = getStudentById(currentBattleStudentId);
+        if (!s) return;
+        const monsterImg = document.getElementById('battle-monster-img');
+        const studentImg = document.getElementById('battle-student-img');
+        if(isWin) {
+            playSfx(sfxWin, 'levelup'); monsterImg.classList.add('shake-effect');
+            playHitEffect(monsterImg, '#ffd45a');
+            let expGain = 50; let coinGain = 50;
+            if (isTreasureEncounter) {
+                expGain = 100; coinGain = 200;
+                document.getElementById('battle-msg').innerText = `開啟成功！獲得 ${expGain} Exp / ${coinGain} 妖丹！`;
+                checkWeaponDrop(s.id, true);
+            } else {
+                document.getElementById('battle-msg').innerText = `回答正確！獲得 ${expGain} Exp / ${coinGain} 妖丹！`;
+                checkWeaponDrop(s.id, false);
+            }
+            updateExpById(s.id, expGain, isTreasureEncounter ? '開啟神秘寶箱' : `歷練擊敗${currentMonster?.name || '妖獸'}`);
+            s.coins = parseInt(s.coins || 0) + coinGain;
+            addStudentLog(s, 'plus', `+${coinGain} 妖丹`, isTreasureEncounter ? '寶箱妖丹獎勵' : '歷練戰利品');
+            markDirtyAndSave(false);
+            renderGrid();
+            setTimeout(() => { monsterImg.classList.remove('shake-effect'); monsterImg.style.opacity = '0'; setTimeout(closeBattleModal, 1300); }, 500);
+        } else {
+            playSfx(sfxAttack, 'click'); studentImg.classList.add('shake-effect');
+            playHitEffect(studentImg, '#ff6b6b');
+            document.getElementById('battle-msg').innerText = isTreasureEncounter ? "開啟失敗！寶箱消失了..." : "回答錯誤！受到傷害！";
+            setTimeout(() => { studentImg.classList.remove('shake-effect'); closeBattleModal(); }, 1400);
+        }
+        document.getElementById('battle-controls-judge').style.display = 'none';
+    }
+
+    function spawnBattleFx(type='lightning') {
+        const stage = document.getElementById('battle-stage');
+        const fx = document.createElement('div');
+        fx.style.position = 'absolute'; fx.style.inset = '0'; fx.style.pointerEvents = 'none'; fx.style.zIndex = '5';
+        if (type === 'lightning') {
+            fx.style.background = 'radial-gradient(circle at 60% 20%, rgba(120,180,255,0.35) 0%, rgba(0,0,0,0) 45%)';
+            fx.style.animation = 'flash 0.4s ease-out';
+        } else if (type === 'fire') {
+            fx.style.background = 'radial-gradient(circle at 40% 80%, rgba(255,140,60,0.35) 0%, rgba(0,0,0,0) 45%)';
+            fx.style.animation = 'flash 0.6s ease-out';
+        }
+        stage.appendChild(fx); setTimeout(()=>fx.remove(), 450);
+    }
+
+    function checkWeaponDrop(studentId, guaranteed = false) {
+        const s = getStudentById(studentId);
+        if (!s) return;
+        if (guaranteed || Math.random() < 0.05) {
+            const keys = Object.keys(ITEMS).filter(k => ITEMS[k].type === 'sword');
+            const randomItemKey = keys[Math.floor(Math.random() * keys.length)];
+            if (!s.inventory) s.inventory = [];
+            if (!s.inventory.includes(randomItemKey)) {
+                s.inventory.push(randomItemKey);
+                const item = ITEMS[randomItemKey];
+                addStudentLog(s, 'plus', '掉落神兵', `歷練獲得【${item.name}】`);
+                markDirtyAndSave(false);
+                const overlay = document.getElementById('item-get-overlay');
+                const dropImg = document.getElementById('item-get-img');
+                dropImg.src = item.icon;
+                dropImg.onerror = function() { this.src = FALLBACK_ICONS.sword; this.onerror = null; };
+                document.getElementById('item-get-name').innerText = `獲得神兵：${item.name}！`;
+                document.getElementById('item-get-desc').innerText = `戰鬥力 +${item.cp}`;
+                overlay.style.display = 'flex';
+                playSfx(sfxGetItem, 'levelup');
+            }
+        }
+    }
+
+    function playHitEffect(targetImg, color = '#ffd700') {
+        if (!targetImg || !targetImg.parentElement) return;
+        const spark = document.createElement('div');
+        spark.className = 'hit-spark';
+        spark.style.background = `radial-gradient(circle, ${color} 0%, rgba(255,255,255,0.35) 40%, rgba(255,255,255,0) 70%)`;
+        spark.style.left = '50%'; spark.style.top = '50%'; spark.style.transform = 'translate(-50%,-50%)';
+        targetImg.parentElement.appendChild(spark);
+        targetImg.classList.add('damage-flash');
+        setTimeout(() => { spark.remove(); targetImg.classList.remove('damage-flash'); }, 500);
+    }
+
+    function showFloatTextById(text, studentId, color = '#ffd700') {
+        const card = document.getElementById(`card-id-${studentId}`);
+        if(card) {
+            const floatEl = document.createElement('div');
+            floatEl.className = 'float-text';
+            floatEl.style.color = color;
+            floatEl.innerText = text;
+            floatEl.style.left = '50%'; floatEl.style.top = '45%';
+            card.appendChild(floatEl);
+            setTimeout(() => floatEl.remove(), 1600);
+        }
+    }
+    function showLevelUpEffect() { const overlay = document.getElementById('level-up-overlay'); overlay.style.display = 'flex'; setTimeout(() => overlay.style.display = 'none', 2000); }
+
+    function exportToFile() {
+        try {
+            const payload = { version: '7.6', students, teachingConfig };
+            const dataStr = JSON.stringify(payload, null, 4);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const downloadLink = document.createElement('a');
+            downloadLink.href = url;
+            downloadLink.download = 'save.json';
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            URL.revokeObjectURL(url);
+            showNotify("💾 成功匯出 save.json 檔案（含分組、日誌、題庫與大屏偏好）！");
+        } catch (error) {
+            showNotify("❌ 匯出檔案失敗！");
+            console.error(error);
+        }
+    }
+
+    function importFromFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                if (Array.isArray(importedData)) {
+                    students = importedData.map((s, idx) => normalizeStudent(s, idx));
+                } else if (importedData && Array.isArray(importedData.students)) {
+                    students = importedData.students.map((s, idx) => normalizeStudent(s, idx));
+                    if (importedData.teachingConfig && typeof importedData.teachingConfig === 'object') {
+                        teachingConfig = Object.assign(teachingConfig, importedData.teachingConfig);
+                    }
+                } else {
+                    showCustomModal({ title: "匯入失敗", msg: "檔案格式不符，請選擇正確的宗門進度 JSON 檔案。" });
+                    return;
+                }
+                applyBigScreenUI();
+                saveData(false);
+                renderGrid();
+                showNotify(`📥 成功讀取並匯入 ${students.length} 位弟子進度！`);
+            } catch (error) {
+                showCustomModal({ title: "解析失敗", msg: "無法解析此檔案，請確認它是有效的 JSON 存檔。" });
+                console.error(error);
+            }
+            event.target.value = '';
+        };
+        reader.readAsText(file);
+    }
+
+    function resetAll() {
+        showCustomModal({
+            title: "解散宗門", msg: "確定要燒毀名冊？所有資料將消失。", showCancel: true, confirmText: "確定重置",
+            onConfirm: () => {
+                localStorage.removeItem('wuxia_class_data');
+                localStorage.removeItem('wuxia_teaching_config');
+                students = [];
+                teachingConfig.pickedStudentIds = [];
+                isDirty = false;
+                renderGrid();
+                showNotify("一切回歸虛無...");
+            }
+        });
+    }
+
+    let notifyTimer = null;
+    function showNotify(msg) {
+        const bar = document.getElementById('notification-bar');
+        bar.innerText = msg;
+        bar.style.opacity = '1';
+        clearTimeout(notifyTimer);
+        notifyTimer = setTimeout(() => { bar.style.opacity = '0'; }, 2800);
+    }
+</script>
+</body>
+</html>
