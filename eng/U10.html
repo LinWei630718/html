@@ -672,105 +672,133 @@
 
   .speak-btn:hover { background: var(--blue-soft); }
   .speak-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #b8d5ff; }
-  .speak-btn.speaking { background: var(--gold-soft); border-color: var(--gold); color: var(--gold-deep); }
+  .speak-btn.speaking {
+    background: var(--gold-soft);
+    border-color: var(--gold);
+    color: var(--gold-deep);
+    box-shadow: 0 4px 0 #e5a300, 0 0 0 5px rgba(255, 183, 3, 0.25);
+    animation: speakPulse 0.9s ease-in-out infinite;
+  }
 
-  /* 答案空格區 */
+  @keyframes speakPulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 4px 0 #e5a300, 0 0 0 4px rgba(255, 183, 3, 0.22);
+    }
+    50% {
+      transform: scale(1.06);
+      box-shadow: 0 4px 0 #e5a300, 0 0 0 10px rgba(255, 183, 3, 0.42);
+    }
+  }
+
+  /* 拼字答案格 */
   .answer-slots {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
     gap: 10px;
-    min-height: 68px;
-    margin-bottom: 20px;
+    min-height: 64px;
+    margin-bottom: 22px;
   }
 
   .slot {
-    width: 58px;
-    height: 64px;
-    border-radius: 18px;
-    background: var(--gold-soft);
+    width: 54px;
+    height: 60px;
+    border-radius: 16px;
+    background: #fff9e6;
     border: 3px solid var(--gold);
-    box-shadow: 0 5px 0 #e5a300;
+    box-shadow: 0 4px 0 #e5a300;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: var(--font-en);
     font-weight: 700;
-    font-size: 32px;
+    font-size: 28px;
     color: var(--ink);
     cursor: pointer;
-    user-select: none;
-    transition: transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease, border-color 0.2s ease;
+    padding: 0;
+    transition: transform 0.14s ease, box-shadow 0.14s ease, background 0.15s ease;
   }
 
   .slot:hover:not(.empty) {
     transform: translateY(-2px);
-    background: #ffedb3;
+    background: #fff1bf;
   }
 
   .slot:active:not(.empty) {
-    transform: scale(0.92);
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #e5a300;
   }
 
   .slot.empty {
-    background: #f5f9ff;
+    background: #f4f8ff;
     border: 3px dashed #aacbff;
-    box-shadow: inset 0 3px 6px rgba(58, 134, 255, 0.08);
+    box-shadow: none;
     cursor: default;
   }
 
   .slot.correct-pop {
     background: var(--mint-soft);
     border-color: var(--mint);
-    box-shadow: 0 5px 0 var(--mint-deep);
+    box-shadow: 0 4px 0 var(--mint-deep);
     color: #0e5952;
-    animation: popBounce 0.45s ease;
+    animation: slotPop 0.36s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
-  @keyframes popBounce {
+  @keyframes slotPop {
     0% { transform: scale(1); }
-    45% { transform: scale(1.16) translateY(-4px); }
+    50% { transform: scale(1.16); }
     100% { transform: scale(1); }
   }
 
-  /* 字母按鈕區 */
+  /* 英文字母按鍵區 */
   .letter-bank {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 22px;
+    gap: 10px;
+    margin-bottom: 24px;
   }
 
-  /* 簡易版：超大好點 3D 積木鍵 */
+  .letter-bank.advanced-bank {
+    gap: 8px;
+  }
+
   .tile {
-    width: 58px;
-    height: 64px;
-    border-radius: 18px;
+    width: 54px;
+    height: 58px;
+    border-radius: 16px;
     background: linear-gradient(180deg, #ffffff 0%, #eef5ff 100%);
-    color: var(--ink);
-    border: 3px solid #96c0ff;
-    box-shadow: 0 6px 0 #79aefb, 0 8px 14px rgba(58, 134, 255, 0.15);
+    border: 3px solid #9ec4ff;
+    box-shadow: 0 5px 0 #7fb0ff, 0 6px 12px rgba(58, 134, 255, 0.12);
+    color: var(--blue-deep);
     font-family: var(--font-en);
     font-weight: 700;
-    font-size: 30px;
+    font-size: 26px;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    user-select: none;
-    transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.12s ease, background 0.12s ease;
+    padding: 0;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease;
+  }
+
+  .letter-bank.advanced-bank .tile {
+    width: 46px;
+    height: 50px;
+    font-size: 22px;
+    border-radius: 14px;
   }
 
   .tile:hover:not(:disabled) {
-    transform: translateY(-3px);
-    background: linear-gradient(180deg, #ffffff 0%, #e0eeff 100%);
+    transform: translateY(-2px);
+    background: linear-gradient(180deg, #ffffff 0%, #dcebff 100%);
     border-color: var(--blue);
   }
 
   .tile:active:not(:disabled) {
-    transform: translateY(3px) scale(0.95);
-    box-shadow: 0 2px 0 #79aefb;
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 #7fb0ff;
   }
 
   .tile.used {
@@ -778,45 +806,21 @@
     pointer-events: none;
   }
 
-  /* 加強版 26 鍵：緊湊整齊網格，平板手機不需捲動即可完整看見 */
-  .letter-bank.advanced-bank {
-    display: grid;
-    grid-template-columns: repeat(9, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .letter-bank.advanced-bank .tile {
-    width: 100%;
-    height: 50px;
-    font-size: 24px;
-    border-radius: 14px;
-    border-width: 2.5px;
-    box-shadow: 0 4px 0 #79aefb;
-  }
-
-  .letter-bank.advanced-bank .tile:active:not(:disabled) {
-    transform: translateY(2px) scale(0.95);
-    box-shadow: 0 1px 0 #79aefb;
-  }
-
-  @media (max-width: 600px) {
-    .letter-bank.advanced-bank {
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap: 7px;
-    }
-    .letter-bank.advanced-bank .tile {
-      height: 46px;
-      font-size: 22px;
-    }
+  @media (max-width: 480px) {
     .slot {
-      width: 50px;
-      height: 56px;
-      font-size: 28px;
+      width: 46px;
+      height: 52px;
+      font-size: 24px;
     }
     .tile {
-      width: 52px;
-      height: 58px;
-      font-size: 26px;
+      width: 48px;
+      height: 52px;
+      font-size: 24px;
+    }
+    .letter-bank.advanced-bank .tile {
+      width: 40px;
+      height: 44px;
+      font-size: 20px;
     }
   }
 
@@ -1162,6 +1166,7 @@
     .star-item,
     .tile,
     .slot,
+    .speak-btn.speaking,
     .shake,
     .gentle-shake,
     .confetto,
@@ -1265,25 +1270,27 @@ let bankState = [];              // 字母盤陣列：{ ch, used }
 
 let isTransitioning = false;     // 過場鎖定旗標，避免連點開門或計時器競爭條件
 let nextTimerId = null;          // 切題計時器 ID
+let speechTimerId = null;        // 進入新題目自動朗讀延遲計時器 ID
+let speakAnimFallbackId = null;  // 朗讀按鈕動畫防卡住保底計時器 ID
+let activeSpeakBtn = null;       // 目前正在播放脈動動畫的發音按鈕參考
 
+/* ---- DOM 元素參考 ---- */
 const stage = document.getElementById('stage');
 const caseToggleBtn = document.getElementById('caseToggleBtn');
 const caseBadge = document.getElementById('caseBadge');
 const soundToggleBtn = document.getElementById('soundToggleBtn');
 const soundIcon = document.getElementById('soundIcon');
 const soundLabel = document.getElementById('soundLabel');
-
 const resetModal = document.getElementById('resetModal');
 const cancelResetBtn = document.getElementById('cancelResetBtn');
 const confirmResetBtn = document.getElementById('confirmResetBtn');
 
-/* ---- 3. 進度本機儲存（localStorage + try/catch 保護） ---- */
+/* ---- 3. 本地進度讀寫（localStorage） ---- */
 function loadProgress() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
     const data = JSON.parse(raw);
-
     if (Array.isArray(data.done)) {
       data.done.forEach(n => {
         if (Number.isInteger(n) && n >= 0 && n < TOTAL_NUMBERS) doneSet.add(n);
@@ -1332,13 +1339,36 @@ function saveProgress() {
   }
 }
 
-/* ---- 4. 清除過場計時器（避免切頁後舊計時器誤觸發） ---- */
+/* ---- 4. 清除過場計時器與待播語音（避免切頁後殘留語音或誤觸發） ---- */
+function cancelSpeech() {
+  if (speechTimerId !== null) {
+    clearTimeout(speechTimerId);
+    speechTimerId = null;
+  }
+  if (speakAnimFallbackId !== null) {
+    clearTimeout(speakAnimFallbackId);
+    speakAnimFallbackId = null;
+  }
+  if (activeSpeakBtn) {
+    activeSpeakBtn.classList.remove('speaking');
+    activeSpeakBtn = null;
+  }
+  if (speechSupported) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch (err) {
+      // 安全略過瀏覽器語音取消限制
+    }
+  }
+}
+
 function clearPendingTransition() {
   if (nextTimerId !== null) {
     clearTimeout(nextTimerId);
     nextTimerId = null;
   }
   isTransitioning = false;
+  cancelSpeech();
 }
 
 /* ---- 5. 合成音效引擎（Web Audio API，含 suspended 喚醒與 try/catch） ---- */
@@ -1419,17 +1449,41 @@ const speechSupported = (
 function speakWord(word, triggerBtn = null) {
   if (!speechSupported || !word) return;
   try {
-    window.speechSynthesis.cancel();
+    // 先清除前一次佇列與動畫計時器，避免語音重疊或狀態殘留
+    cancelSpeech();
+
     const utter = new SpeechSynthesisUtterance(word);
     utter.lang = 'en-US';
-    utter.rate = 0.86;   // 稍慢的清晰語速，適合國小三年級聆聽拼讀
+    utter.rate = 0.85;   // 稍慢的清晰語速，適合國小三年級聆聽拼讀
     utter.pitch = 1.05;
 
+    const finishSpeakingAnim = () => {
+      if (speakAnimFallbackId !== null) {
+        clearTimeout(speakAnimFallbackId);
+        speakAnimFallbackId = null;
+      }
+      if (triggerBtn) {
+        triggerBtn.classList.remove('speaking');
+      }
+      if (activeSpeakBtn === triggerBtn) {
+        activeSpeakBtn = null;
+      }
+    };
+
     if (triggerBtn) {
+      activeSpeakBtn = triggerBtn;
       triggerBtn.classList.add('speaking');
-      utter.onend = () => triggerBtn.classList.remove('speaking');
-      utter.onerror = () => triggerBtn.classList.remove('speaking');
+      utter.onstart = () => {
+        if (activeSpeakBtn === triggerBtn) {
+          triggerBtn.classList.add('speaking');
+        }
+      };
+      utter.onend = finishSpeakingAnim;
+      utter.onerror = finishSpeakingAnim;
+      // 保底計時：避免部分瀏覽器未觸發 onend 導致脈動動畫無法停止
+      speakAnimFallbackId = setTimeout(finishSpeakingAnim, 2500);
     }
+
     window.speechSynthesis.speak(utter);
   } catch (err) {
     if (triggerBtn) triggerBtn.classList.remove('speaking');
@@ -1631,7 +1685,8 @@ function renderSelection() {
       roundOrder = shuffle(WORDS.map((_, i) => i));
       roundPos = 0;
       roundWrongCount = 0;
-      renderPuzzle();
+      // 第 1 題於點擊手勢當下立即觸發發音，確保行動裝置瀏覽器也能順利發聲
+      renderPuzzle({ autoSpeakImmediate: true });
     };
   });
 }
@@ -1639,7 +1694,7 @@ function renderSelection() {
 /* ============================================================
  * 10. 畫面三：闖關答題畫面
  * ============================================================ */
-function renderPuzzle() {
+function renderPuzzle({ autoSpeakImmediate = false } = {}) {
   clearPendingTransition();
   currentScreen = 'puzzle';
 
@@ -1683,7 +1738,7 @@ function renderPuzzle() {
       </div>
 
       <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
-      <div class="kbd-hint">💡 電腦也可以直接按鍵盤 A–Z 拼字、Backspace 退回、Enter 開門喔！</div>
+      <div class="kbd-hint">💡 電腦也可以直接按鍵盤 A–Z 拼字、Backspace 退回、空白鍵重聽發音、Enter 開門喔！</div>
     </section>
   `;
 
@@ -1693,6 +1748,21 @@ function renderPuzzle() {
   const speakBtn = document.getElementById('speakBtn');
   if (speakBtn) {
     speakBtn.onclick = () => speakWord(currentWord.en, speakBtn);
+  }
+
+  // 進入每道門作答前自動播放該題英語單字發音（依頂部音效開關決定）
+  if (soundEnabled && speechSupported) {
+    if (autoSpeakImmediate) {
+      speakWord(currentWord.en, speakBtn);
+    } else {
+      // 後續題目短暫延遲 200ms，避免與前一道門的答對音效重疊
+      speechTimerId = setTimeout(() => {
+        speechTimerId = null;
+        if (currentScreen === 'puzzle' && soundEnabled) {
+          speakWord(currentWord.en, document.getElementById('speakBtn'));
+        }
+      }, 200);
+    }
   }
 
   document.getElementById('backBtn').onclick = () => {
@@ -1827,11 +1897,6 @@ function checkAnswer() {
     playCorrect();
     renderSlots(currentWord.en.length, true);
     setFeedback('太棒了！答對了，這道魔法門開了 ✨', 'right');
-
-    // 答對時輕輕唸一次單字加深記憶
-    if (speechSupported) {
-      speakWord(currentWord.en);
-    }
 
     roundPos++;
     nextTimerId = setTimeout(() => {
@@ -2054,11 +2119,15 @@ soundToggleBtn.onclick = () => {
   soundEnabled = !soundEnabled;
   updateToolbarUI();
   saveProgress();
-  if (soundEnabled) playTileClick();
+  if (soundEnabled) {
+    playTileClick();
+  } else {
+    cancelSpeech();
+  }
 };
 
 /* ============================================================
- * 14. 實體鍵盤操作支援（A-Z 輸入、Backspace 刪最後一字、Enter 開門）
+ * 14. 實體鍵盤操作支援（A-Z 輸入、Backspace 刪最後一字、Space 重聽、Enter 開門）
  * ============================================================ */
 document.addEventListener('keydown', (e) => {
   // 若確認彈窗開啟中，僅處理 Escape 關閉彈窗
@@ -2073,6 +2142,14 @@ document.addEventListener('keydown', (e) => {
 
   const currentWord = WORDS[roundOrder[roundPos]];
   if (!currentWord) return;
+
+  if (e.code === 'Space' || e.key === ' ') {
+    e.preventDefault();
+    if (speechSupported) {
+      speakWord(currentWord.en, document.getElementById('speakBtn'));
+    }
+    return;
+  }
 
   if (e.key === 'Enter') {
     e.preventDefault();
